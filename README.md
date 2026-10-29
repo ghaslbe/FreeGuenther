@@ -17,6 +17,7 @@ Ein einfacher Windows-Chat-Client für lokale und Online-Sprachmodelle: [LM Stud
   | OpenRouter | online | `https://openrouter.ai/api` | ja |
 
   API-Schlüssel werden mit Windows DPAPI verschlüsselt gespeichert, nur für das eigene Windows-Konto lesbar.
+- **OpenRouter: Standort der Rechenzentren:** Zur Wahl stehen „Weltweit“, „Nur Europa“ (EU/EWR, Großbritannien, Schweiz) oder „Nur USA“. Mit Region zeigt die Modellliste nur Modelle, die dort laufen, und die Anfragen gehen über `eu.openrouter.ai` bzw. `us.openrouter.ai` ([In-Region-Routing](https://openrouter.ai/docs/guides/features/sovereign-ai)). Ist ein Modell in der Region nicht verfügbar, gibt es einen Fehler statt einer Weiterleitung. Einzelne Länder wie Deutschland bietet OpenRouter nicht an. Laut OpenRouter gehört die Regionen-Bindung zum Business-Tarif.
 - **Chat mit Live-Antwort:** Die Antwort erscheint Wort für Wort (Streaming). Danach wird sie als **Markdown** dargestellt, mit Überschriften, Fettdruck, Listen, Tabellen, Codeblöcken und Links.
 - **Gespeicherte Chats:** Jeder Chat wird in einer SQLite-Datenbank gespeichert und lässt sich links in der Liste wieder aufrufen oder löschen.
 - **„Bisherigen Chatverlauf mitsenden“:** Das Häkchen ist standardmäßig an, so kann man ein Gespräch führen. Ohne Häkchen wird nur die aktuelle Nachricht gesendet.

@@ -45,6 +45,7 @@ public partial class MainWindow : Window
             _chats.Add(chat);
         ChatList.ItemsSource = _chats;
         ProviderCombo.ItemsSource = ProviderInfo.All;
+        RegionCombo.ItemsSource = RegionOption.All;
         ModelCombo.ItemsSource = _models;
         foreach (var row in ParamRows)
             ParamsPanel.Children.Add(row.Element);
@@ -117,7 +118,8 @@ public partial class MainWindow : Window
         var answerView = AddMessageBlock(new ChatMessage("assistant", ""), streaming: true);
 
         List<ChatMessage> toSend = HistoryCheck.IsChecked == true ? _messages.ToList() : [userMsg];
-        var request = new ChatRequest(provider, config.Server, config.ApiKey, config.Model, _settings.SystemPrompt, _settings, toSend);
+        var request = new ChatRequest(provider, config.Server, config.Region, config.ApiKey, config.Model,
+            _settings.SystemPrompt, _settings, toSend);
 
         _cts = new CancellationTokenSource();
         SetBusy(true);
@@ -500,6 +502,7 @@ public partial class MainWindow : Window
         var config = _draft.Config(kind);
         config.Server = ServerBox.Text.Trim().TrimEnd('/');
         config.ApiKey = ApiKeyBox.Password.Trim();
+        config.Region = kind == ProviderKind.OpenRouter ? RegionCombo.SelectedValue as string ?? "" : "";
         if (ModelCombo.SelectedItem is ModelInfo model)
         {
             config.Model = model.Id;
@@ -530,6 +533,10 @@ public partial class MainWindow : Window
             KeyLinkText.Text = info.KeyUrl.Replace("https://", "");
         }
         ApiKeyBox.Password = config.ApiKey;
+        RegionPanel.Visibility = info.Kind == ProviderKind.OpenRouter ? Visibility.Visible : Visibility.Collapsed;
+        _showingProvider = true;
+        RegionCombo.SelectedValue = config.Region;
+        _showingProvider = false;
 
         _temperatureRow.SetSupported(info.SupportsSampling, info.Name);
         _topPRow.SetSupported(info.SupportsSampling, info.Name);
@@ -540,6 +547,14 @@ public partial class MainWindow : Window
         EnsureModelItem(config.Model, config.ModelVision);
         ModelCombo.SelectedValue = config.Model;
         _ = LoadModelsAsync();
+    }
+
+    private bool _showingProvider;
+
+    private async void RegionCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_showingProvider || _shownProvider != ProviderKind.OpenRouter) return;
+        await LoadModelsAsync();
     }
 
     private void DefaultServer_Click(object sender, RoutedEventArgs e) => ServerBox.Text = ShownProvider.DefaultServer;
@@ -595,7 +610,9 @@ public partial class MainWindow : Window
     {
         var info = ShownProvider;
         var key = ApiKeyBox.Password.Trim();
-        if (info.NeedsKey && key.Length == 0)
+        var region = info.Kind == ProviderKind.OpenRouter ? RegionCombo.SelectedValue as string ?? "" : "";
+        // Die OpenRouter-Modellliste ist öffentlich, alle anderen Online-Dienste brauchen dafür den Schlüssel
+        if (info.NeedsKey && key.Length == 0 && info.Kind != ProviderKind.OpenRouter)
         {
             SettingsStatus.Text = $"Für die Modellliste von {info.Name} bitte zuerst den API-Schlüssel eintragen.";
             return;
@@ -607,19 +624,24 @@ public partial class MainWindow : Window
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-            var models = await LlmClient.ListModelsAsync(info, ServerBox.Text, key, cts.Token);
+            var models = await LlmClient.ListModelsAsync(info, ServerBox.Text, region, key, cts.Token);
             if (loadId != _modelLoadId) return; // inzwischen anderer Anbieter gewählt
             _models.Clear();
             foreach (var m in models)
                 _models.Add(m);
-            SettingsStatus.Text = $"{models.Count} Modelle von {info.Name} gefunden.";
+            var where = region.Length > 0 ? $" (nur {RegionOption.Name(region)})" : "";
+            SettingsStatus.Text = $"{models.Count} Modelle von {info.Name}{where} gefunden." +
+                (selected.Length > 0 && models.All(m => m.Id != selected)
+                    ? $" „{selected}“ ist hier nicht verfügbar – bitte ein anderes Modell wählen."
+                    : "");
         }
         catch (Exception ex)
         {
             if (loadId != _modelLoadId) return;
             SettingsStatus.Text = $"Modelle konnten nicht geladen werden: {ex.Message}";
+            // Liste nicht ladbar: bisherige Auswahl trotzdem anzeigen
+            EnsureModelItem(selected, null);
         }
-        EnsureModelItem(selected, null);
         ModelCombo.SelectedValue = selected;
 
         // Bildfähigkeit des aktiven Modells aktualisieren (z. B. nach dem Programmstart)
@@ -654,7 +676,9 @@ public partial class MainWindow : Window
     {
         var vision = CurrentVision;
         var model = _settings.Current.Model;
-        ModelInfoText.Text = $"{ActiveProvider.Name}   ·   {(model.Length > 0 ? model : "kein Modell gewählt")}" + vision switch
+        var region = RegionOption.Name(_settings.Current.Region);
+        var provider = ActiveProvider.Name + (region.Length > 0 ? $" (nur {region})" : "");
+        ModelInfoText.Text = $"{provider}   ·   {(model.Length > 0 ? model : "kein Modell gewählt")}" + vision switch
         {
             true => "   ·   🖼 versteht Bilder",
             false => "   ·   nur Text",

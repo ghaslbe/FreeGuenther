@@ -101,9 +101,23 @@ public sealed record ProviderInfo(
     public static ProviderInfo Get(ProviderKind kind) => All.First(p => p.Kind == kind);
 }
 
+// Regionen-Bindung bei OpenRouter (In-Region-Routing)
+public sealed record RegionOption(string Code, string Label)
+{
+    public static readonly RegionOption[] All =
+    [
+        new("", "Weltweit – alle Hoster"),
+        new("eu", "Nur Europa (EU/EWR, Großbritannien, Schweiz)"),
+        new("us", "Nur USA"),
+    ];
+
+    public static string Name(string code) => code switch { "eu" => "EU", "us" => "USA", _ => "" };
+}
+
 public sealed record ChatRequest(
     ProviderInfo Provider,
     string Server,
+    string Region,
     string ApiKey,
     string Model,
     string SystemPrompt,
@@ -121,9 +135,20 @@ public static class LlmClient
 
     // ---------- Modelllisten ----------
 
-    public static async Task<List<ModelInfo>> ListModelsAsync(ProviderInfo p, string server, string apiKey, CancellationToken ct)
+    // OpenRouter mit Region: statt openrouter.ai die regionale Domain (eu./us.openrouter.ai) verwenden.
+    // Dort wird nur an Rechenzentren in dieser Region weitergeleitet – sonst gibt es einen Fehler.
+    public static string EffectiveServer(ProviderInfo p, string server, string region)
     {
         server = server.Trim().TrimEnd('/');
+        if (p.Kind == ProviderKind.OpenRouter && region.Length > 0 && server == p.DefaultServer)
+            return $"https://{region}.openrouter.ai/api";
+        return server;
+    }
+
+    public static async Task<List<ModelInfo>> ListModelsAsync(ProviderInfo p, string server, string region, string apiKey,
+        CancellationToken ct)
+    {
+        server = EffectiveServer(p, server, region);
         switch (p.Kind)
         {
             case ProviderKind.LmStudio:
@@ -192,7 +217,8 @@ public static class LlmClient
                     .Where(m => m.Id.Length > 0)
                     .OrderBy(m => m.Id)
                     .ToList();
-                models.Insert(0, new ModelInfo("openrouter/auto", true, false));
+                if (region.Length == 0)
+                    models.Insert(0, new ModelInfo("openrouter/auto", true, false));
                 return models;
             }
 
@@ -236,7 +262,7 @@ public static class LlmClient
         if (s.MaxTokens is { } maxTokens)
             body[p.Kind == ProviderKind.OpenAI ? "max_completion_tokens" : "max_tokens"] = (int)maxTokens;
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, r.Server.Trim().TrimEnd('/') + "/v1/chat/completions")
+        using var request = new HttpRequestMessage(HttpMethod.Post, EffectiveServer(p, r.Server, r.Region) + "/v1/chat/completions")
         {
             Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json")
         };

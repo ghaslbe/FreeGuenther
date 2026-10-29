@@ -153,6 +153,21 @@
                         <PasswordBox x:Name="ApiKeyBox"/>
                     </StackPanel>
 
+                    <StackPanel x:Name="RegionPanel">
+                        <TextBlock Style="{StaticResource Heading}" Text="Standort der Rechenzentren"/>
+                        <TextBlock Style="{StaticResource Hint}">
+                            Legt fest, wo deine Anfragen verarbeitet werden. Mit „Nur Europa“ bzw. „Nur USA“ leitet OpenRouter
+                            ausschließlich an Rechenzentren in dieser Region weiter. Ist ein Modell dort nicht verfügbar, gibt es
+                            einen Fehler statt einer Weiterleitung ins Ausland. Die Modellliste zeigt dann nur Modelle, die in der
+                            Region laufen. Einzelne Länder wie Deutschland lassen sich bei OpenRouter nicht wählen.
+                            Laut OpenRouter ist die Regionen-Bindung Teil des Business-Tarifs
+                            (<Hyperlink NavigateUri="https://openrouter.ai/docs/guides/features/sovereign-ai"
+                                        RequestNavigate="Link_RequestNavigate">Details</Hyperlink>).
+                        </TextBlock>
+                        <ComboBox x:Name="RegionCombo" DisplayMemberPath="Label" SelectedValuePath="Code"
+                                  SelectionChanged="RegionCombo_SelectionChanged"/>
+                    </StackPanel>
+
                     <TextBlock Style="{StaticResource Heading}" Text="Modell"/>
                     <TextBlock Style="{StaticResource Hint}">
                         Die Liste kommt direkt vom Anbieter („Liste aktualisieren“, nachdem Adresse und ggf. Schlüssel stimmen).
@@ -231,6 +246,8 @@
                         <Run FontWeight="SemiBold" Text="OpenAI"/>, <Run FontWeight="SemiBold" Text="Anthropic (Claude)"/>,
                         <Run FontWeight="SemiBold" Text="OpenRouter"/> (online): brauchen einen API-Schlüssel und kosten pro Nutzung.
                         Nachrichten und Bilder werden dabei an den jeweiligen Dienst gesendet.<LineBreak/>
+                        Bei OpenRouter kannst du den <Run FontWeight="SemiBold" Text="Standort der Rechenzentren"/> festlegen:
+                        weltweit, nur Europa oder nur USA. Die Modellliste zeigt dann nur Modelle, die dort laufen.<LineBreak/>
                         Die API-Schlüssel werden verschlüsselt gespeichert und sind nur mit deinem Windows-Konto lesbar.
                     </TextBlock>
 

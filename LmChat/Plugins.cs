@@ -18,7 +18,7 @@ namespace LmChat;
 //              die App ruft nur die im Manifest stehenden Adressen auf.
 //  "mcp"     – startet einen MCP-Server (Befehl) bzw. verbindet sich mit einer MCP-Adresse; dessen Werkzeuge
 //              werden übernommen. Kann je nach Server Dateien lesen/ändern → standardmäßig mit Rückfrage.
-//  "builtin" – in LM Chat eingebaute Werkzeuge (z. B. Datum und Uhrzeit).
+//  "builtin" – in FreeGuenther eingebaute Werkzeuge (z. B. Datum und Uhrzeit).
 //
 // Platzhalter in Adressen, Kopfzeilen, Befehlen und im Ergebnistext:
 //  {param}                 Wert, den das Modell übergibt
@@ -196,7 +196,7 @@ public sealed class PluginManager : IAsyncDisposable
 
     static PluginManager()
     {
-        Http.DefaultRequestHeaders.UserAgent.ParseAdd("LmChat/" + Assembly.GetExecutingAssembly().GetName().Version?.ToString(3));
+        Http.DefaultRequestHeaders.UserAgent.ParseAdd("FreeGuenther/" + Assembly.GetExecutingAssembly().GetName().Version?.ToString(3));
     }
 
     public PluginManager(ChatStore store, string folder)
@@ -526,7 +526,7 @@ public sealed class PluginManager : IAsyncDisposable
             : null;
         var payload = new
         {
-            app = "LM Chat",
+            app = "FreeGuenther",
             appVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3),
             sentAt = DateTimeOffset.Now.ToString("o"),
             chat = a.ChatTitle,

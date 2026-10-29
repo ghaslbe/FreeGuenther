@@ -3,7 +3,7 @@
   "name": "Dateien",
   "version": "1.0.0",
   "author": "ghaslbe",
-  "description": "Gibt dem Modell Lesezugriff auf EINEN Ordner deiner Wahl: Dateien auflisten, Textdateien lesen und durchsuchen. Es kann nichts ändern oder löschen. In LM Chat eingebaut, keine Installation nötig. Vor jedem Zugriff wird nachgefragt.",
+  "description": "Gibt dem Modell Lesezugriff auf EINEN Ordner deiner Wahl: Dateien auflisten, Textdateien lesen und durchsuchen. Es kann nichts ändern oder löschen. In FreeGuenther eingebaut, keine Installation nötig. Vor jedem Zugriff wird nachgefragt.",
   "type": "builtin",
   "askBeforeRun": true,
   "settings": [

@@ -1,4 +1,4 @@
-# Baut bei jedem Push auf main die eigenständige LmChat.exe und den Installer LmChat-Setup.exe
+# Baut bei jedem Push auf main die eigenständige FreeGuenther.exe und den Installer FreeGuenther-Setup.exe
 # und legt beide als Release "v<Version>" ab (Version aus LmChat/LmChat.csproj).
 # Gibt es das Release schon, werden nur die Dateien ersetzt.
 name: Build & Release
@@ -38,7 +38,7 @@ jobs:
         run: |
           choco install innosetup --no-progress -y
           $iscc = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-          & $iscc.FullName /Q "/DAppVersion=${{ steps.version.outputs.version }}" "/DSourceDir=$env:GITHUB_WORKSPACE\publish" installer\LmChat.iss
+          & $iscc.FullName /Q "/DAppVersion=${{ steps.version.outputs.version }}" "/DSourceDir=$env:GITHUB_WORKSPACE\publish" installer\FreeGuenther.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Release v<Version> anlegen oder aktualisieren
@@ -48,18 +48,18 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           TAG="v$VERSION"
-          FILES="publish/LmChat-Setup.exe publish/LmChat.exe"
+          FILES="publish/FreeGuenther-Setup.exe publish/FreeGuenther.exe"
           # Altes rollendes Release aus früheren Builds entfernen
           gh release delete latest --cleanup-tag --yes 2>/dev/null || true
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" $FILES --clobber
           else
             gh release create "$TAG" $FILES \
-              --title "LmChat $VERSION" \
+              --title "FreeGuenther $VERSION" \
               --notes "Automatisch gebaut aus Commit ${GITHUB_SHA::7}.
 
-          **LmChat-Setup.exe** – Installer: Startmenü-Eintrag, optional Desktop-Symbol, Deinstallation über die Windows-Einstellungen. Keine Administratorrechte nötig.
-          **LmChat.exe** – portabel: einfach herunterladen und starten, keine Installation.
+          **FreeGuenther-Setup.exe** – Installer: Startmenü-Eintrag, optional Desktop-Symbol, Deinstallation über die Windows-Einstellungen. Keine Administratorrechte nötig. Ersetzt eine vorhandene Installation von „LM Chat“.
+          **FreeGuenther.exe** – portabel: einfach herunterladen und starten, keine Installation.
 
           ⚠ Bei Online-Anbietern (OpenAI, Anthropic, OpenRouter) unbedingt ein Ausgabenlimit für den API-Schlüssel setzen." \
               --target "$GITHUB_SHA" \

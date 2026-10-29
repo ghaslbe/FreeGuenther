@@ -117,7 +117,7 @@ public sealed record RegionOption(string Code, string Label)
 {
     public static readonly RegionOption[] All =
     [
-        new("", "Weltweit – alle Hoster"),
+        new("", "Weltweit – alle Hoster (Standard)"),
         new("hoster-eu", "Europa – über Hoster-Auswahl (jeder Tarif)"),
         new("hoster-de", "Deutschland – über Hoster-Auswahl (jeder Tarif)"),
         new("hoster-us", "USA – über Hoster-Auswahl (jeder Tarif)"),
@@ -871,7 +871,7 @@ public static class LlmClient
         if (p.Kind == ProviderKind.OpenRouter)
         {
             request.Headers.Add("HTTP-Referer", "https://github.com/ghaslbe/lmstudioChatWindows");
-            request.Headers.Add("X-Title", "LM Chat");
+            request.Headers.Add("X-Title", "FreeGuenther");
         }
     }
 

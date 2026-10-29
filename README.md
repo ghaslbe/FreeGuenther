@@ -1,28 +1,30 @@
-# lmstudioChatWindows
+# FreeGuenther
+
+*Früher „LM Chat“ (bis Version 1.17). Updates einfach drüberinstallieren: Der Installer ersetzt die alte App, und beim ersten Start übernimmt FreeGuenther Chats, Einstellungen und Plugins aus `%LOCALAPPDATA%\LmChat`.*
 
 Ein einfacher Windows-Chat-Client für lokale und Online-Sprachmodelle: [LM Studio](https://lmstudio.ai), [Ollama](https://ollama.com), [OpenAI](https://platform.openai.com), [Anthropic (Claude)](https://platform.claude.com) und [OpenRouter](https://openrouter.ai). Er läuft als **eine einzige .exe** und braucht keine Installation und kein .NET auf dem Zielrechner.
 
-![LM Chat: Bild erzeugen und bearbeiten mit OpenRouter](docs/screenshot-bild.png)
+![FreeGuenther: Bild erzeugen und bearbeiten mit OpenRouter](docs/screenshot-bild.png)
 
 *Bild erzeugen und per Folgeanweisung abändern, darunter Anbieter, Modell, Tokens, Dauer und Kosten.*
 
-![LM Chat: Antwort mit Code-Block, Liste und Tabelle](docs/screenshot-code.png)
+![FreeGuenther: Antwort mit Code-Block, Liste und Tabelle](docs/screenshot-code.png)
 
 *Antworten werden als Markdown dargestellt: Code-Blöcke, Listen, Tabellen und Inline-Code.*
 
-![LM Chat: Verbrauchsseite mit Tokens und geschätzten Kosten je Modell](docs/screenshot-verbrauch.png)
+![FreeGuenther: Verbrauchsseite mit Tokens und geschätzten Kosten je Modell](docs/screenshot-verbrauch.png)
 
 *Verbrauch je Modell: Antworten, Tokens und ungefähre Kosten. Das ist nur eine Schätzung, die exakten Kosten stehen im Konto des Anbieters.*
 
-![LM Chat: Willkommensseite beim ersten Start](docs/screenshot-willkommen.png)
+![FreeGuenther: Willkommensseite beim ersten Start](docs/screenshot-willkommen.png)
 
 *Beim ersten Start: Auswahl, ob lokal oder online. Danach führen die Einstellungen Schritt für Schritt weiter.*
 
-![LM Chat: Antwort mit Wetter- und Datums-Plugin](docs/screenshot-wetter.png)
+![FreeGuenther: Antwort mit Wetter- und Datums-Plugin](docs/screenshot-wetter.png)
 
 *Plugins: Das Modell ruft selbst „Datum und Uhrzeit“ und „Wetter“ auf. Unter der Antwort steht, welche Plugins benutzt wurden.*
 
-![LM Chat: Plugin-Seite](docs/screenshot-plugins.png)
+![FreeGuenther: Plugin-Seite](docs/screenshot-plugins.png)
 
 *Plugin-Seite: Jedes Plugin lässt sich einzeln einschalten und einstellen, weitere kommen aus dem Katalog oder per Import.*
 
@@ -30,10 +32,10 @@ Ein einfacher Windows-Chat-Client für lokale und Online-Sprachmodelle: [LM Stud
 
 | Datei | Wofür |
 |---|---|
-| **[LmChat-Setup.exe](https://github.com/ghaslbe/lmstudioChatWindows/releases/latest/download/LmChat-Setup.exe)** (Installer, empfohlen) | Installiert LM Chat mit Startmenü-Eintrag und optionalem Desktop-Symbol. Deinstallation über die Windows-Einstellungen. Keine Administratorrechte nötig, Updates einfach drüberinstallieren. |
-| **[LmChat.exe](https://github.com/ghaslbe/lmstudioChatWindows/releases/latest/download/LmChat.exe)** (portabel) | Ohne Installation, z. B. vom USB-Stick oder zum schnellen Ausprobieren. Herunterladen und starten. |
+| **[FreeGuenther-Setup.exe](https://github.com/ghaslbe/lmstudioChatWindows/releases/latest/download/FreeGuenther-Setup.exe)** (Installer, empfohlen) | Installiert FreeGuenther mit Startmenü-Eintrag und optionalem Desktop-Symbol. Deinstallation über die Windows-Einstellungen. Keine Administratorrechte nötig, Updates einfach drüberinstallieren. |
+| **[FreeGuenther.exe](https://github.com/ghaslbe/lmstudioChatWindows/releases/latest/download/FreeGuenther.exe)** (portabel) | Ohne Installation, z. B. vom USB-Stick oder zum schnellen Ausprobieren. Herunterladen und starten. |
 
-Beide Varianten sind dieselbe App und nutzen dieselben Chats und Einstellungen (`%LOCALAPPDATA%\LmChat`). Alle Versionen findest du unter [Releases](https://github.com/ghaslbe/lmstudioChatWindows/releases).
+Beide Varianten sind dieselbe App und nutzen dieselben Chats und Einstellungen (`%LOCALAPPDATA%\FreeGuenther`). Alle Versionen findest du unter [Releases](https://github.com/ghaslbe/lmstudioChatWindows/releases).
 
 Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann deshalb beim ersten Start warnen. Über „Weitere Informationen“ → „Trotzdem ausführen“ lässt sich die App starten.
 
@@ -53,6 +55,7 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
 - **OpenRouter: Standort der Rechenzentren:** Die Modellliste zeigt nur Modelle, die in der gewählten Region laufen. Es gibt zwei Wege:
   - **Über Hoster-Auswahl (Europa, Deutschland oder USA, jeder Tarif):** Die App ermittelt pro Modell die Hoster-Endpunkte mit bekanntem Standort. Grundlage ist die Region in der Endpunkt-Kennung, z. B. `mistral/eu`, `amazon-bedrock/eu-central-1` oder `google-vertex/us`, ersatzweise die Rechenzentrums-Länder des Hosters. Beim Senden lässt die App per `provider.only` nur diese Endpunkte zu und schaltet Ausweichhoster ab (`allow_fallbacks: false`). Die Standortangaben stammen von OpenRouter und den Hostern und sind nicht garantiert; Endpunkte wie `…/global` gelten als unbekannt und werden ausgeschlossen. Stand Oktober 2026 meldet kein Endpunkt einen Standort in Deutschland, die DE-Liste ist deshalb leer.
   - **Garantiert (Europa oder USA, nur Business-Tarif):** Anfragen gehen über `eu.openrouter.ai` bzw. `us.openrouter.ai` ([In-Region-Routing](https://openrouter.ai/docs/guides/features/sovereign-ai)). Ohne Business-Tarif antwortet OpenRouter mit HTTP 403.
+- **Zustimmung beim ersten Start:** Vor dem ersten Start bestätigt man „Ich stimme zu, dass ich diese Anwendung auf meine eigene Verantwortung nutze“, indem man **JA** eintippt (Schreibweise egal). Jede andere Eingabe oder „Beenden“ schließt die App. Die Zustimmung wird in der Datenbank gespeichert (`settings` → `consent`), danach kommt der Dialog nicht mehr.
 - **Geführte Einrichtung:** Ist noch kein Modell eingerichtet, zeigt die Chat-Seite eine Willkommensseite. Dort wählst du „lokal“ (LM Studio, Ollama: kostenlos, kein Schlüssel) oder „online“ (OpenRouter empfohlen, OpenAI, Anthropic: mit API-Schlüssel und Ausgabenlimit). In den Einstellungen folgt eine Anleitung in 4 Schritten, die abhakt, was schon erledigt ist:
   1. Anbieter wählen
   2. Schlüssel eintragen bzw. Server starten
@@ -80,12 +83,12 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
   - Das Bild erscheint im Chat, mit „Bild kopieren“, „Speichern“ (PNG) und den Kosten, sofern gemeldet. Erzeugte Bilder werden mit dem Chat gespeichert.
 - **Kopieren:** Der Knopf „Kopieren“ unter jeder Antwort legt sie mit Markdown-Formatierung in die Zwischenablage. Code-Blöcke haben einen eigenen Knopf „Kopieren“, der nur den Code kopiert, und werden farbig hervorgehoben (Python, C#/Java/JS/Rust/Go u. a., Shell/PowerShell, SQL, JSON, HTML/XML).
 - **Neu erzeugen:** Unter jeder Antwort stellt „Neu erzeugen“ dieselbe Frage nochmal, mit dem gerade eingestellten Modell. So lassen sich z. B. Modelle vergleichen. Die alte Antwort wird ersetzt.
-- **Bearbeiten:** Unter jeder eigenen Nachricht holt „Bearbeiten“ sie zurück ins Eingabefeld. Die Nachricht und alles danach wird aus dem Chat entfernt; folgen noch weitere Nachrichten, fragt LM Chat vorher nach.
+- **Bearbeiten:** Unter jeder eigenen Nachricht holt „Bearbeiten“ sie zurück ins Eingabefeld. Die Nachricht und alles danach wird aus dem Chat entfernt; folgen noch weitere Nachrichten, fragt FreeGuenther vorher nach.
 - **Gedankengang:** Schickt das Modell seine Denkphase mit (`reasoning`/`reasoning_content`, Claude-Thinking oder `<think>…</think>` im Text), läuft deren Ende während des Wartens in der Statuszeile mit. Danach steht sie eingeklappt über der Antwort und wird mit dem Chat gespeichert. An das Modell zurückgeschickt wird sie nicht.
 - **Chat-Titel:** Nach der ersten Antwort schlägt das Modell einen kurzen Titel vor (abschaltbar in den Einstellungen unter „System-Prompt“). Bei Online-Anbietern kostet das ein paar Tokens; sie erscheinen unter „Verbrauch“.
 - **Export:** Der Knopf oben rechts im Chat speichert ihn als Markdown oder als HTML. Bilder sind eingebettet, der Gedankengang ist im HTML aufklappbar. Die HTML-Datei lässt sich im Browser drucken bzw. als PDF speichern.
 - **Scrollen:** Scrollt man während einer Antwort nach oben, springt der Chat nicht mehr ans Ende, bis man wieder ganz unten ist.
-- **Dateien anhängen (PDF, Word, Text):** Über „Datei“, Strg+V oder Hineinziehen. LM Chat wandelt die Datei in Text um und schickt ihn mit der Nachricht mit:
+- **Dateien anhängen (PDF, Word, Text):** Über „Datei“, Strg+V oder Hineinziehen. FreeGuenther wandelt die Datei in Text um und schickt ihn mit der Nachricht mit:
   - PDF (über [PdfPig](https://github.com/UglyToad/PdfPig), Apache-2.0)
   - Word `.docx`
   - Text- und Code-Dateien (`.txt`, `.md`, `.csv`, `.json`, `.py`, `.cs` …)
@@ -97,7 +100,7 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
 
   Beispiele sind dabei; anlegen, ändern und löschen geht in den Einstellungen unter „Vorlagen und Personas“.
 - **Modelle vergleichen (eigene Seite):** Dieselbe Frage geht gleichzeitig an zwei Modelle, auch an verschiedene Anbieter (z. B. lokal gegen online). Die Antworten stehen nebeneinander, darunter Dauer, Token/s, Tokens und Kosten (gemeldet, sonst nach Listenpreis geschätzt). Die Auswahl bleibt gespeichert; die Fragen landen nicht in der Chatliste, der Verbrauch wird aber mitgezählt.
-- **Kostenbremse (auf der Seite „Verbrauch“):** Ein eigenes Tages- und/oder Monatsbudget in US-Dollar für alle Online-Anbieter zusammen. Ab 80 % kommt ein Hinweis. Ist das Limit erreicht, fragt LM Chat vor jeder Anfrage an einen Online-Anbieter nach; mit „Hart sperren“ wird ohne Nachfrage nichts mehr gesendet. Lokale Modelle sind nie betroffen. Grundlage ist dieselbe Schätzung wie auf der Verbrauchsseite – das ersetzt nicht das Ausgabenlimit beim Anbieter.
+- **Kostenbremse (auf der Seite „Verbrauch“):** Ein eigenes Tages- und/oder Monatsbudget in US-Dollar für alle Online-Anbieter zusammen. Ab 80 % kommt ein Hinweis. Ist das Limit erreicht, fragt FreeGuenther vor jeder Anfrage an einen Online-Anbieter nach; mit „Hart sperren“ wird ohne Nachfrage nichts mehr gesendet. Lokale Modelle sind nie betroffen. Grundlage ist dieselbe Schätzung wie auf der Verbrauchsseite – das ersetzt nicht das Ausgabenlimit beim Anbieter.
 - **Angaben unter jeder Antwort** (klein, wird mit dem Chat gespeichert):
   - Anbieter und tatsächlich antwortendes Modell, bei OpenRouter auch der Hoster, z. B. `OpenRouter · openai/gpt-6-luna (über OpenAI)`
   - Token pro Sekunde (gemessen ab dem ersten Text- bzw. Denk-Token)
@@ -135,15 +138,15 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
 
       ```json
       {
-        "app": "LM Chat", "appVersion": "1.14.0", "sentAt": "2026-10-29T13:26:06+01:00",
+        "app": "FreeGuenther", "appVersion": "1.14.0", "sentAt": "2026-10-29T13:26:06+01:00",
         "chat": "Titel des Chats", "type": "text | image | text+image",
         "question": "die Frage dazu", "text": "die Antwort (Markdown)",
         "image": { "mimeType": "image/png", "base64": "…" },
         "provider": "OpenRouter", "model": "google/gemini-2.5-flash-image", "note": "optionale Notiz"
       }
       ```
-  - **Weitere herunterladen:** aus dem [Plugin-Katalog](plugins/) (z. B. Wikipedia, Währungsrechner, DeepWiki per MCP), per Datei-Import oder von einer https-Adresse. Vor der Installation zeigt LM Chat, worauf das Plugin zugreift.
-  - **MCP:** Plugins vom Typ MCP binden einen MCP-Server an, per URL (Streamable HTTP) oder als lokales Programm (stdio). Die Anbindung nutzt das offizielle C#-SDK `ModelContextProtocol`. Vor jeder Aktion fragt LM Chat nach.
+  - **Weitere herunterladen:** aus dem [Plugin-Katalog](plugins/) (z. B. Wikipedia, Währungsrechner, DeepWiki per MCP), per Datei-Import oder von einer https-Adresse. Vor der Installation zeigt FreeGuenther, worauf das Plugin zugreift.
+  - **MCP:** Plugins vom Typ MCP binden einen MCP-Server an, per URL (Streamable HTTP) oder als lokales Programm (stdio). Die Anbindung nutzt das offizielle C#-SDK `ModelContextProtocol`. Vor jeder Aktion fragt FreeGuenther nach.
   - **Unterstützte Anbieter:** alle (OpenAI-kompatibel über `tools`/`tool_calls`, Anthropic über `tool_use`), mit bis zu 8 Werkzeugrunden pro Antwort. Ob ein Modell Werkzeuge kann, erkennt die App:
     - LM Studio: `tool_use`
     - Ollama: `tools`
@@ -171,13 +174,13 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
 
 ## ⚠ Wichtig: Kosten absichern
 
-Ein API-Schlüssel ist wie eine Kreditkarte. **Setze bei jedem Schlüssel bzw. Konto unbedingt ein Ausgabenlimit**, bevor du ihn in LM Chat einträgst:
+Ein API-Schlüssel ist wie eine Kreditkarte. **Setze bei jedem Schlüssel bzw. Konto unbedingt ein Ausgabenlimit**, bevor du ihn in FreeGuenther einträgst:
 
 - **OpenRouter:** Jeder Schlüssel kann ein eigenes Guthaben-Limit bekommen ([Schlüssel verwalten](https://openrouter.ai/settings/keys)). Nur so viel Guthaben aufladen wie nötig, automatisches Aufladen ausschalten.
 - **OpenAI:** Budget bzw. Nutzungslimit in den Organisations-Einstellungen ([Limits](https://platform.openai.com/settings/organization/limits)). Automatisches Aufladen ausschalten.
 - **Anthropic:** Ausgabenlimit in der Claude-Konsole ([Limits](https://platform.claude.com/settings/limits)).
 
-Lege für LM Chat einen eigenen Schlüssel an, damit du ihn gezielt sperren kannst. Bei Verdacht auf Missbrauch löschst du ihn sofort beim Anbieter. Die App weist in der Hilfe und beim API-Schlüssel darauf hin, und in den Anbieter-Links steht „⚠ Ausgabenlimit setzen“.
+Lege für FreeGuenther einen eigenen Schlüssel an, damit du ihn gezielt sperren kannst. Bei Verdacht auf Missbrauch löschst du ihn sofort beim Anbieter. Die App weist in der Hilfe und beim API-Schlüssel darauf hin, und in den Anbieter-Links steht „⚠ Ausgabenlimit setzen“.
 
 ## Einrichtung der Anbieter
 
@@ -204,7 +207,7 @@ Welche Feineinstellungen gesendet werden, hängt vom Anbieter ab. Nicht unterst�
 Chats und Einstellungen liegen nur lokal in:
 
 ```
-%LOCALAPPDATA%\LmChat\chats.db
+%LOCALAPPDATA%\FreeGuenther\chats.db
 ```
 
 Die SQLite-Datenbank hat vier Tabellen:
@@ -214,18 +217,18 @@ Die SQLite-Datenbank hat vier Tabellen:
 - `settings`
 - `usage`: Verbrauch je Antwort (Anbieter, Modell, Tokens, gemeldete Kosten), unabhängig von den Chats
 
-Installierte Plugins liegen als JSON-Dateien in `%LOCALAPPDATA%\LmChat\plugins`. Ihr Zustand (an/aus, Einstellungen) steht in der Datenbank unter `settings` → `plugins`.
+Installierte Plugins liegen als JSON-Dateien in `%LOCALAPPDATA%\FreeGuenther\plugins`. Ihr Zustand (an/aus, Einstellungen) steht in der Datenbank unter `settings` → `plugins`.
 
 ## Versionen und Releases
 
 Die Versionsnummer steht in `LmChat/LmChat.csproj` (`<Version>`) und wird bei jeder Änderung hochgezählt. Sie erscheint im Fenstertitel und in der Hilfe.
 
-Bei jedem Push auf `main` baut GitHub Actions (`.github/workflows/release.yml`) die portable `LmChat.exe` und mit [Inno Setup](https://jrsoftware.org/isinfo.php) den Installer `LmChat-Setup.exe` (Skript: `installer/LmChat.iss`). Beide landen im Release `v<Version>`. Gibt es das Release schon, werden nur die Dateien ersetzt.
+Bei jedem Push auf `main` baut GitHub Actions (`.github/workflows/release.yml`) die portable `FreeGuenther.exe` und mit [Inno Setup](https://jrsoftware.org/isinfo.php) den Installer `FreeGuenther-Setup.exe` (Skript: `installer/FreeGuenther.iss`). Beide landen im Release `v<Version>`. Gibt es das Release schon, werden nur die Dateien ersetzt.
 
 Installer lokal bauen (nach `dotnet publish`):
 
 ```
-ISCC.exe /DAppVersion=1.10.0 installer\LmChat.iss
+ISCC.exe /DAppVersion=1.10.0 installer\FreeGuenther.iss
 ```
 
 ## Bauen
@@ -248,14 +251,14 @@ Eigenständige Einzel-.exe erzeugen:
 dotnet publish LmChat -c Release -o LmChat\publish -p:DebugType=none
 ```
 
-Ergebnis: `LmChat\publish\LmChat.exe` (ca. 63 MB, enthält die .NET-Laufzeit).
+Ergebnis: `LmChat\publish\FreeGuenther.exe` (ca. 63 MB, enthält die .NET-Laufzeit).
 
 Das Icon erzeugt `tools\make-icon.ps1` neu.
 
-Zum Testen mit einer anderen bzw. leeren Datenbank (z. B. für die Willkommensseite) die Umgebungsvariable `LMCHAT_DB` setzen:
+Zum Testen mit einer anderen bzw. leeren Datenbank (z. B. für die Willkommensseite) die Umgebungsvariable `FREEGUENTHER_DB` setzen:
 
 ```
-$env:LMCHAT_DB = "$env:TEMP\lmchat-test.db"; .\LmChat\publish\LmChat.exe
+$env:FREEGUENTHER_DB = "$env:TEMP\freeguenther-test.db"; .\LmChat\publish\FreeGuenther.exe
 ```
 
 ## Projektaufbau

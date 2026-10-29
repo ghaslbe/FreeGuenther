@@ -1,7 +1,7 @@
 ﻿<Window x:Class="LmChat.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="LM Chat" Height="760" Width="1180" MinHeight="500" MinWidth="820"
+        Title="FreeGuenther" Height="760" Width="1180" MinHeight="500" MinWidth="820"
         ThemeMode="System" AllowDrop="True" Icon="app.ico"
         Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
         PreviewDragOver="Window_PreviewDragOver" PreviewDrop="Window_PreviewDrop"
@@ -220,7 +220,7 @@
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6,2,0,18">
                 <Image Source="app-logo.png" Width="30" Height="30" RenderOptions.BitmapScalingMode="HighQuality"/>
                 <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="LM Chat" FontSize="17" FontWeight="SemiBold"/>
+                    <TextBlock Text="FreeGuenther" FontSize="17" FontWeight="SemiBold"/>
                     <TextBlock x:Name="SidebarVersion" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                 </StackPanel>
             </StackPanel>
@@ -237,13 +237,13 @@
             <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
                 <RadioButton x:Name="NavChat" Style="{StaticResource NavItem}" Tag="&#xE8BD;" Content="Chat"
                              Checked="Nav_Checked"/>
-                <RadioButton x:Name="NavCompare" Style="{StaticResource NavItem}" Tag="&#xE8A9;" Content="Modelle vergleichen"
-                             Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Tag="&#xE713;" Content="Einstellungen"
                              Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavUsage" Style="{StaticResource NavItem}" Tag="&#xE9D2;" Content="Verbrauch"
                              Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavPlugins" Style="{StaticResource NavItem}" Tag="&#xEA86;" Content="Plugins"
+                             Checked="Nav_Checked"/>
+                <RadioButton x:Name="NavCompare" Style="{StaticResource NavItem}" Tag="&#xE8A9;" Content="Modelle vergleichen"
                              Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavHelp" Style="{StaticResource NavItem}" Tag="&#xE897;" Content="Hilfe"
                              Checked="Nav_Checked"/>
@@ -362,7 +362,7 @@
                             <StackPanel MaxWidth="760" Margin="32,8,32,24" VerticalAlignment="Center">
                                 <Image Source="app-logo.png" Width="56" Height="56" Margin="0,0,0,14"
                                        RenderOptions.BitmapScalingMode="HighQuality"/>
-                                <TextBlock Text="Willkommen bei LM Chat!" FontSize="30" FontWeight="SemiBold"
+                                <TextBlock Text="Willkommen bei FreeGuenther!" FontSize="30" FontWeight="SemiBold"
                                            FontFamily="Segoe UI Variable Display, Segoe UI" HorizontalAlignment="Center"/>
                                 <TextBlock Style="{StaticResource Body}" HorizontalAlignment="Center" TextAlignment="Center"
                                            Margin="0,8,0,20" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
@@ -636,7 +636,21 @@
                                             Achtung: Bei Online-Diensten werden deine Nachrichten und Bilder an den Anbieter gesendet,
                                             und die Nutzung kostet in der Regel Geld.
                                         </TextBlock>
-                                        <PasswordBox x:Name="ApiKeyBox" PasswordChanged="ApiKeyBox_PasswordChanged"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <PasswordBox x:Name="ApiKeyBox" PasswordChanged="ApiKeyBox_PasswordChanged"
+                                                         AutomationProperties.Name="API-Schlüssel"/>
+                                            <TextBox x:Name="ApiKeyPlain" Visibility="Collapsed" FontFamily="Cascadia Mono, Consolas"
+                                                     AutomationProperties.Name="API-Schlüssel im Klartext"/>
+                                            <ToggleButton x:Name="ApiKeyReveal" Grid.Column="1" Margin="6,0,0,0" Padding="10,0"
+                                                          ToolTip="Schlüssel anzeigen bzw. wieder verbergen"
+                                                          AutomationProperties.Name="Schlüssel anzeigen">
+                                                <TextBlock Text="&#xE7B3;" FontFamily="{StaticResource IconFont}" FontSize="14"/>
+                                            </ToggleButton>
+                                        </Grid>
                                         <Border CornerRadius="8" Padding="12,8" Margin="0,8,0,0" Background="#1FF59E0B"
                                                 BorderBrush="#66F59E0B" BorderThickness="1">
                                             <TextBlock TextWrapping="Wrap">
@@ -818,7 +832,7 @@
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource Heading}" Text="⚠ Nur eine Schätzung – keine Abrechnung"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        Die Zahlen zählt LM Chat selbst mit. Sie können von deiner Rechnung abweichen: Manche Anbieter
+                                        Die Zahlen zählt FreeGuenther selbst mit. Sie können von deiner Rechnung abweichen: Manche Anbieter
                                         melden keine Kosten, Preise ändern sich, Rabatte, Caching oder Mindestbeträge fehlen, und Anfragen
                                         aus anderen Programmen oder von anderen Rechnern sind nicht enthalten.<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Die exakten Kosten siehst du nur im Konto des jeweiligen Anbieters:"/>
@@ -834,7 +848,7 @@
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource Heading}" Text="🛑 Kostenbremse"/>
                                     <TextBlock Style="{StaticResource Hint}">
-                                        Ein eigenes Limit in LM Chat, zusätzlich zum Ausgabenlimit beim Anbieter. Ist es erreicht, fragt LM Chat
+                                        Ein eigenes Limit in FreeGuenther, zusätzlich zum Ausgabenlimit beim Anbieter. Ist es erreicht, fragt FreeGuenther
                                         vor jeder Anfrage an einen Online-Anbieter nach – oder sperrt sie ganz. Ab 80 % kommt ein Hinweis.
                                         Grundlage ist die Schätzung von dieser Seite. Lokale Modelle sind nie betroffen. Leer = kein Limit.
                                     </TextBlock>
@@ -978,7 +992,7 @@
                                         Installiere nur Plugins aus Quellen, denen du vertraust.<LineBreak/>
                                         • <Run FontWeight="SemiBold" Text="Web-Plugins"/> rufen nur die angezeigten Adressen ab. Dabei geht das,
                                         was das Modell einträgt (z. B. ein Ortsname), an diesen Dienst.<LineBreak/>
-                                        • <Run FontWeight="SemiBold" Text="Eingebaute Plugins"/> laufen in LM Chat selbst. „Dateien“ kann nur lesen
+                                        • <Run FontWeight="SemiBold" Text="Eingebaute Plugins"/> laufen in FreeGuenther selbst. „Dateien“ kann nur lesen
                                         und nur im freigegebenen Ordner.<LineBreak/>
                                         • <Run FontWeight="SemiBold" Text="MCP-Plugins"/> verbinden sich mit einem MCP-Server bzw. starten ein Programm
                                         auf deinem Rechner – das kann je nach Server viel dürfen. Deshalb wird vor jeder Aktion nachgefragt.<LineBreak/>
@@ -1016,7 +1030,7 @@
                                         oder läuft die Nutzung aus dem Ruder (viele Bilder, sehr lange Antworten, teure Modelle), entstehen
                                         schnell hohe Kosten.<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Setze deshalb unbedingt bei jedem Schlüssel bzw. Konto ein Ausgabenlimit,"/>
-                                        bevor du ihn in LM Chat einträgst:<LineBreak/>
+                                        bevor du ihn in FreeGuenther einträgst:<LineBreak/>
                                         •
                                         <Hyperlink NavigateUri="https://openrouter.ai/settings/keys" RequestNavigate="Link_RequestNavigate">OpenRouter</Hyperlink>:
                                         Jeder Schlüssel kann ein eigenes Guthaben-Limit bekommen – beim Anlegen bzw. Bearbeiten des Schlüssels eintragen.
@@ -1028,9 +1042,9 @@
                                         <Hyperlink NavigateUri="https://platform.claude.com/settings/limits" RequestNavigate="Link_RequestNavigate">Anthropic</Hyperlink>:
                                         In der Claude-Konsole unter „Limits“ ein Ausgabenlimit (Spend Limit) festlegen.<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Außerdem:"/>
-                                        Für LM Chat einen eigenen Schlüssel anlegen (nicht denselben wie für andere Programme) – dann lässt er sich
+                                        Für FreeGuenther einen eigenen Schlüssel anlegen (nicht denselben wie für andere Programme) – dann lässt er sich
                                         gezielt sperren. Bei Verdacht auf Missbrauch den Schlüssel sofort beim Anbieter löschen und einen neuen
-                                        erstellen. Die Kosten jeder Antwort zeigt LM Chat unter der Antwort, sofern der Anbieter sie meldet;
+                                        erstellen. Die Kosten jeder Antwort zeigt FreeGuenther unter der Antwort, sofern der Anbieter sie meldet;
                                         eine Übersicht je Modell gibt es unter „Verbrauch“ – beides nur als Schätzung, verbindlich ist
                                         allein die Abrechnung im Konto des Anbieters.<LineBreak/>
                                         Lokale Anbieter (LM Studio, Ollama) brauchen keinen Schlüssel und kosten nichts.
@@ -1055,7 +1069,7 @@
                                         Voraussetzung: ein Modell, das Werkzeuge aufrufen kann (in der Modellliste mit 🔧). Kann es das nicht,
                                         kommt die Antwort ohne Plugins und ein Hinweis erscheint.<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="MCP:"/> Plugins vom Typ MCP verbinden sich mit einem MCP-Server (Model Context
-                                        Protocol). Weil der Server viel dürfen kann, fragt LM Chat vor jeder Aktion nach.
+                                        Protocol). Weil der Server viel dürfen kann, fragt FreeGuenther vor jeder Aktion nach.
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
@@ -1068,7 +1082,7 @@
                                         „Anfrage gesendet, warte auf Antwort“, „hat die Anfrage angenommen“ oder „Das Modell denkt nach“ –
                                         mit den Sekunden seit dem Senden. Sobald Text kommt, verschwindet sie. Dauert es ungewöhnlich lange,
                                         steht dort ein Hinweis; abbrechen geht jederzeit mit dem Stopp-Knopf.<LineBreak/>
-                                        Unter <Run FontWeight="SemiBold" Text="Verbrauch"/> zählt LM Chat Antworten, Tokens und ungefähre Kosten
+                                        Unter <Run FontWeight="SemiBold" Text="Verbrauch"/> zählt FreeGuenther Antworten, Tokens und ungefähre Kosten
                                         je Modell mit (Heute, 7 Tage, Monat, 30 Tage, Gesamt).
                                         <Run FontWeight="SemiBold" Text="Das ist nur eine Schätzung"/> – die exakten Kosten stehen nur im Konto
                                         des jeweiligen Anbieters.
@@ -1198,7 +1212,7 @@
                                     <TextBlock Style="{StaticResource Heading}" Text="Daten"/>
                                     <TextBlock Style="{StaticResource Body}">
                                         Chats, Bilder und Einstellungen liegen nur auf diesem Rechner in
-                                        <Run FontFamily="Consolas" Text="%LOCALAPPDATA%\LmChat\chats.db"/>.
+                                        <Run FontFamily="Consolas" Text="%LOCALAPPDATA%\FreeGuenther\chats.db"/>.
                                         Gesendet wird ausschließlich an den eingestellten Anbieter.
                                     </TextBlock>
                                 </StackPanel>
@@ -1273,7 +1287,15 @@
                                                 <DockPanel Margin="0,6,0,0">
                                                     <Button DockPanel.Dock="Right" Content="Speichern" Margin="6,0,0,0" Tag="left"
                                                             Click="SaveCompareKey_Click"/>
-                                                    <PasswordBox x:Name="CompareKeyBoxLeft" AutomationProperties.Name="API-Schlüssel links"/>
+                                                    <ToggleButton x:Name="CompareKeyRevealLeft" DockPanel.Dock="Right" Margin="6,0,0,0" Padding="10,0"
+                                                                  ToolTip="Schlüssel anzeigen bzw. wieder verbergen"
+                                                                  AutomationProperties.Name="Schlüssel links anzeigen">
+                                                        <TextBlock Text="&#xE7B3;" FontFamily="{StaticResource IconFont}" FontSize="14"/>
+                                                    </ToggleButton>
+                                                    <Grid>
+                                                        <PasswordBox x:Name="CompareKeyBoxLeft" AutomationProperties.Name="API-Schlüssel links"/>
+                                                        <TextBox x:Name="CompareKeyPlainLeft" Visibility="Collapsed" FontFamily="Cascadia Mono, Consolas"/>
+                                                    </Grid>
                                                 </DockPanel>
                                             </StackPanel>
                                         </Border>
@@ -1300,7 +1322,15 @@
                                                 <DockPanel Margin="0,6,0,0">
                                                     <Button DockPanel.Dock="Right" Content="Speichern" Margin="6,0,0,0" Tag="right"
                                                             Click="SaveCompareKey_Click"/>
-                                                    <PasswordBox x:Name="CompareKeyBoxRight" AutomationProperties.Name="API-Schlüssel rechts"/>
+                                                    <ToggleButton x:Name="CompareKeyRevealRight" DockPanel.Dock="Right" Margin="6,0,0,0" Padding="10,0"
+                                                                  ToolTip="Schlüssel anzeigen bzw. wieder verbergen"
+                                                                  AutomationProperties.Name="Schlüssel rechts anzeigen">
+                                                        <TextBlock Text="&#xE7B3;" FontFamily="{StaticResource IconFont}" FontSize="14"/>
+                                                    </ToggleButton>
+                                                    <Grid>
+                                                        <PasswordBox x:Name="CompareKeyBoxRight" AutomationProperties.Name="API-Schlüssel rechts"/>
+                                                        <TextBox x:Name="CompareKeyPlainRight" Visibility="Collapsed" FontFamily="Cascadia Mono, Consolas"/>
+                                                    </Grid>
                                                 </DockPanel>
                                             </StackPanel>
                                         </Border>

@@ -3,7 +3,7 @@
   "name": "Webseite abrufen",
   "version": "1.0.0",
   "author": "ghaslbe",
-  "description": "Lädt eine Internetadresse (GET) und gibt dem Modell den Inhalt – Webseiten als lesbaren Text, JSON und Text unverändert. Beispiel: „Fasse https://example.com zusammen.“ In LM Chat eingebaut.",
+  "description": "Lädt eine Internetadresse (GET) und gibt dem Modell den Inhalt – Webseiten als lesbaren Text, JSON und Text unverändert. Beispiel: „Fasse https://example.com zusammen.“ In FreeGuenther eingebaut.",
   "type": "builtin",
   "askBeforeRun": false,
   "settings": [

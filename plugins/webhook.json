@@ -3,7 +3,7 @@
   "name": "Webhook",
   "version": "1.0.0",
   "author": "ghaslbe",
-  "description": "Schickt eine Antwort – Text, Bild oder beides – als JSON per POST an eine Adresse deiner Wahl, z. B. an n8n, Make, Zapier, Home Assistant oder einen eigenen Server. Unter jeder Antwort erscheint dafür der Knopf „Senden“; oder sag im Chat „Schick die letzte Antwort an den Webhook“. In LM Chat eingebaut.",
+  "description": "Schickt eine Antwort – Text, Bild oder beides – als JSON per POST an eine Adresse deiner Wahl, z. B. an n8n, Make, Zapier, Home Assistant oder einen eigenen Server. Unter jeder Antwort erscheint dafür der Knopf „Senden“; oder sag im Chat „Schick die letzte Antwort an den Webhook“. In FreeGuenther eingebaut.",
   "type": "builtin",
   "askBeforeRun": true,
   "settings": [

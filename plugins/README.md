@@ -1,20 +1,20 @@
-# Plugins für LM Chat
+# Plugins für FreeGuenther
 
-Dieser Ordner ist der **Plugin-Katalog**. LM Chat lädt `index.json` und bietet die Plugins unter „Plugins → Weitere Plugins“ zum Installieren an. Mitgeliefert sind `wetter.json`, `datum-uhrzeit.json` und `dateien.json`; sie stecken in der .exe.
+Dieser Ordner ist der **Plugin-Katalog**. FreeGuenther lädt `index.json` und bietet die Plugins unter „Plugins → Weitere Plugins“ zum Installieren an. Mitgeliefert sind `wetter.json`, `datum-uhrzeit.json` und `dateien.json`; sie stecken in der .exe.
 
-Ein Plugin ist **eine JSON-Datei**. Es enthält keinen Programmcode, und es muss nichts zusätzlich installiert werden. Importieren kannst du sie in LM Chat auf zwei Wegen:
+Ein Plugin ist **eine JSON-Datei**. Es enthält keinen Programmcode, und es muss nichts zusätzlich installiert werden. Importieren kannst du sie in FreeGuenther auf zwei Wegen:
 - „Plugin-Datei importieren …“
 - „Von Adresse installieren“ (https)
 
-Installierte Plugins liegen in `%LOCALAPPDATA%\LmChat\plugins`.
+Installierte Plugins liegen in `%LOCALAPPDATA%\FreeGuenther\plugins`.
 
 ## Arten
 
 | `type` | Was es tut |
 |---|---|
 | `http` | Werkzeuge rufen eine oder mehrere Web-Adressen ab (GET) und geben die Antwort ans Modell. Es werden nur die im Manifest stehenden Adressen aufgerufen. |
-| `mcp` | Verbindet sich mit einem MCP-Server (`mcp.url`, Streamable HTTP) oder startet ihn als Programm (`mcp.command` + `args`, stdio). Dessen Werkzeuge werden übernommen. Vor jeder Aktion fragt LM Chat nach. |
-| `builtin` | In LM Chat eingebaute Funktionen (`datetime`, `files_list`, `files_read`, `files_search`). |
+| `mcp` | Verbindet sich mit einem MCP-Server (`mcp.url`, Streamable HTTP) oder startet ihn als Programm (`mcp.command` + `args`, stdio). Dessen Werkzeuge werden übernommen. Vor jeder Aktion fragt FreeGuenther nach. |
+| `builtin` | In FreeGuenther eingebaute Funktionen (`datetime`, `files_list`, `files_read`, `files_search`). |
 
 ## Aufbau
 
@@ -57,7 +57,7 @@ Installierte Plugins liegen in `%LOCALAPPDATA%\LmChat\plugins`.
 Die einzelnen Felder:
 
 - **`id`:** nur Kleinbuchstaben, Ziffern und Bindestriche. Eine neuere `version` mit derselben `id` ersetzt die alte, auch ein mitgeliefertes Plugin.
-- **`settings`:** daraus baut LM Chat die Einstellungsseite des Plugins. Die Typen sind:
+- **`settings`:** daraus baut FreeGuenther die Einstellungsseite des Plugins. Die Typen sind:
   - `text`
   - `secret`: wird verschlüsselt gespeichert (Windows DPAPI)
   - `number`
@@ -98,4 +98,4 @@ Das geht so:
 
 1. Die Plugin-Datei hier ablegen.
 2. In `index.json` eintragen: `id`, `name`, `version`, `type`, `description` und die raw-Adresse unter `url`.
-3. Eine höhere `version` zeigt LM Chat als „Aktualisieren“ an.
+3. Eine höhere `version` zeigt FreeGuenther als „Aktualisieren“ an.

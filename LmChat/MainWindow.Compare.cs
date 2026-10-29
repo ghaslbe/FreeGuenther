@@ -95,9 +95,13 @@ public partial class MainWindow
         _settings.Config(info.Kind).ApiKey = key;
         _draft.Config(info.Kind).ApiKey = key;
         if (_shownProvider == info.Kind)
+        {
+            ApiKeyReveal.IsChecked = false;
             ApiKeyBox.Password = key;
+        }
         _settings.Save(_store);
         UpdateProviderRows();
+        CompareKeyRevealLeft.IsChecked = CompareKeyRevealRight.IsChecked = false;
         side.KeyBox.Clear();
         CompareStatus.Text = $"API-Schlüssel für {info.Name} gespeichert.";
         foreach (var other in new[] { _left, _right })

@@ -18,9 +18,32 @@ public partial class MainWindow : Window
     private static readonly string[] ImageExtensions = [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tif", ".tiff"];
     private const int MaxImageSide = 2048;
 
-    // LMCHAT_DB = andere Datenbank verwenden (z. B. zum Testen mit leerem Stand); Plugins liegen daneben in "plugins"
-    private static readonly string DbPath = Environment.GetEnvironmentVariable("LMCHAT_DB") is { Length: > 0 } db ? db
-        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LmChat", "chats.db");
+    // FREEGUENTHER_DB (früher LMCHAT_DB) = andere Datenbank verwenden (z. B. zum Testen mit leerem Stand);
+    // Plugins liegen daneben in "plugins"
+    internal static readonly string DbPath = ResolveDbPath();
+
+    private static string ResolveDbPath()
+    {
+        if ((Environment.GetEnvironmentVariable("FREEGUENTHER_DB") ?? Environment.GetEnvironmentVariable("LMCHAT_DB")) is { Length: > 0 } db)
+            return db;
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var dir = Path.Combine(local, "FreeGuenther");
+        var old = Path.Combine(local, "LmChat");
+        // Bis Version 1.17 hieß die App „LM Chat“: deren Datenordner beim ersten Start übernehmen.
+        // Klappt das nicht (z. B. weil das alte LM Chat noch läuft), vorerst den alten Ordner weiter nutzen.
+        if (!Directory.Exists(dir) && Directory.Exists(old))
+        {
+            try
+            {
+                Directory.Move(old, dir);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return Path.Combine(old, "chats.db");
+            }
+        }
+        return Path.Combine(dir, "chats.db");
+    }
     private readonly ChatStore _store = new(DbPath);
     private readonly PluginManager _plugins;
     private readonly ObservableCollection<ChatInfo> _chats = new();
@@ -43,7 +66,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        Title = $"LM Chat {AppVersion}";
+        Title = $"FreeGuenther {AppVersion}";
         VersionRun.Text = $"Version {AppVersion}.";
         SidebarVersion.Text = $"Version {AppVersion}";
         _settings = LlmSettings.Load(_store);
@@ -70,6 +93,9 @@ public partial class MainWindow : Window
         foreach (var row in ParamRows)
             ParamsPanel.Children.Add(row.Element);
         MarkdownRenderer.CopyText = text => CopyToClipboard(() => Clipboard.SetText(text));
+        SetupReveal(ApiKeyBox, ApiKeyPlain, ApiKeyReveal);
+        SetupReveal(CompareKeyBoxLeft, CompareKeyPlainLeft, CompareKeyRevealLeft);
+        SetupReveal(CompareKeyBoxRight, CompareKeyPlainRight, CompareKeyRevealRight);
         ChatBox.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler(ChatBox_ScrollChanged));
         ShowSettings();
         // Beim Befüllen der Einstellungen kann ein Element dort den Fokus bekommen – immer im Chat starten
@@ -223,6 +249,31 @@ public partial class MainWindow : Window
         _setupJustFinished = false;
         UpdateSetupGuide();
         NavChat.IsChecked = true;
+    }
+
+    // Augen-Knopf neben einem Schlüsselfeld: zeigt den Schlüssel im Klartext. Beide Felder bleiben synchron,
+    // der Rest der App liest weiter nur das Passwortfeld. Beim Verbergen wird das Klartextfeld geleert.
+    private static void SetupReveal(PasswordBox box, TextBox plain, System.Windows.Controls.Primitives.ToggleButton toggle)
+    {
+        toggle.Checked += (_, _) =>
+        {
+            plain.Text = box.Password;
+            plain.Visibility = Visibility.Visible;
+            box.Visibility = Visibility.Collapsed;
+            plain.Focus();
+            plain.CaretIndex = plain.Text.Length;
+        };
+        toggle.Unchecked += (_, _) =>
+        {
+            box.Visibility = Visibility.Visible;
+            plain.Visibility = Visibility.Collapsed;
+            plain.Clear();
+        };
+        plain.TextChanged += (_, _) =>
+        {
+            if (toggle.IsChecked == true && box.Password != plain.Text)
+                box.Password = plain.Text;
+        };
     }
 
     private void ApiKeyBox_PasswordChanged(object sender, RoutedEventArgs e)
@@ -953,7 +1004,7 @@ public partial class MainWindow : Window
     {
         var sb = new StringBuilder();
         sb.AppendLine($"# {chat.Title}").AppendLine();
-        sb.AppendLine($"*Exportiert aus LM Chat {AppVersion} am {DateTime.Now:dd.MM.yyyy HH:mm}*").AppendLine();
+        sb.AppendLine($"*Exportiert aus FreeGuenther {AppVersion} am {DateTime.Now:dd.MM.yyyy HH:mm}*").AppendLine();
         foreach (var m in _messages)
         {
             sb.AppendLine("---").AppendLine();
@@ -989,7 +1040,7 @@ public partial class MainWindow : Window
             @media print { body { margin: 0; } .user { break-inside: avoid; } }
             </style></head><body>
             <h1>{{Enc(chat.Title)}}</h1>
-            <div class="meta">Exportiert aus LM Chat {{AppVersion}} am {{DateTime.Now:dd.MM.yyyy HH:mm}}</div>
+            <div class="meta">Exportiert aus FreeGuenther {{AppVersion}} am {{DateTime.Now:dd.MM.yyyy HH:mm}}</div>
 
             """);
         foreach (var m in _messages)
@@ -1275,7 +1326,7 @@ public partial class MainWindow : Window
         {
             Title = "Bild speichern",
             Filter = "PNG-Bild|*.png",
-            FileName = $"LmChat-Bild-{DateTime.Now:yyyy-MM-dd-HHmmss}.png"
+            FileName = $"FreeGuenther-Bild-{DateTime.Now:yyyy-MM-dd-HHmmss}.png"
         };
         if (dialog.ShowDialog(this) != true) return false;
         File.WriteAllBytes(dialog.FileName, png);
@@ -1326,7 +1377,7 @@ public partial class MainWindow : Window
     // Öffnet das Bild in voller Größe mit dem Standard-Bildbetrachter
     private static void OpenImage(byte[] png)
     {
-        var dir = Path.Combine(Path.GetTempPath(), "LmChat");
+        var dir = Path.Combine(Path.GetTempPath(), "FreeGuenther");
         Directory.CreateDirectory(dir);
         var file = Path.Combine(dir, $"bild-{Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(png))[..12]}.png");
         if (!File.Exists(file))
@@ -1596,6 +1647,7 @@ public partial class MainWindow : Window
             KeyLink.NavigateUri = new Uri(info.KeyUrl);
             KeyLinkText.Text = info.KeyUrl.Replace("https://", "");
         }
+        ApiKeyReveal.IsChecked = false;   // Schlüssel beim Wechsel des Anbieters wieder verbergen
         ApiKeyBox.Password = config.ApiKey;
         RegionPanel.Visibility = info.Kind == ProviderKind.OpenRouter ? Visibility.Visible : Visibility.Collapsed;
         _showingProvider = true;
@@ -1680,6 +1732,7 @@ public partial class MainWindow : Window
         _draft.Save(_store);
         _settings = _draft.Clone();
         _setupJustFinished |= !wasReady && IsReady;
+        ApiKeyReveal.IsChecked = false;
         UpdateModelUi();
         UpdateProviderRows();
         SettingsStatus.Text = activate
@@ -1850,7 +1903,7 @@ public partial class MainWindow : Window
 
     // ---------- Hilfe ----------
 
-    private static string AppVersion
+    internal static string AppVersion
     {
         get
         {

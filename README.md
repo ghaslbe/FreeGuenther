@@ -2,7 +2,16 @@
 
 Ein einfacher Windows-Chat-Client für lokale und Online-Sprachmodelle: [LM Studio](https://lmstudio.ai), [Ollama](https://ollama.com), [OpenAI](https://platform.openai.com), [Anthropic (Claude)](https://platform.claude.com) und [OpenRouter](https://openrouter.ai). Er läuft als **eine einzige .exe** und braucht keine Installation und kein .NET auf dem Zielrechner.
 
-**Download:** [LmChat.exe (neueste Version)](https://github.com/ghaslbe/lmstudioChatWindows/releases/latest/download/LmChat.exe). Alle Versionen findest du unter [Releases](https://github.com/ghaslbe/lmstudioChatWindows/releases).
+## Download
+
+| Datei | Wofür |
+|---|---|
+| **[LmChat-Setup.exe](https://github.com/ghaslbe/lmstudioChatWindows/releases/latest/download/LmChat-Setup.exe)** (Installer, empfohlen) | Installiert LM Chat mit Startmenü-Eintrag und optionalem Desktop-Symbol. Deinstallation über die Windows-Einstellungen. Keine Administratorrechte nötig, Updates einfach drüberinstallieren. |
+| **[LmChat.exe](https://github.com/ghaslbe/lmstudioChatWindows/releases/latest/download/LmChat.exe)** (portabel) | Ohne Installation, z. B. vom USB-Stick oder zum schnellen Ausprobieren. Herunterladen und starten. |
+
+Beide Varianten sind dieselbe App und nutzen dieselben Chats und Einstellungen (`%LOCALAPPDATA%\LmChat`). Alle Versionen findest du unter [Releases](https://github.com/ghaslbe/lmstudioChatWindows/releases).
+
+Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann deshalb beim ersten Start warnen. Über „Weitere Informationen“ → „Trotzdem ausführen“ lässt sich die App starten.
 
 ## Funktionen
 
@@ -113,7 +122,13 @@ Die SQLite-Datenbank hat drei Tabellen:
 
 Die Versionsnummer steht in `LmChat/LmChat.csproj` (`<Version>`) und wird bei jeder Änderung hochgezählt. Sie erscheint im Fenstertitel und in der Hilfe.
 
-Bei jedem Push auf `main` baut GitHub Actions (`.github/workflows/release.yml`) die .exe und legt sie als Release `v<Version>` ab. Gibt es das Release schon, wird nur die .exe ersetzt.
+Bei jedem Push auf `main` baut GitHub Actions (`.github/workflows/release.yml`) die portable `LmChat.exe` und mit [Inno Setup](https://jrsoftware.org/isinfo.php) den Installer `LmChat-Setup.exe` (Skript: `installer/LmChat.iss`). Beide landen im Release `v<Version>`. Gibt es das Release schon, werden nur die Dateien ersetzt.
+
+Installer lokal bauen (nach `dotnet publish`):
+
+```
+ISCC.exe /DAppVersion=1.10.0 installer\LmChat.iss
+```
 
 ## Bauen
 

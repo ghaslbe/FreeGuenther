@@ -154,21 +154,44 @@
             </Setter>
         </Style>
 
-        <!-- Chat in der Liste: dezente Hervorhebung statt Vollfarbe -->
+        <!-- Rechtsklick-Menü eines Chats in der Liste -->
+        <ContextMenu x:Key="ChatMenu" x:Shared="False">
+            <MenuItem Header="Chat löschen" Click="DeleteChatItem_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="&#xE74D;" FontFamily="{StaticResource IconFont}"/>
+                </MenuItem.Icon>
+            </MenuItem>
+        </ContextMenu>
+
+        <!-- Chat in der Liste: dezente Hervorhebung, Papierkorb beim Darüberfahren -->
         <Style x:Key="ChatListItem" TargetType="ListBoxItem">
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="ContextMenu" Value="{StaticResource ChatMenu}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="Bg" CornerRadius="8" Padding="10,8" Margin="0,1" Background="Transparent">
-                            <ContentPresenter/>
+                        <Border x:Name="Bg" CornerRadius="8" Padding="10,8,4,8" Margin="0,1" Background="Transparent">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="26"/>
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter VerticalAlignment="Center"/>
+                                <Button x:Name="DeleteItemButton" Grid.Column="1" Style="{StaticResource IconButton}"
+                                        Margin="0,-6" Padding="0" Visibility="Hidden" ToolTip="Chat löschen"
+                                        Click="DeleteChatItem_Click">
+                                    <TextBlock Text="&#xE74D;" FontFamily="{StaticResource IconFont}" FontSize="12"/>
+                                </Button>
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                                <Setter TargetName="DeleteItemButton" Property="Visibility" Value="Visible"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}"/>
+                                <Setter TargetName="DeleteItemButton" Property="Visibility" Value="Visible"/>
                                 <Setter Property="FontWeight" Value="SemiBold"/>
                                 <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
                             </Trigger>
@@ -254,7 +277,7 @@
             <ListBox x:Name="ChatList" Background="Transparent" BorderThickness="0"
                      ItemContainerStyle="{StaticResource ChatListItem}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     SelectionChanged="ChatList_SelectionChanged">
+                     SelectionChanged="ChatList_SelectionChanged" PreviewKeyDown="ChatList_PreviewKeyDown">
                 <ListBox.GroupStyle>
                     <GroupStyle>
                         <GroupStyle.HeaderTemplate>
@@ -598,8 +621,10 @@
                                     <TextBlock Style="{StaticResource Heading}" Text="Chats und Verlauf"/>
                                     <TextBlock Style="{StaticResource Body}">
                                         Jeder Chat wird automatisch gespeichert und erscheint links in der Liste, gruppiert nach Datum.
-                                        Ein Klick darauf öffnet ihn wieder, „Neuer Chat“ beginnt ein neues Gespräch, der Papierkorb oben
-                                        rechts löscht den geöffneten Chat.<LineBreak/>
+                                        Ein Klick darauf öffnet ihn wieder, „Neuer Chat“ beginnt ein neues Gespräch.<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Chat löschen:"/> über den Papierkorb in der Chatliste (erscheint
+                                        beim Darüberfahren), per Rechtsklick → „Chat löschen“, mit der Entf-Taste in der Liste oder über
+                                        den Papierkorb oben rechts im geöffneten Chat. Vorher kommt immer eine Sicherheitsabfrage.<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Verlauf mitsenden:"/>
                                         Mit Haken (Standard) kennt das Modell alles, was vorher im Chat gesagt wurde, so kann man ein Gespräch führen.
                                         Ohne Haken bekommt es nur die aktuelle Nachricht. Das ist schneller und gut für einzelne, unabhängige Fragen.

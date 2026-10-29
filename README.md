@@ -28,7 +28,7 @@ Ein einfacher Windows-Chat-Client für lokale und Online-Sprachmodelle: [LM Stud
   - Gesamtdauer
 
   Die Token-Zahlen stammen bei OpenAI-kompatiblen Anbietern aus `stream_options.include_usage`, bei Anthropic aus den Stream-Ereignissen der Messages API.
-- **Gespeicherte Chats:** Jeder Chat wird in einer SQLite-Datenbank gespeichert und lässt sich links in der Liste wieder aufrufen oder löschen.
+- **Gespeicherte Chats:** Jeder Chat wird in einer SQLite-Datenbank gespeichert und lässt sich links in der Liste wieder aufrufen. Löschen geht über den Papierkorb in der Liste (beim Darüberfahren), per Rechtsklick, mit der Entf-Taste oder oben rechts im geöffneten Chat, jeweils mit Sicherheitsabfrage.
 - **„Bisherigen Chatverlauf mitsenden“:** Das Häkchen ist standardmäßig an, so kann man ein Gespräch führen. Ohne Häkchen wird nur die aktuelle Nachricht gesendet.
 - **Bilder senden:** Bei Modellen, die Bilder verstehen (in LM Studio Typ `vlm`), lässt sich ein Bild anhängen, z. B. mit der Frage „Lies mal das Bild aus“. Dafür gibt es drei Wege:
   - Button **Bild …**

@@ -267,16 +267,45 @@ public partial class MainWindow : Window
         InputBox.Focus();
     }
 
+    // Papierkorb oben rechts: den geöffneten Chat löschen
     private void DeleteChat_Click(object sender, RoutedEventArgs e)
     {
-        if (ChatList.SelectedItem is not ChatInfo chat) return;
+        if (_currentChat != null)
+            DeleteChat(_currentChat);
+    }
+
+    // Papierkorb in der Liste bzw. Rechtsklick → „Chat löschen“: der Chat der jeweiligen Zeile
+    private void DeleteChatItem_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is ChatInfo chat)
+            DeleteChat(chat);
+        e.Handled = true;
+    }
+
+    private void ChatList_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Delete && ChatList.SelectedItem is ChatInfo chat)
+        {
+            DeleteChat(chat);
+            e.Handled = true;
+        }
+    }
+
+    private void DeleteChat(ChatInfo chat)
+    {
+        if (_cts != null)
+        {
+            StatusText.Text = "Während eine Antwort läuft, kann kein Chat gelöscht werden.";
+            return;
+        }
         if (MessageBox.Show(this, $"Chat „{chat.Title}“ wirklich löschen?", "Chat löschen",
                 MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
 
         _store.DeleteChat(chat.Id);
         _chats.Remove(chat);
         if (chat.Id == _currentChat?.Id)
-            NewChat_Click(sender, e);
+            NewChat_Click(this, new RoutedEventArgs());
+        StatusText.Text = $"Chat „{chat.Title}“ gelöscht.";
     }
 
     private void SelectChatSilently(ChatInfo? chat)

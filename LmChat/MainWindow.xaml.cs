@@ -197,7 +197,7 @@ public partial class MainWindow : Window
             if (note != null)
                 answerView.Body.Blocks.Add(new Paragraph(new Italic(new Run(note))) { Margin = new Thickness(0) });
             if (answer.Length > 0)
-                AddStatsLine(answerView.Body, stats);
+                AddAnswerFooter(answerView.Body, answer.ToString(), stats);
             ChatBox.ScrollToEnd();
 
             if (answer.Length > 0)
@@ -383,8 +383,7 @@ public partial class MainWindow : Window
         else
         {
             MarkdownRenderer.Render(m.Content, body.Blocks);
-            if (m.Stats != null)
-                AddStatsLine(body, m.Stats);
+            AddAnswerFooter(body, m.Content, m.Stats);
         }
         ChatBox.ScrollToEnd();
         UpdateEmptyState();
@@ -420,11 +419,64 @@ public partial class MainWindow : Window
         return string.Join("   ·   ", parts);
     }
 
-    private static void AddStatsLine(Section body, AnswerStats stats)
+    // Zeile unter einer Antwort: Kopieren-Knopf und (falls vorhanden) Anbieter, Modell, Token/s, Tokens
+    private void AddAnswerFooter(Section body, string content, AnswerStats? stats)
     {
-        var line = new Paragraph(new Run(FormatStats(stats))) { FontSize = 11.5, Margin = new Thickness(0, 6, 0, 0) };
+        var line = new Paragraph { FontSize = 11.5, Margin = new Thickness(0, 6, 0, 0) };
         line.SetResourceReference(TextElement.ForegroundProperty, "TextFillColorTertiaryBrush");
+
+        var label = new TextBlock { Text = "Kopieren", Margin = new Thickness(5, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        var copyButton = new Button
+        {
+            Style = (Style)FindResource("IconButton"),
+            Padding = new Thickness(6, 2, 8, 2),
+            ToolTip = "Antwort in die Zwischenablage kopieren (mit Markdown-Formatierung)",
+            Content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = "",
+                        FontFamily = (FontFamily)FindResource("IconFont"),
+                        FontSize = 12,
+                        VerticalAlignment = VerticalAlignment.Center
+                    },
+                    label
+                }
+            }
+        };
+        System.Windows.Automation.AutomationProperties.SetName(copyButton, "Antwort kopieren");
+        copyButton.Click += async (_, _) =>
+        {
+            label.Text = CopyToClipboard(content) ? "Kopiert ✓" : "Zwischenablage belegt – nochmal versuchen";
+            await Task.Delay(1800);
+            label.Text = "Kopieren";
+        };
+
+        line.Inlines.Add(new InlineUIContainer(copyButton) { BaselineAlignment = BaselineAlignment.Center });
+        if (stats != null)
+            line.Inlines.Add(new Run("   " + FormatStats(stats)));
         body.Blocks.Add(line);
+    }
+
+    // Die Zwischenablage kann kurz von einem anderen Programm gesperrt sein – dann ein paar Mal wiederholen
+    private static bool CopyToClipboard(string text)
+    {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                Clipboard.SetText(text);
+                return true;
+            }
+            catch (System.Runtime.InteropServices.COMException)
+            {
+                Thread.Sleep(50);
+            }
+        }
+        return false;
     }
 
     private static Image MakeThumbnail(byte[] png)

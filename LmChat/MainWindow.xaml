@@ -96,10 +96,11 @@
         <Style x:Key="IconButton" TargetType="Button">
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="9,7"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bg" CornerRadius="8" Padding="9,7" Background="Transparent">
+                        <Border x:Name="Bg" CornerRadius="8" Padding="{TemplateBinding Padding}" Background="Transparent">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -610,6 +611,7 @@
                                         <Run FontWeight="SemiBold" Text="Strg + V"/> – Bild aus der Zwischenablage anhängen (z. B. Screenshot)<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Stopp-Knopf"/> – laufende Antwort abbrechen<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Suchfeld links"/> – Chats nach Titel filtern<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Kopieren unter einer Antwort"/> – Antwort (mit Markdown) in die Zwischenablage<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Zeile unter jeder Antwort"/> – Anbieter, Modell, Geschwindigkeit
                                         (Token/s), Token-Verbrauch (in/out) und Dauer, soweit der Anbieter das meldet
                                     </TextBlock>

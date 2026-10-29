@@ -53,12 +53,14 @@ public sealed record ProviderInfo(
         ProviderKind.OpenAI =>
         [
             ("API-Schlüssel", "https://platform.openai.com/api-keys"),
+            ("⚠ Ausgabenlimit setzen", "https://platform.openai.com/settings/organization/limits"),
             ("Modelle", "https://platform.openai.com/docs/models"),
             ("Preise", "https://openai.com/api/pricing")
         ],
         ProviderKind.Anthropic =>
         [
             ("API-Schlüssel", "https://platform.claude.com/settings/keys"),
+            ("⚠ Ausgabenlimit setzen", "https://platform.claude.com/settings/limits"),
             ("Modelle", "https://platform.claude.com/docs/en/about-claude/models/overview"),
             ("Preise", "https://platform.claude.com/docs/en/about-claude/pricing")
         ],
@@ -66,6 +68,7 @@ public sealed record ProviderInfo(
         [
             ("Website", "https://openrouter.ai"),
             ("API-Schlüssel", "https://openrouter.ai/keys"),
+            ("⚠ Limit je Schlüssel setzen", "https://openrouter.ai/settings/keys"),
             ("Modelle und Preise", "https://openrouter.ai/models"),
             ("Guthaben", "https://openrouter.ai/settings/credits")
         ],

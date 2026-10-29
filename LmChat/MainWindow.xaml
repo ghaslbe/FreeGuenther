@@ -472,6 +472,15 @@
                                             und die Nutzung kostet in der Regel Geld.
                                         </TextBlock>
                                         <PasswordBox x:Name="ApiKeyBox"/>
+                                        <Border CornerRadius="8" Padding="12,8" Margin="0,8,0,0" Background="#1FF59E0B"
+                                                BorderBrush="#66F59E0B" BorderThickness="1">
+                                            <TextBlock TextWrapping="Wrap">
+                                                <Run FontWeight="SemiBold" Text="⚠ Wichtig:"/>
+                                                Setze beim Anbieter unbedingt ein Ausgabenlimit für diesen Schlüssel bzw. dein Konto
+                                                (Link mit ⚠ oben bei „Links“). Warum und wie:
+                                                <Hyperlink Click="ShowHelp_Click">Hilfe → Kosten absichern</Hyperlink>
+                                            </TextBlock>
+                                        </Border>
                                     </StackPanel>
 
                                     <StackPanel x:Name="RegionPanel">
@@ -594,6 +603,36 @@
                                 <Hyperlink NavigateUri="https://github.com/ghaslbe/lmstudioChatWindows/releases/latest"
                                            RequestNavigate="Link_RequestNavigate">Neueste Version</Hyperlink>
                             </TextBlock>
+
+                            <!-- Warnkarte: Kosten bei Online-Diensten absichern -->
+                            <Border Style="{StaticResource Card}" Background="#1FF59E0B" BorderBrush="#66F59E0B">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Heading}" Text="⚠ Kosten absichern: bei jedem API-Schlüssel ein Limit setzen"/>
+                                    <TextBlock Style="{StaticResource Body}">
+                                        Ein API-Schlüssel ist wie eine Kreditkarte: Wer ihn kennt, kann auf deine Kosten Anfragen stellen.
+                                        Gerät er in falsche Hände (geteilter Rechner, Screenshot, Schadsoftware, versehentlich veröffentlicht)
+                                        oder läuft die Nutzung aus dem Ruder (viele Bilder, sehr lange Antworten, teure Modelle), entstehen
+                                        schnell hohe Kosten.<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Setze deshalb unbedingt bei jedem Schlüssel bzw. Konto ein Ausgabenlimit,"/>
+                                        bevor du ihn in LM Chat einträgst:<LineBreak/>
+                                        •
+                                        <Hyperlink NavigateUri="https://openrouter.ai/settings/keys" RequestNavigate="Link_RequestNavigate">OpenRouter</Hyperlink>:
+                                        Jeder Schlüssel kann ein eigenes Guthaben-Limit bekommen – beim Anlegen bzw. Bearbeiten des Schlüssels eintragen.
+                                        Zusätzlich nur so viel Guthaben aufladen, wie du brauchst, und automatisches Aufladen ausschalten.<LineBreak/>
+                                        •
+                                        <Hyperlink NavigateUri="https://platform.openai.com/settings/organization/limits" RequestNavigate="Link_RequestNavigate">OpenAI</Hyperlink>:
+                                        In den Organisations-Einstellungen unter „Limits“ ein Budget bzw. Nutzungslimit festlegen; automatisches Aufladen ausschalten.<LineBreak/>
+                                        •
+                                        <Hyperlink NavigateUri="https://platform.claude.com/settings/limits" RequestNavigate="Link_RequestNavigate">Anthropic</Hyperlink>:
+                                        In der Claude-Konsole unter „Limits“ ein Ausgabenlimit (Spend Limit) festlegen.<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Außerdem:"/>
+                                        Für LM Chat einen eigenen Schlüssel anlegen (nicht denselben wie für andere Programme) – dann lässt er sich
+                                        gezielt sperren. Bei Verdacht auf Missbrauch den Schlüssel sofort beim Anbieter löschen und einen neuen
+                                        erstellen. Die Kosten jeder Antwort zeigt LM Chat unter der Antwort, sofern der Anbieter sie meldet.<LineBreak/>
+                                        Lokale Anbieter (LM Studio, Ollama) brauchen keinen Schlüssel und kosten nichts.
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
 
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>

@@ -82,6 +82,8 @@ public partial class MainWindow : Window
 
     private void ModelCard_Click(object sender, MouseButtonEventArgs e) => NavSettings.IsChecked = true;
 
+    private void ShowHelp_Click(object sender, RoutedEventArgs e) => NavHelp.IsChecked = true;
+
     private void ChatSearch_TextChanged(object sender, TextChangedEventArgs e) =>
         System.Windows.Data.CollectionViewSource.GetDefaultView(_chats)?.Refresh();
 

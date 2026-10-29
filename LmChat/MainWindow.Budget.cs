@@ -51,30 +51,33 @@ public partial class MainWindow
         if (providers.All(p => p.IsLocal) || (_settings.DailyBudget is null && _settings.MonthlyBudget is null))
             return (true, null);
 
-        var limits = new List<(string Name, double Limit, double Spent)>();
+        // Daily = Tagesbudget, sonst Monatsbudget (die Texte dazu sind ganze Sätze, damit sie sich übersetzen lassen)
+        var limits = new List<(bool Daily, double Limit, double Spent)>();
         if (_settings.DailyBudget is { } day)
-            limits.Add(("Tagesbudget", day, await SpentSinceAsync(DateTime.Today)));
+            limits.Add((true, day, await SpentSinceAsync(DateTime.Today)));
         if (_settings.MonthlyBudget is { } month)
-            limits.Add(("Monatsbudget", month, await SpentSinceAsync(MonthStart)));
+            limits.Add((false, month, await SpentSinceAsync(MonthStart)));
 
-        if (limits.FirstOrDefault(l => l.Spent >= l.Limit) is { Name: not null } over)
+        if (limits.Where(l => l.Spent >= l.Limit).Select(l => (Over: true, l.Daily, l.Limit, l.Spent)).FirstOrDefault() is { Over: true } over)
         {
-            var text = $"Dein {over.Name} von {FormatDollar(over.Limit)} ist erreicht – bisher ≈ {FormatDollar(over.Spent)} " +
-                       "(geschätzt, siehe „Verbrauch“).";
+            var text = over.Daily
+                ? L.F("Dein Tagesbudget von {0} ist erreicht – bisher ≈ {1} (geschätzt, siehe „Verbrauch“).", FormatDollar(over.Limit), FormatDollar(over.Spent))
+                : L.F("Dein Monatsbudget von {0} ist erreicht – bisher ≈ {1} (geschätzt, siehe „Verbrauch“).", FormatDollar(over.Limit), FormatDollar(over.Spent));
             if (_settings.BudgetHardStop)
             {
-                MessageBox.Show(this, text + "\n\nDie Kostenbremse ist auf „hart“ gestellt: Anfragen an Online-Anbieter sind gesperrt. " +
-                                      "Lokale Modelle gehen weiter. Ändern kannst du das unter „Verbrauch“ → „Kostenbremse“.",
-                    "Kostenbremse", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, text + "\n\n" + L.T("Die Kostenbremse ist auf „hart“ gestellt: Anfragen an Online-Anbieter sind gesperrt. " +
+                                                         "Lokale Modelle gehen weiter. Ändern kannst du das unter „Verbrauch“ → „Kostenbremse“."),
+                    L.T("Kostenbremse"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return (false, null);
             }
-            var go = MessageBox.Show(this, text + "\n\nTrotzdem senden?", "Kostenbremse",
+            var go = MessageBox.Show(this, text + "\n\n" + L.T("Trotzdem senden?"), L.T("Kostenbremse"),
                 MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
             return (go, null);
         }
 
-        var near = limits.Where(l => l.Spent >= 0.8 * l.Limit).Select(l => $"{l.Spent / l.Limit:P0} des {l.Name}s").ToList();
-        return (true, near.Count > 0 ? "Hinweis: " + string.Join(" und ", near) + " verbraucht." : null);
+        var near = limits.Where(l => l.Spent >= 0.8 * l.Limit)
+            .Select(l => L.F(l.Daily ? "{0:P0} des Tagesbudgets" : "{0:P0} des Monatsbudgets", l.Spent / l.Limit)).ToList();
+        return (true, near.Count > 0 ? L.F("Hinweis: {0} verbraucht.", string.Join(L.T(" und "), near)) : null);
     }
 
     // ---------- Karte „Kostenbremse“ auf der Seite Verbrauch ----------
@@ -86,17 +89,15 @@ public partial class MainWindow
         BudgetHardCheck.IsChecked = _settings.BudgetHardStop;
         var today = await SpentSinceAsync(DateTime.Today);
         var month = await SpentSinceAsync(MonthStart);
-        BudgetSpent.Text = $"Bisher (≈): heute {FormatDollar(today)}" +
-                           (_settings.DailyBudget is { } d ? $" von {FormatDollar(d)}" : "") +
-                           $" · diesen Monat {FormatDollar(month)}" +
-                           (_settings.MonthlyBudget is { } m ? $" von {FormatDollar(m)}" : "");
+        string Of(double spent, double? limit) => limit is { } l ? L.F("{0} von {1}", FormatDollar(spent), FormatDollar(l)) : FormatDollar(spent);
+        BudgetSpent.Text = L.F("Bisher (≈): heute {0} · diesen Monat {1}", Of(today, _settings.DailyBudget), Of(month, _settings.MonthlyBudget));
     }
 
     private void SaveBudget_Click(object sender, RoutedEventArgs e)
     {
         if (!TryParseBudget(DailyBudgetBox.Text, out var day) || !TryParseBudget(MonthlyBudgetBox.Text, out var month))
         {
-            BudgetStatus.Text = "Bitte Beträge als Zahl eingeben, z. B. 0,50 – oder leer lassen für „kein Limit“.";
+            BudgetStatus.Text = L.T("Bitte Beträge als Zahl eingeben, z. B. 0,50 – oder leer lassen für „kein Limit“.");
             return;
         }
         // Nur diese Werte übernehmen – ein ungespeicherter Entwurf auf der Einstellungsseite bleibt unberührt
@@ -107,7 +108,7 @@ public partial class MainWindow
             s.BudgetHardStop = BudgetHardCheck.IsChecked == true;
         }
         _settings.Save(_store);
-        BudgetStatus.Text = day is null && month is null ? "Gespeichert – kein Limit gesetzt." : $"Gespeichert ({DateTime.Now:HH:mm:ss}).";
+        BudgetStatus.Text = day is null && month is null ? L.T("Gespeichert – kein Limit gesetzt.") : L.F("Gespeichert ({0:HH:mm:ss}).", DateTime.Now);
         _ = ShowBudgetAsync();
     }
 

@@ -70,14 +70,14 @@ public partial class MainWindow
         side.KeyPanel.Visibility = HasKey(info) ? Visibility.Collapsed : Visibility.Visible;
         side.KeyHint.Inlines.Clear();
         if (HasKey(info)) return;
-        side.KeyHint.Inlines.Add(new Run($"Für {info.Name} ist noch kein API-Schlüssel hinterlegt. ") { FontWeight = FontWeights.SemiBold });
-        side.KeyHint.Inlines.Add(new Run("Hier eintragen – er wird verschlüsselt gespeichert, der aktive Anbieter im Chat bleibt gleich. "));
+        side.KeyHint.Inlines.Add(new Run(L.F("Für {0} ist noch kein API-Schlüssel hinterlegt.", info.Name) + " ") { FontWeight = FontWeights.SemiBold });
+        side.KeyHint.Inlines.Add(new Run(L.T("Hier eintragen – er wird verschlüsselt gespeichert, der aktive Anbieter im Chat bleibt gleich.") + " "));
         if (info.KeyUrl != null)
-            side.KeyHint.Inlines.Add(MakeLink("Schlüssel anlegen", info.KeyUrl));
+            side.KeyHint.Inlines.Add(MakeLink(L.T("Schlüssel anlegen"), info.KeyUrl));
         if (info.Links.FirstOrDefault(l => l.Item1.Contains("Limit")).Item2 is { } limitUrl)
         {
             side.KeyHint.Inlines.Add(new Run(" · "));
-            side.KeyHint.Inlines.Add(MakeLink("⚠ Ausgabenlimit setzen", limitUrl));
+            side.KeyHint.Inlines.Add(MakeLink(L.T("⚠ Ausgabenlimit setzen"), limitUrl));
         }
     }
 
@@ -88,7 +88,7 @@ public partial class MainWindow
         var key = side.KeyBox.Password.Trim();
         if (key.Length == 0)
         {
-            CompareStatus.Text = "Bitte zuerst den API-Schlüssel einfügen.";
+            CompareStatus.Text = L.T("Bitte zuerst den API-Schlüssel einfügen.");
             return;
         }
         // Nur den Schlüssel speichern – auch im Entwurf und im Feld der Einstellungsseite, damit „Speichern“ dort ihn nicht löscht
@@ -103,7 +103,7 @@ public partial class MainWindow
         UpdateProviderRows();
         CompareKeyRevealLeft.IsChecked = CompareKeyRevealRight.IsChecked = false;
         side.KeyBox.Clear();
-        CompareStatus.Text = $"API-Schlüssel für {info.Name} gespeichert.";
+        CompareStatus.Text = L.F("API-Schlüssel für {0} gespeichert.", info.Name);
         foreach (var other in new[] { _left, _right })
             if (other?.Providers.SelectedItem is ProviderInfo shown && shown.Kind == info.Kind)
                 await LoadCompareModelsAsync(other, shown, other.Models.SelectedValue as string ?? _settings.Config(info.Kind).Model);
@@ -122,7 +122,7 @@ public partial class MainWindow
         }
 
         var loadId = ++side.LoadId;
-        side.Stats.Text = $"Lade Modelle von {info.Name} …";
+        side.Stats.Text = L.F("Lade Modelle von {0} …", info.Name);
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(RegionOption.IsHosterFilter(config.Region) ? 180 : 30));
@@ -130,12 +130,12 @@ public partial class MainWindow
             if (loadId != side.LoadId) return;
             foreach (var m in models.Where(m => !m.ImageGen))
                 side.ModelList.Add(m);
-            side.Stats.Text = $"{side.ModelList.Count} Modelle von {info.Name}.";
+            side.Stats.Text = L.F("{0} Modelle von {1}.", side.ModelList.Count, info.Name);
         }
         catch (Exception ex)
         {
             if (loadId != side.LoadId) return;
-            side.Stats.Text = $"Modelle von {info.Name} konnten nicht geladen werden: {ex.Message}";
+            side.Stats.Text = L.F("Modelle von {0} konnten nicht geladen werden: {1}", info.Name, ex.Message);
         }
         side.Models.SelectedValue = side.ModelList.Any(m => m.Id == wanted) ? wanted : side.ModelList.FirstOrDefault()?.Id;
     }
@@ -158,12 +158,12 @@ public partial class MainWindow
         {
             if (side.Providers.SelectedItem is not ProviderInfo info || side.Models.SelectedValue is not string { Length: > 0 } model)
             {
-                CompareStatus.Text = "Bitte links und rechts jeweils Anbieter und Modell wählen.";
+                CompareStatus.Text = L.T("Bitte links und rechts jeweils Anbieter und Modell wählen.");
                 return;
             }
             if (!HasKey(info))
             {
-                CompareStatus.Text = $"Für {info.Name} fehlt der API-Schlüssel – bitte im gelben Feld eintragen.";
+                CompareStatus.Text = L.F("Für {0} fehlt der API-Schlüssel – bitte im gelben Feld eintragen.", info.Name);
                 side.KeyBox.Focus();
                 return;
             }
@@ -173,7 +173,7 @@ public partial class MainWindow
         var (allowed, budgetWarning) = await CheckBudgetAsync(picks.Select(p => p.Provider));
         if (!allowed)
         {
-            CompareStatus.Text = "Nicht gesendet – die Kostenbremse ist erreicht (siehe „Verbrauch“).";
+            CompareStatus.Text = L.T("Nicht gesendet – die Kostenbremse ist erreicht (siehe „Verbrauch“).");
             return;
         }
 
@@ -188,11 +188,11 @@ public partial class MainWindow
         _compareCts = new CancellationTokenSource();
         CompareSendButton.IsEnabled = false;
         CompareStopButton.Visibility = Visibility.Visible;
-        CompareStatus.Text = "Beide Modelle arbeiten …";
+        CompareStatus.Text = L.T("Beide Modelle arbeiten …");
         try
         {
             await Task.WhenAll(picks.Select(p => CompareOneAsync(p.Side, p.Provider, p.Model, question, _compareCts.Token)));
-            CompareStatus.Text = "Fertig." + (budgetWarning != null ? " " + budgetWarning : "");
+            CompareStatus.Text = L.T("Fertig.") + (budgetWarning != null ? " " + budgetWarning : "");
         }
         finally
         {
@@ -211,7 +211,7 @@ public partial class MainWindow
         var blocks = side.Box.Document.Blocks;
         blocks.Clear();
         blocks.Add(new Paragraph(new Run(question)) { FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 10) });
-        var status = new Run("⏳ Anfrage gesendet …");
+        var status = new Run("⏳ " + L.T("Anfrage gesendet …"));
         var stream = new Run();
         var live = new Paragraph { Margin = new Thickness(0) };
         live.Inlines.Add(status);
@@ -239,17 +239,17 @@ public partial class MainWindow
                 if (phase == LlmClient.Phase.Thinking)
                 {
                     firstChunkAt ??= clock.Elapsed.TotalSeconds;
-                    if (answer.Length == 0) status.Text = "💭 Das Modell denkt nach …";
+                    if (answer.Length == 0) status.Text = "💭 " + L.T("Das Modell denkt nach …");
                 }
             }, result, null, ct);
         }
         catch (OperationCanceledException)
         {
-            error = "[abgebrochen]";
+            error = L.T("[abgebrochen]");
         }
         catch (Exception ex)
         {
-            error = $"[Fehler: {ex.Message}]";
+            error = L.F("[Fehler: {0}]", ex.Message);
         }
 
         var seconds = clock.Elapsed.TotalSeconds;
@@ -282,10 +282,10 @@ public partial class MainWindow
             {
             }
             if (PriceEstimate.Estimate(provider.Kind, stats.Model, input, output) is { } estimate)
-                line += $"   ·   ≈ {FormatDollar(estimate)} geschätzt";
+                line += "   ·   " + L.F("≈ {0} geschätzt", FormatDollar(estimate));
         }
         else if (provider.IsLocal)
-            line += "   ·   0 $ (lokal)";
+            line += "   ·   " + L.T("0 $ (lokal)");
         side.Stats.Text = line;
     }
 }

@@ -1,7 +1,7 @@
 ﻿<Window x:Class="LmChat.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="FreeGuenther" Height="760" Width="1180" MinHeight="500" MinWidth="820"
+        Title="{DynamicResource ui.FreeGuenther}" Height="760" Width="1180" MinHeight="500" MinWidth="820"
         ThemeMode="System" AllowDrop="True" Icon="app.ico"
         Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
         PreviewDragOver="Window_PreviewDragOver" PreviewDrop="Window_PreviewDrop"
@@ -157,7 +157,7 @@
 
         <!-- Rechtsklick-Menü eines Chats in der Liste -->
         <ContextMenu x:Key="ChatMenu" x:Shared="False">
-            <MenuItem Header="Chat löschen" Click="DeleteChatItem_Click">
+            <MenuItem Header="{DynamicResource ui.ChatLoeschen}" Click="DeleteChatItem_Click">
                 <MenuItem.Icon>
                     <TextBlock Text="&#xE74D;" FontFamily="{StaticResource IconFont}"/>
                 </MenuItem.Icon>
@@ -179,7 +179,7 @@
                                 </Grid.ColumnDefinitions>
                                 <ContentPresenter VerticalAlignment="Center"/>
                                 <Button x:Name="DeleteItemButton" Grid.Column="1" Style="{StaticResource IconButton}"
-                                        Margin="0,-6" Padding="0" Visibility="Hidden" ToolTip="Chat löschen"
+                                        Margin="0,-6" Padding="0" Visibility="Hidden" ToolTip="{DynamicResource ui.ChatLoeschen}"
                                         Click="DeleteChatItem_Click">
                                     <TextBlock Text="&#xE74D;" FontFamily="{StaticResource IconFont}" FontSize="12"/>
                                 </Button>
@@ -220,7 +220,7 @@
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6,2,0,18">
                 <Image Source="app-logo.png" Width="30" Height="30" RenderOptions.BitmapScalingMode="HighQuality"/>
                 <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="FreeGuenther" FontSize="17" FontWeight="SemiBold"/>
+                    <TextBlock Text="{DynamicResource ui.FreeGuenther}" FontSize="17" FontWeight="SemiBold"/>
                     <TextBlock x:Name="SidebarVersion" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                 </StackPanel>
             </StackPanel>
@@ -229,30 +229,30 @@
                     Style="{StaticResource AccentButtonStyle}" Padding="0,8" Margin="0,0,0,14" Click="NewChat_Click">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="&#xE710;" FontFamily="{StaticResource IconFont}" FontSize="13" VerticalAlignment="Center"/>
-                    <TextBlock Text="Neuer Chat" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource ui.NeuerChat}" Margin="8,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
 
             <!-- Navigation -->
             <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
-                <RadioButton x:Name="NavChat" Style="{StaticResource NavItem}" Tag="&#xE8BD;" Content="Chat"
+                <RadioButton x:Name="NavChat" Style="{StaticResource NavItem}" Tag="&#xE8BD;" Content="{DynamicResource ui.Chat}"
                              Checked="Nav_Checked"/>
-                <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Tag="&#xE713;" Content="Einstellungen"
+                <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Tag="&#xE713;" Content="{DynamicResource ui.Einstellungen}"
                              Checked="Nav_Checked"/>
-                <RadioButton x:Name="NavUsage" Style="{StaticResource NavItem}" Tag="&#xE9D2;" Content="Verbrauch"
+                <RadioButton x:Name="NavUsage" Style="{StaticResource NavItem}" Tag="&#xE9D2;" Content="{DynamicResource ui.Verbrauch}"
                              Checked="Nav_Checked"/>
-                <RadioButton x:Name="NavPlugins" Style="{StaticResource NavItem}" Tag="&#xEA86;" Content="Plugins"
+                <RadioButton x:Name="NavPlugins" Style="{StaticResource NavItem}" Tag="&#xEA86;" Content="{DynamicResource ui.Plugins}"
                              Checked="Nav_Checked"/>
-                <RadioButton x:Name="NavCompare" Style="{StaticResource NavItem}" Tag="&#xE8A9;" Content="Modelle vergleichen"
+                <RadioButton x:Name="NavCompare" Style="{StaticResource NavItem}" Tag="&#xE8A9;" Content="{DynamicResource ui.ModelleVergleichen}"
                              Checked="Nav_Checked"/>
-                <RadioButton x:Name="NavHelp" Style="{StaticResource NavItem}" Tag="&#xE897;" Content="Hilfe"
+                <RadioButton x:Name="NavHelp" Style="{StaticResource NavItem}" Tag="&#xE897;" Content="{DynamicResource ui.Hilfe}"
                              Checked="Nav_Checked"/>
             </StackPanel>
 
             <!-- Aktives Modell (unten) -->
             <Border DockPanel.Dock="Bottom" CornerRadius="12" Padding="12,10" Margin="0,12,0,0"
                     Background="{DynamicResource SubtleFillColorSecondaryBrush}" Cursor="Hand"
-                    MouseLeftButtonUp="ModelCard_Click" ToolTip="Anbieter und Modell ändern">
+                    MouseLeftButtonUp="ModelCard_Click" ToolTip="{DynamicResource ui.AnbieterUndModellAendern}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -277,7 +277,7 @@
                 <TextBlock Text="&#xE721;" FontFamily="{StaticResource IconFont}" FontSize="13" Margin="11,0,0,0"
                            VerticalAlignment="Center" IsHitTestVisible="False"
                            Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                <TextBlock Text="Chats durchsuchen" Margin="33,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                <TextBlock Text="{DynamicResource ui.ChatsDurchsuchen}" Margin="33,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
                            Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                            Visibility="{Binding Text.IsEmpty, ElementName=ChatSearchBox, Converter={StaticResource BoolToVis}}"/>
             </Grid>
@@ -311,7 +311,7 @@
                         ItemContainerStyle="{StaticResource HiddenTab}">
 
                 <!-- ========== Chat ========== -->
-                <TabItem Header="Chat">
+                <TabItem Header="{DynamicResource ui.Chat}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -323,15 +323,15 @@
                         <!-- Kopfzeile -->
                         <DockPanel Margin="28,16,20,4">
                             <Button x:Name="DeleteChatButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}"
-                                    ToolTip="Diesen Chat löschen" Click="DeleteChat_Click">
+                                    ToolTip="{DynamicResource ui.DiesenChatLoeschen}" Click="DeleteChat_Click">
                                 <TextBlock Text="&#xE74D;" FontFamily="{StaticResource IconFont}" FontSize="15"/>
                             </Button>
                             <Button x:Name="ExportChatButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}"
-                                    ToolTip="Chat exportieren – als Markdown oder HTML (HTML im Browser drucken = PDF)" Click="ExportChat_Click"
-                                    AutomationProperties.Name="Chat exportieren">
+                                    ToolTip="{DynamicResource ui.ChatExportierenAlsMarkdownOder}" Click="ExportChat_Click"
+                                    AutomationProperties.Name="{DynamicResource ui.ChatExportieren}">
                                 <TextBlock Text="&#xEDE1;" FontFamily="{StaticResource IconFont}" FontSize="15"/>
                             </Button>
-                            <TextBlock x:Name="ChatTitleText" Text="Neuer Chat" FontSize="16" FontWeight="SemiBold"
+                            <TextBlock x:Name="ChatTitleText" Text="{DynamicResource ui.NeuerChat}" FontSize="16" FontWeight="SemiBold"
                                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         </DockPanel>
 
@@ -348,12 +348,12 @@
                         <StackPanel x:Name="EmptyState" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
                                     IsHitTestVisible="False" Margin="24">
                             <Image Source="app-logo.png" Width="56" Height="56" Margin="0,0,0,16" RenderOptions.BitmapScalingMode="HighQuality"/>
-                            <TextBlock Text="Wie kann ich helfen?" FontSize="30" FontWeight="SemiBold"
+                            <TextBlock Text="{DynamicResource ui.WieKannIchHelfen}" FontSize="30" FontWeight="SemiBold"
                                        FontFamily="Segoe UI Variable Display, Segoe UI" HorizontalAlignment="Center"/>
                             <TextBlock x:Name="EmptyStateHint" FontSize="14" Margin="0,8,0,0" HorizontalAlignment="Center"
                                        TextAlignment="Center" TextWrapping="Wrap" MaxWidth="520"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       Text="Stell eine Frage oder häng ein Bild an – z. B. per Strg+V."/>
+                                       Text="{DynamicResource ui.StellEineFrageOderHaeng}"/>
                         </StackPanel>
 
                         <!-- Erster Start bzw. nichts eingerichtet: an die Hand nehmen statt Chat -->
@@ -362,50 +362,44 @@
                             <StackPanel MaxWidth="760" Margin="32,8,32,24" VerticalAlignment="Center">
                                 <Image Source="app-logo.png" Width="56" Height="56" Margin="0,0,0,14"
                                        RenderOptions.BitmapScalingMode="HighQuality"/>
-                                <TextBlock Text="Willkommen bei FreeGuenther!" FontSize="30" FontWeight="SemiBold"
+                                <TextBlock Text="{DynamicResource ui.WillkommenBeiFreeGuenther}" FontSize="30" FontWeight="SemiBold"
                                            FontFamily="Segoe UI Variable Display, Segoe UI" HorizontalAlignment="Center"/>
                                 <TextBlock Style="{StaticResource Body}" HorizontalAlignment="Center" TextAlignment="Center"
                                            Margin="0,8,0,20" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
-                                    Zum Chatten brauchst du ein KI-Modell. Das läuft entweder kostenlos auf deinem eigenen Rechner
-                                    oder bei einem Online-Dienst. Wähle aus, was du nutzen möchtest – danach führen dich die
-                                    Einstellungen Schritt für Schritt weiter.
+                                    <Run Text="{DynamicResource ui.ZumChattenBrauchstDuEin}"/>
                                 </TextBlock>
 
                                 <Border Style="{StaticResource Card}">
                                     <StackPanel>
-                                        <TextBlock Style="{StaticResource Heading}" Text="💻 Lokal auf deinem Rechner – kostenlos"/>
+                                        <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.LokalAufDeinemRechnerKostenlos}"/>
                                         <TextBlock Style="{StaticResource Body}">
-                                            Deine Texte verlassen den Rechner nicht, und es kostet nichts. Du brauchst dafür ein kostenloses
-                                            Programm, das das Modell ausführt, und einen einigermaßen kräftigen Rechner (am besten mit
-                                            Grafikkarte). Kein Schlüssel nötig.
+                                            <Run Text="{DynamicResource ui.DeineTexteVerlassenDenRechner}"/>
                                         </TextBlock>
                                         <WrapPanel Margin="0,12,0,0">
                                             <Button Tag="LmStudio" Click="SetupProvider_Click" Margin="0,0,8,0" Padding="14,6"
-                                                    Style="{StaticResource AccentButtonStyle}" Content="LM Studio einrichten"/>
-                                            <Button Tag="Ollama" Click="SetupProvider_Click" Padding="14,6" Content="Ollama einrichten"/>
+                                                    Style="{StaticResource AccentButtonStyle}" Content="{DynamicResource ui.LMStudioEinrichten}"/>
+                                            <Button Tag="Ollama" Click="SetupProvider_Click" Padding="14,6" Content="{DynamicResource ui.OllamaEinrichten}"/>
                                         </WrapPanel>
                                     </StackPanel>
                                 </Border>
 
                                 <Border Style="{StaticResource Card}">
                                     <StackPanel>
-                                        <TextBlock Style="{StaticResource Heading}" Text="☁ Online – mit API-Schlüssel"/>
+                                        <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.OnlineMitAPISchluessel}"/>
                                         <TextBlock Style="{StaticResource Body}">
-                                            Die großen, schnellen Modelle laufen beim Anbieter. Dafür brauchst du dort ein Konto und einen
-                                            <Run FontWeight="SemiBold" Text="API-Schlüssel"/> (eine Art Passwort für Programme). Jede Anfrage
-                                            kostet ein wenig Geld – meist Bruchteile eines Cents.
-                                            <Run FontWeight="SemiBold" Text="OpenRouter"/> ist für den Anfang am einfachsten: ein Schlüssel für
-                                            Hunderte Modelle, auch von OpenAI und Anthropic.
+                                            <Run Text="{DynamicResource ui.DieGrossenSchnellenModelleLaufen}"/>
+                                            <Run FontWeight="SemiBold" Text="{DynamicResource ui.APISchluessel}"/> <Run Text="{DynamicResource ui.EineArtPasswortFuerProgramme}"/>
+                                            <Run FontWeight="SemiBold" Text="{DynamicResource ui.OpenRouter}"/> <Run Text="{DynamicResource ui.IstFuerDenAnfangAm}"/>
                                         </TextBlock>
                                         <WrapPanel Margin="0,12,0,0">
                                             <Button Tag="OpenRouter" Click="SetupProvider_Click" Margin="0,0,8,0" Padding="14,6"
-                                                    Style="{StaticResource AccentButtonStyle}" Content="OpenRouter einrichten (empfohlen)"/>
-                                            <Button Tag="OpenAI" Click="SetupProvider_Click" Margin="0,0,8,0" Padding="14,6" Content="OpenAI"/>
-                                            <Button Tag="Anthropic" Click="SetupProvider_Click" Padding="14,6" Content="Anthropic (Claude)"/>
+                                                    Style="{StaticResource AccentButtonStyle}" Content="{DynamicResource ui.OpenRouterEinrichtenEmpfohlen}"/>
+                                            <Button Tag="OpenAI" Click="SetupProvider_Click" Margin="0,0,8,0" Padding="14,6" Content="{DynamicResource ui.OpenAI}"/>
+                                            <Button Tag="Anthropic" Click="SetupProvider_Click" Padding="14,6" Content="{DynamicResource ui.AnthropicClaude}"/>
                                         </WrapPanel>
                                         <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,0" Foreground="#B45309">
-                                            ⚠ Setze beim Anbieter unbedingt ein Ausgabenlimit für den Schlüssel –
-                                            <Hyperlink Click="ShowHelp_Click">warum, steht in der Hilfe</Hyperlink>.
+                                            <Run Text="{DynamicResource ui.SetzeBeimAnbieterUnbedingtEin}"/>
+                                            <Hyperlink Click="ShowHelp_Click"><Run Text="{DynamicResource ui.WarumStehtInDerHilfe}"/></Hyperlink>.
                                         </TextBlock>
                                     </StackPanel>
                                 </Border>
@@ -425,8 +419,8 @@
                                         CornerRadius="10" HorizontalAlignment="Left" Background="#1F8B5CF6">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock x:Name="PersonaText" FontSize="12" VerticalAlignment="Center"/>
-                                        <Button Style="{StaticResource IconButton}" ToolTip="Persona entfernen" Padding="6,3"
-                                                AutomationProperties.Name="Persona entfernen"
+                                        <Button Style="{StaticResource IconButton}" ToolTip="{DynamicResource ui.PersonaEntfernen}" Padding="6,3"
+                                                AutomationProperties.Name="{DynamicResource ui.PersonaEntfernen}"
                                                 VerticalAlignment="Center" Click="RemovePersona_Click">
                                             <TextBlock Text="&#xE711;" FontFamily="{StaticResource IconFont}" FontSize="10"/>
                                         </Button>
@@ -444,7 +438,7 @@
                                         <Image x:Name="AttachmentImage" Height="56" MaxWidth="140" Stretch="Uniform"/>
                                         <TextBlock x:Name="AttachmentText" VerticalAlignment="Center" Margin="10,0" FontSize="12"
                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                        <Button Style="{StaticResource IconButton}" ToolTip="Bild entfernen"
+                                        <Button Style="{StaticResource IconButton}" ToolTip="{DynamicResource ui.BildEntfernen}"
                                                 VerticalAlignment="Center" Click="RemoveImage_Click">
                                             <TextBlock Text="&#xE711;" FontFamily="{StaticResource IconFont}" FontSize="11"/>
                                         </Button>
@@ -456,36 +450,36 @@
                                              Padding="2,4" AcceptsReturn="True" TextWrapping="Wrap"
                                              MinHeight="48" MaxHeight="200" VerticalScrollBarVisibility="Auto"
                                              PreviewKeyDown="InputBox_PreviewKeyDown" TextChanged="InputBox_TextChanged"/>
-                                    <TextBlock Text="Nachricht schreiben …" FontSize="15" Margin="4,6,0,0" IsHitTestVisible="False"
+                                    <TextBlock Text="{DynamicResource ui.NachrichtSchreiben}" FontSize="15" Margin="4,6,0,0" IsHitTestVisible="False"
                                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                                Visibility="{Binding Text.IsEmpty, ElementName=InputBox, Converter={StaticResource BoolToVis}}"/>
                                 </Grid>
 
                                 <DockPanel Margin="0,6,0,0">
                                     <Button x:Name="ImageButton" Style="{StaticResource IconButton}" Click="ImageButton_Click"
-                                            AutomationProperties.Name="Datei anhängen">
+                                            AutomationProperties.Name="{DynamicResource ui.DateiAnhaengen}">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="&#xE723;" FontFamily="{StaticResource IconFont}" FontSize="15"
                                                        VerticalAlignment="Center"/>
-                                            <TextBlock Text="Datei" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{DynamicResource ui.Datei}" Margin="6,0,0,0" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
                                     <Button x:Name="TemplatesButton" Style="{StaticResource IconButton}" Click="TemplatesButton_Click"
-                                            ToolTip="Vorlagen und Personas (oder „/“ ins Eingabefeld tippen)"
-                                            AutomationProperties.Name="Vorlagen">
+                                            ToolTip="{DynamicResource ui.VorlagenUndPersonasOderIns}"
+                                            AutomationProperties.Name="{DynamicResource ui.Vorlagen}">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="&#xE8A5;" FontFamily="{StaticResource IconFont}" FontSize="15"
                                                        VerticalAlignment="Center"/>
-                                            <TextBlock Text="Vorlagen" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{DynamicResource ui.Vorlagen}" Margin="6,0,0,0" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
                                     <CheckBox x:Name="HistoryCheck" IsChecked="True" Margin="10,0,0,0" VerticalAlignment="Center"
-                                              Content="Verlauf mitsenden"
-                                              ToolTip="Mit Haken kennt das Modell den bisherigen Chat (Gespräch). Ohne Haken nur die aktuelle Nachricht."/>
+                                              Content="{DynamicResource ui.VerlaufMitsenden}"
+                                              ToolTip="{DynamicResource ui.MitHakenKenntDasModell}"/>
                                     <Button x:Name="SendButton" DockPanel.Dock="Right" Style="{StaticResource SendButtonStyle}"
-                                            ToolTip="Senden (Enter)" Click="Send_Click"/>
+                                            ToolTip="{DynamicResource ui.SendenEnter}" Click="Send_Click"/>
                                     <Button x:Name="StopButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}"
-                                            Margin="0,0,6,0" Visibility="Collapsed" ToolTip="Antwort abbrechen" Click="Stop_Click">
+                                            Margin="0,0,6,0" Visibility="Collapsed" ToolTip="{DynamicResource ui.AntwortAbbrechen}" Click="Stop_Click">
                                         <TextBlock Text="&#xE71A;" FontFamily="{StaticResource IconFont}" FontSize="14"/>
                                     </Button>
                                     <Grid/>
@@ -500,9 +494,9 @@
                                     Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                                 <StackPanel>
-                                    <TextBlock Text="Vorlagen und Personas – ↑↓ wählen, Enter übernehmen, Esc schließen" FontSize="11.5"
+                                    <TextBlock Text="{DynamicResource ui.VorlagenUndPersonasWaehlenEnter}" FontSize="11.5"
                                                Margin="8,2,8,6" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    <TextBlock x:Name="TemplatePickEmpty" Text="Keine passende Vorlage – anlegen kannst du sie unter Einstellungen."
+                                    <TextBlock x:Name="TemplatePickEmpty" Text="{DynamicResource ui.KeinePassendeVorlageAnlegenKannst}"
                                                Margin="8,0,8,6" Visibility="Collapsed" FontSize="13"/>
                                     <ListBox x:Name="TemplatePickList" MaxHeight="300" BorderThickness="0" Background="Transparent"
                                              PreviewMouseLeftButtonUp="TemplatePickList_MouseUp">
@@ -527,25 +521,25 @@
                         <TextBlock x:Name="StatusText" Grid.Row="3" HorizontalAlignment="Center" Margin="24,0,24,10"
                                    FontSize="12" TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                   Text="Enter = senden · Umschalt+Enter = neue Zeile · Strg+V = Bild/Datei einfügen · / = Vorlagen"/>
+                                   Text="{DynamicResource ui.EnterSendenUmschaltEnterNeue}"/>
                     </Grid>
                 </TabItem>
 
                 <!-- ========== Einstellungen ========== -->
-                <TabItem Header="Einstellungen">
+                <TabItem Header="{DynamicResource ui.Einstellungen}">
                     <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="32,24,32,24" MaxWidth="860" HorizontalAlignment="Left">
-                            <TextBlock Style="{StaticResource PageTitle}" Text="Einstellungen"/>
+                            <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource ui.Einstellungen}"/>
                             <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,18"
-                                       Text="Wo das Sprachmodell läuft, welches Modell antwortet und wie es antwortet."/>
+                                       Text="{DynamicResource ui.WoDasSprachmodellLaeuftWelches}"/>
 
                             <!-- Schritt-für-Schritt-Anleitung, solange noch nichts fertig eingerichtet ist -->
                             <Border x:Name="SetupGuide" Style="{StaticResource Card}" Background="#1A3B82F6" BorderBrush="#663B82F6"
                                     Visibility="Collapsed">
                                 <StackPanel>
-                                    <TextBlock x:Name="SetupGuideTitle" Style="{StaticResource Heading}" Text="So geht's los – in 4 Schritten"/>
+                                    <TextBlock x:Name="SetupGuideTitle" Style="{StaticResource Heading}" Text="{DynamicResource ui.SoGehtSLosIn}"/>
                                     <StackPanel x:Name="SetupSteps"/>
-                                    <Button x:Name="SetupDoneButton" Content="Los geht's – zum Chat" Margin="0,12,0,0" Padding="14,6"
+                                    <Button x:Name="SetupDoneButton" Content="{DynamicResource ui.LosGehtSZumChat}" Margin="0,12,0,0" Padding="14,6"
                                             HorizontalAlignment="Left" Style="{StaticResource AccentButtonStyle}"
                                             Visibility="Collapsed" Click="SetupDone_Click"/>
                                 </StackPanel>
@@ -556,33 +550,42 @@
                                 <Border Style="{StaticResource Tile}" Background="#1F3B82F6">
                                     <StackPanel>
                                         <TextBlock x:Name="TileProvider" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="Aktiver Anbieter" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Text="{DynamicResource ui.AktiverAnbieter}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource Tile}" Background="#1F8B5CF6">
                                     <StackPanel>
                                         <TextBlock x:Name="TileModel" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock x:Name="TileModelHint" Text="Aktives Modell" FontSize="12"
+                                        <TextBlock x:Name="TileModelHint" Text="{DynamicResource ui.AktivesModell}" FontSize="12"
                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource Tile}" Background="#1FF97316">
                                     <StackPanel>
                                         <TextBlock x:Name="TileChats" FontSize="20" FontWeight="SemiBold"/>
-                                        <TextBlock Text="Gespeicherte Chats" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Text="{DynamicResource ui.GespeicherteChats}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
                                 </Border>
                             </UniformGrid>
 
+                            <!-- Karte: Sprache -->
+                            <Border Style="{StaticResource Card}">
+                                <DockPanel>
+                                    <ComboBox x:Name="LanguageCombo" DockPanel.Dock="Right" Width="260" VerticalAlignment="Center"
+                                              SelectionChanged="LanguageCombo_SelectionChanged" AutomationProperties.Name="Sprache / Language"/>
+                                    <StackPanel Margin="0,0,16,0">
+                                        <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Sprache}"/>
+                                        <TextBlock Style="{StaticResource Hint}" Margin="0" Text="{DynamicResource ui.SpracheHinweis}"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+
                             <!-- Karte: Anbieter -->
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Anbieter"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Anbieter}"/>
                                     <TextBlock Style="{StaticResource Hint}">
-                                        Lokal auf deinem Rechner bzw. im Netzwerk (LM Studio, Ollama) oder bei einem Online-Dienst
-                                        (OpenAI, Anthropic, OpenRouter). Jeder Anbieter merkt sich seine eigene Adresse, seinen Schlüssel
-                                        und sein Modell. Links anklicken zum Ansehen und Ändern – „Speichern“ ändert nicht, welcher Anbieter
-                                        im Chat antwortet; dafür gibt es „Im Chat verwenden“.
+                                        <Run Text="{DynamicResource ui.LokalAufDeinemRechnerBzw}"/>
                                     </TextBlock>
                                     <Grid Margin="0,6,0,0">
                                         <Grid.ColumnDefinitions>
@@ -590,7 +593,7 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <ListBox x:Name="ProviderList" VerticalAlignment="Top" SelectionChanged="ProviderList_SelectionChanged"
-                                                 AutomationProperties.Name="Anbieter">
+                                                 AutomationProperties.Name="{DynamicResource ui.Anbieter}">
                                             <ListBox.ItemTemplate>
                                                 <DataTemplate>
                                                     <StackPanel Margin="2,3">
@@ -607,9 +610,9 @@
                                         </ListBox>
                                         <StackPanel Grid.Column="1" Margin="18,0,0,0">
                                     <DockPanel>
-                                        <Button x:Name="UseProviderButton" DockPanel.Dock="Right" Content="Im Chat verwenden" Padding="14,5"
+                                        <Button x:Name="UseProviderButton" DockPanel.Dock="Right" Content="{DynamicResource ui.ImChatVerwenden}" Padding="14,5"
                                                 Style="{StaticResource AccentButtonStyle}" Click="UseProvider_Click"
-                                                ToolTip="Speichern und diesen Anbieter mit seinem Modell für den Chat verwenden"/>
+                                                ToolTip="{DynamicResource ui.SpeichernUndDiesenAnbieterMit}"/>
                                         <TextBlock x:Name="ProviderTitle" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                     </DockPanel>
                                     <TextBlock x:Name="ProviderActiveNote" FontSize="12.5" Margin="0,2,0,0"
@@ -617,24 +620,20 @@
                                     <TextBlock x:Name="ProviderHint" Style="{StaticResource Hint}" Margin="0,8,0,4"/>
                                     <TextBlock x:Name="ProviderLinks" TextWrapping="Wrap"/>
 
-                                    <TextBlock Style="{StaticResource SubHeading}" Text="Server-Adresse"/>
+                                    <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.ServerAdresse}"/>
                                     <TextBlock Style="{StaticResource Hint}">
-                                        Normalerweise passt der Standard. Für einen anderen Rechner im Netzwerk dessen Adresse eintragen,
-                                        z. B. <Run FontFamily="Consolas" Text="http://192.168.178.191:1234"/>.
+                                        <Run Text="{DynamicResource ui.NormalerweisePasstDerStandardFuer}"/> <Run FontFamily="Consolas" Text="http://192.168.178.191:1234"/>.
                                     </TextBlock>
                                     <DockPanel>
-                                        <Button DockPanel.Dock="Right" Content="Standard" Margin="8,0,0,0" Click="DefaultServer_Click"/>
+                                        <Button DockPanel.Dock="Right" Content="{DynamicResource ui.Standard}" Margin="8,0,0,0" Click="DefaultServer_Click"/>
                                         <TextBox x:Name="ServerBox"/>
                                     </DockPanel>
 
                                     <StackPanel x:Name="ApiKeyPanel">
-                                        <TextBlock Style="{StaticResource SubHeading}" Text="API-Schlüssel"/>
+                                        <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.APISchluessel}"/>
                                         <TextBlock Style="{StaticResource Hint}">
-                                            Den Schlüssel bekommst du in deinem Konto beim Anbieter:
-                                            <Hyperlink x:Name="KeyLink" RequestNavigate="Link_RequestNavigate"><Run x:Name="KeyLinkText"/></Hyperlink>.
-                                            Er wird verschlüsselt gespeichert und ist nur mit deinem Windows-Konto lesbar.
-                                            Achtung: Bei Online-Diensten werden deine Nachrichten und Bilder an den Anbieter gesendet,
-                                            und die Nutzung kostet in der Regel Geld.
+                                            <Run Text="{DynamicResource ui.DenSchluesselBekommstDuIn}"/>
+                                            <Hyperlink x:Name="KeyLink" RequestNavigate="Link_RequestNavigate"><Run x:Name="KeyLinkText"/></Hyperlink><Run Text="{DynamicResource ui.ErWirdVerschluesseltGespeichertUnd}"/>
                                         </TextBlock>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
@@ -642,40 +641,32 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <PasswordBox x:Name="ApiKeyBox" PasswordChanged="ApiKeyBox_PasswordChanged"
-                                                         AutomationProperties.Name="API-Schlüssel"/>
+                                                         AutomationProperties.Name="{DynamicResource ui.APISchluessel}"/>
                                             <TextBox x:Name="ApiKeyPlain" Visibility="Collapsed" FontFamily="Cascadia Mono, Consolas"
-                                                     AutomationProperties.Name="API-Schlüssel im Klartext"/>
+                                                     AutomationProperties.Name="{DynamicResource ui.APISchluesselImKlartext}"/>
                                             <ToggleButton x:Name="ApiKeyReveal" Grid.Column="1" Margin="6,0,0,0" Padding="10,0"
-                                                          ToolTip="Schlüssel anzeigen bzw. wieder verbergen"
-                                                          AutomationProperties.Name="Schlüssel anzeigen">
+                                                          ToolTip="{DynamicResource ui.SchluesselAnzeigenBzwWiederVerbergen}"
+                                                          AutomationProperties.Name="{DynamicResource ui.SchluesselAnzeigen}">
                                                 <TextBlock Text="&#xE7B3;" FontFamily="{StaticResource IconFont}" FontSize="14"/>
                                             </ToggleButton>
                                         </Grid>
                                         <Border CornerRadius="8" Padding="12,8" Margin="0,8,0,0" Background="#1FF59E0B"
                                                 BorderBrush="#66F59E0B" BorderThickness="1">
                                             <TextBlock TextWrapping="Wrap">
-                                                <Run FontWeight="SemiBold" Text="⚠ Wichtig:"/>
-                                                Setze beim Anbieter unbedingt ein Ausgabenlimit für diesen Schlüssel bzw. dein Konto
-                                                (Link mit ⚠ oben bei „Links“). Warum und wie:
-                                                <Hyperlink Click="ShowHelp_Click">Hilfe → Kosten absichern</Hyperlink>
+                                                <Run FontWeight="SemiBold" Text="{DynamicResource ui.Wichtig}"/>
+                                                <Run Text="{DynamicResource ui.SetzeBeimAnbieterUnbedingtEin2}"/>
+                                                <Hyperlink Click="ShowHelp_Click"><Run Text="{DynamicResource ui.HilfeKostenAbsichern}"/></Hyperlink>
                                             </TextBlock>
                                         </Border>
                                     </StackPanel>
 
                                     <StackPanel x:Name="RegionPanel">
-                                        <TextBlock Style="{StaticResource SubHeading}" Text="Standort der Rechenzentren"/>
+                                        <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.StandortDerRechenzentren}"/>
                                         <TextBlock Style="{StaticResource Hint}">
-                                            Legt fest, wo deine Anfragen verarbeitet werden. Die Modellliste zeigt dann nur Modelle, die in der
-                                            gewählten Region laufen.<LineBreak/>
-                                            <Run FontWeight="SemiBold" Text="Über Hoster-Auswahl (jeder Tarif):"/> Die App lässt nur Hoster-Endpunkte
-                                            zu, deren Standort bekannt ist und in der Region liegt (z. B. „mistral/eu“, „amazon-bedrock/eu-central-1“).
-                                            Andere Hoster sind gesperrt, es gibt keine Ausweichhoster. Die Standortangaben stammen von OpenRouter und
-                                            den Hostern selbst und sind nicht garantiert. Beim ersten Laden werden alle Modelle geprüft, das dauert
-                                            etwas.<LineBreak/>
-                                            <Run FontWeight="SemiBold" Text="Garantiert (In-Region-Routing):"/> OpenRouter selbst stellt sicher, dass die
-                                            Anfrage die Region nicht verlässt. Das gibt es nur im Business-Tarif
-                                            (<Hyperlink NavigateUri="https://openrouter.ai/docs/guides/features/sovereign-ai"
-                                                        RequestNavigate="Link_RequestNavigate">Details</Hyperlink>), sonst kommt der Fehler HTTP 403.
+                                            <Run Text="{DynamicResource ui.LegtFestWoDeineAnfragen}"/><LineBreak/>
+                                            <Run FontWeight="SemiBold" Text="{DynamicResource ui.UeberHosterAuswahlJederTarif}"/> <Run Text="{DynamicResource ui.DieAppLaesstNurHoster}"/><LineBreak/>
+                                            <Run FontWeight="SemiBold" Text="{DynamicResource ui.GarantiertInRegionRouting}"/> <Run Text="{DynamicResource ui.OpenRouterSelbstStelltSicherDass}"/><Hyperlink NavigateUri="https://openrouter.ai/docs/guides/features/sovereign-ai"
+                                                        RequestNavigate="Link_RequestNavigate"><Run Text="{DynamicResource ui.Details}"/></Hyperlink><Run Text="{DynamicResource ui.SonstKommtDerFehlerHTTP}"/>
                                         </TextBlock>
                                         <ComboBox x:Name="RegionCombo" DisplayMemberPath="Label" SelectedValuePath="Code"
                                                   SelectionChanged="RegionCombo_SelectionChanged"/>
@@ -688,13 +679,12 @@
                             <!-- Karte: Modell (des links ausgewählten Anbieters) -->
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock x:Name="ModelHeading" Style="{StaticResource Heading}" Text="Modell"/>
+                                    <TextBlock x:Name="ModelHeading" Style="{StaticResource Heading}" Text="{DynamicResource ui.Modell}"/>
                                     <TextBlock Style="{StaticResource Hint}">
-                                        Die Liste kommt direkt vom Anbieter („Liste aktualisieren“, nachdem Adresse und ggf. Schlüssel stimmen).
-                                        <Run FontWeight="SemiBold" Text="🖼"/> = versteht Bilder,
-                                        <Run FontWeight="SemiBold" Text="●"/> = ist gerade geladen und antwortet sofort.
-                                        <Run FontWeight="SemiBold" Text="🎨"/> = erzeugt Bilder.
-                                        Mit dem Suchfeld und der Auswahl daneben lässt sich die Liste eingrenzen.
+                                        <Run Text="{DynamicResource ui.DieListeKommtDirektVom}"/>
+                                        <Run FontWeight="SemiBold" Text="🖼"/> <Run Text="{DynamicResource ui.VerstehtBilder2}"/>
+                                        <Run FontWeight="SemiBold" Text="●"/> <Run Text="{DynamicResource ui.IstGeradeGeladenUndAntwortet}"/>
+                                        <Run FontWeight="SemiBold" Text="🎨"/> <Run Text="{DynamicResource ui.ErzeugtBilderMitDemSuchfeld}"/>
                                     </TextBlock>
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
@@ -706,20 +696,20 @@
                                             <TextBlock Text="&#xE721;" FontFamily="{StaticResource IconFont}" FontSize="13" Margin="11,0,0,0"
                                                        VerticalAlignment="Center" IsHitTestVisible="False"
                                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                            <TextBlock Text="Modelle suchen, z. B. „gemini flash“" Margin="33,0,0,0" VerticalAlignment="Center"
+                                            <TextBlock Text="{DynamicResource ui.ModelleSuchenZBGemini}" Margin="33,0,0,0" VerticalAlignment="Center"
                                                        IsHitTestVisible="False" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                                        Visibility="{Binding Text.IsEmpty, ElementName=ModelSearchBox, Converter={StaticResource BoolToVis}}"/>
                                         </Grid>
                                         <ComboBox x:Name="ModelFilterCombo" Grid.Column="1" Margin="8,0,0,0" SelectedIndex="0"
                                                   SelectionChanged="ModelFilterCombo_SelectionChanged">
-                                            <ComboBoxItem Content="Alle Modelle"/>
-                                            <ComboBoxItem Content="🎨  Erzeugt Bilder"/>
-                                            <ComboBoxItem Content="🖼  Versteht Bilder"/>
-                                            <ComboBoxItem Content="●  Gerade geladen"/>
+                                            <ComboBoxItem Content="{DynamicResource ui.AlleModelle}"/>
+                                            <ComboBoxItem Content="{DynamicResource ui.ErzeugtBilder}"/>
+                                            <ComboBoxItem Content="{DynamicResource ui.VerstehtBilder}"/>
+                                            <ComboBoxItem Content="{DynamicResource ui.GeradeGeladen}"/>
                                         </ComboBox>
                                     </Grid>
                                     <DockPanel>
-                                        <Button DockPanel.Dock="Right" Content="Liste aktualisieren" Margin="8,0,0,0"
+                                        <Button DockPanel.Dock="Right" Content="{DynamicResource ui.ListeAktualisieren}" Margin="8,0,0,0"
                                                 Click="ReloadModels_Click"/>
                                         <ComboBox x:Name="ModelCombo" DisplayMemberPath="Label" SelectedValuePath="Id"
                                                   TextSearch.TextPath="Id" MaxDropDownHeight="420"
@@ -734,28 +724,24 @@
                             <!-- Karte: System-Prompt -->
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="System-Prompt"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.SystemPrompt}"/>
                                     <TextBlock Style="{StaticResource Hint}">
-                                        Eine feste Anweisung, die das Modell vor jedem Chat bekommt, z. B.
-                                        „Antworte immer auf Deutsch und möglichst kurz.“ Leer lassen, wenn du keine brauchst.
+                                        <Run Text="{DynamicResource ui.EineFesteAnweisungDieDas}"/>
                                     </TextBlock>
                                     <TextBox x:Name="SystemPromptBox" Height="100"
                                              AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
                                     <CheckBox x:Name="AutoTitleCheck" Margin="0,12,0,0"
-                                              Content="Chat-Titel nach der ersten Antwort vom Modell vorschlagen lassen"
-                                              ToolTip="Eine kurze Zusatzanfrage an dasselbe Modell. Bei Online-Anbietern kostet das ein paar Tokens."/>
+                                              Content="{DynamicResource ui.ChatTitelNachDerErsten}"
+                                              ToolTip="{DynamicResource ui.EineKurzeZusatzanfrageAnDasselbe}"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- Karte: Vorlagen und Personas -->
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Vorlagen und Personas"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.VorlagenUndPersonas}"/>
                                     <TextBlock Style="{StaticResource Hint}">
-                                        Im Chat <Run FontWeight="SemiBold" Text="„/“"/> ins Eingabefeld tippen (oder Knopf „Vorlagen“), dann auswählen.
-                                        Eine <Run FontWeight="SemiBold" Text="Vorlage"/> setzt ihren Text ins Eingabefeld – du schreibst dann weiter.
-                                        Eine <Run FontWeight="SemiBold" Text="Persona"/> gilt für den ganzen Chat als zusätzliche Anweisung (wie der
-                                        System-Prompt) und steht als Kärtchen über dem Eingabefeld. Änderungen gelten nach „Speichern“.
+                                        <Run Text="{DynamicResource ui.ImChat}"/> <Run FontWeight="SemiBold" Text="„/“"/> <Run Text="{DynamicResource ui.InsEingabefeldTippenOderKnopf}"/> <Run FontWeight="SemiBold" Text="{DynamicResource ui.Vorlage}"/> <Run Text="{DynamicResource ui.SetztIhrenTextInsEingabefeld}"/> <Run FontWeight="SemiBold" Text="{DynamicResource ui.Persona}"/> <Run Text="{DynamicResource ui.GiltFuerDenGanzenChat}"/>
                                     </TextBlock>
                                     <Grid Margin="0,6,0,0">
                                         <Grid.ColumnDefinitions>
@@ -764,8 +750,8 @@
                                         </Grid.ColumnDefinitions>
                                         <DockPanel Margin="0,0,14,0">
                                             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
-                                                <Button Content="Neu" Padding="14,4" Click="NewTemplate_Click"/>
-                                                <Button Content="Löschen" Padding="14,4" Margin="8,0,0,0" Click="DeleteTemplate_Click"/>
+                                                <Button Content="{DynamicResource ui.Neu}" Padding="14,4" Click="NewTemplate_Click"/>
+                                                <Button Content="{DynamicResource ui.Loeschen}" Padding="14,4" Margin="8,0,0,0" Click="DeleteTemplate_Click"/>
                                             </StackPanel>
                                             <ListBox x:Name="TemplateList" Height="230" SelectionChanged="TemplateList_SelectionChanged">
                                                 <ListBox.ItemTemplate>
@@ -780,12 +766,12 @@
                                             </ListBox>
                                         </DockPanel>
                                         <StackPanel x:Name="TemplateEditor" Grid.Column="1">
-                                            <TextBlock Text="Name" Margin="0,0,0,4"/>
+                                            <TextBlock Text="{DynamicResource ui.Name}" Margin="0,0,0,4"/>
                                             <TextBox x:Name="TemplateNameBox" TextChanged="TemplateField_Changed"/>
                                             <CheckBox x:Name="TemplatePersonaCheck" Margin="0,10,0,0" Checked="TemplateField_Changed"
                                                       Unchecked="TemplateField_Changed"
-                                                      Content="Persona – gilt für den ganzen Chat als zusätzliche Anweisung"/>
-                                            <TextBlock Text="Text" Margin="0,10,0,4"/>
+                                                      Content="{DynamicResource ui.PersonaGiltFuerDenGanzen}"/>
+                                            <TextBlock Text="{DynamicResource ui.Text}" Margin="0,10,0,4"/>
                                             <TextBox x:Name="TemplateTextBox" Height="120" AcceptsReturn="True" TextWrapping="Wrap"
                                                      VerticalScrollBarVisibility="Auto" TextChanged="TemplateField_Changed"/>
                                         </StackPanel>
@@ -796,21 +782,19 @@
                             <!-- Karte: Feineinstellungen -->
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Feineinstellungen"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Feineinstellungen}"/>
                                     <TextBlock Style="{StaticResource Hint}">
-                                        Setze einen Haken, um einen eigenen Wert zu verwenden. Ohne Haken gilt der Standardwert
-                                        des Modells. Das ist meistens die beste Wahl. Ausgegraute Einstellungen kennt der gewählte
-                                        Anbieter nicht; sie werden dann nicht gesendet.
+                                        <Run Text="{DynamicResource ui.SetzeEinenHakenUmEinen}"/>
                                     </TextBlock>
                                     <StackPanel x:Name="ParamsPanel"/>
                                 </StackPanel>
                             </Border>
 
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                <Button Content="Speichern" MinWidth="130" Padding="0,8" Click="SaveSettings_Click"
-                                        ToolTip="Alle Einstellungen speichern – der Anbieter im Chat bleibt, wie er ist"
+                                <Button Content="{DynamicResource ui.Speichern}" MinWidth="130" Padding="0,8" Click="SaveSettings_Click"
+                                        ToolTip="{DynamicResource ui.AlleEinstellungenSpeichernDerAnbieter}"
                                         Style="{StaticResource AccentButtonStyle}"/>
-                                <Button Content="Alles auf Standard" Margin="8,0,0,0" Click="ResetParams_Click"/>
+                                <Button Content="{DynamicResource ui.AllesAufStandard}" Margin="8,0,0,0" Click="ResetParams_Click"/>
                                 <TextBlock x:Name="SettingsStatus" Margin="14,0,0,0" MaxWidth="520"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            VerticalAlignment="Center" TextWrapping="Wrap"/>
@@ -820,25 +804,23 @@
                 </TabItem>
 
                 <!-- ========== Verbrauch ========== -->
-                <TabItem Header="Verbrauch">
+                <TabItem Header="{DynamicResource ui.Verbrauch}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="32,24,32,24" MaxWidth="860" HorizontalAlignment="Left">
-                            <TextBlock Style="{StaticResource PageTitle}" Text="Verbrauch"/>
+                            <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource ui.Verbrauch}"/>
                             <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,18"
-                                       Text="Wie viele Anfragen und Tokens je Modell angefallen sind und was das ungefähr gekostet hat."/>
+                                       Text="{DynamicResource ui.WieVieleAnfragenUndTokens}"/>
 
                             <!-- Deutlicher Hinweis: nur eine Schätzung -->
                             <Border Style="{StaticResource Card}" Background="#1FF59E0B" BorderBrush="#66F59E0B">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="⚠ Nur eine Schätzung – keine Abrechnung"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.NurEineSchaetzungKeineAbrechnung}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        Die Zahlen zählt FreeGuenther selbst mit. Sie können von deiner Rechnung abweichen: Manche Anbieter
-                                        melden keine Kosten, Preise ändern sich, Rabatte, Caching oder Mindestbeträge fehlen, und Anfragen
-                                        aus anderen Programmen oder von anderen Rechnern sind nicht enthalten.<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Die exakten Kosten siehst du nur im Konto des jeweiligen Anbieters:"/>
-                                        <Hyperlink NavigateUri="https://openrouter.ai/activity" RequestNavigate="Link_RequestNavigate">OpenRouter</Hyperlink> ·
-                                        <Hyperlink NavigateUri="https://platform.openai.com/usage" RequestNavigate="Link_RequestNavigate">OpenAI</Hyperlink> ·
-                                        <Hyperlink NavigateUri="https://platform.claude.com/usage" RequestNavigate="Link_RequestNavigate">Anthropic</Hyperlink>
+                                        <Run Text="{DynamicResource ui.DieZahlenZaehltFreeGuentherSelbst}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.DieExaktenKostenSiehstDu}"/>
+                                        <Hyperlink NavigateUri="https://openrouter.ai/activity" RequestNavigate="Link_RequestNavigate"><Run Text="{DynamicResource ui.OpenRouter}"/></Hyperlink> ·
+                                        <Hyperlink NavigateUri="https://platform.openai.com/usage" RequestNavigate="Link_RequestNavigate"><Run Text="{DynamicResource ui.OpenAI}"/></Hyperlink> ·
+                                        <Hyperlink NavigateUri="https://platform.claude.com/usage" RequestNavigate="Link_RequestNavigate"><Run Text="{DynamicResource ui.Anthropic}"/></Hyperlink>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
@@ -846,36 +828,34 @@
                             <!-- Kostenbremse -->
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="🛑 Kostenbremse"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Kostenbremse}"/>
                                     <TextBlock Style="{StaticResource Hint}">
-                                        Ein eigenes Limit in FreeGuenther, zusätzlich zum Ausgabenlimit beim Anbieter. Ist es erreicht, fragt FreeGuenther
-                                        vor jeder Anfrage an einen Online-Anbieter nach – oder sperrt sie ganz. Ab 80 % kommt ein Hinweis.
-                                        Grundlage ist die Schätzung von dieser Seite. Lokale Modelle sind nie betroffen. Leer = kein Limit.
+                                        <Run Text="{DynamicResource ui.EinEigenesLimitInFreeGuenther}"/>
                                     </TextBlock>
                                     <WrapPanel Margin="0,4,0,0">
-                                        <TextBlock Text="Pro Tag (US-$):" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{DynamicResource ui.ProTagUS}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                         <TextBox x:Name="DailyBudgetBox" Width="90" Margin="0,0,24,0"/>
-                                        <TextBlock Text="Pro Monat (US-$):" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{DynamicResource ui.ProMonatUS}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                         <TextBox x:Name="MonthlyBudgetBox" Width="90"/>
                                     </WrapPanel>
                                     <CheckBox x:Name="BudgetHardCheck" Margin="0,12,0,0"
-                                              Content="Hart sperren – bei erreichtem Limit ohne Nachfrage nichts mehr an Online-Anbieter senden"/>
+                                              Content="{DynamicResource ui.HartSperrenBeiErreichtemLimit}"/>
                                     <TextBlock x:Name="BudgetSpent" Style="{StaticResource Hint}" Margin="0,10,0,0"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                        <Button Content="Kostenbremse speichern" Click="SaveBudget_Click"/>
+                                        <Button Content="{DynamicResource ui.KostenbremseSpeichern}" Click="SaveBudget_Click"/>
                                         <TextBlock x:Name="BudgetStatus" Style="{StaticResource Hint}" Margin="12,0,0,0" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
 
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,14">
-                                <TextBlock Style="{StaticResource Body}" Text="Zeitraum:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBlock Style="{StaticResource Body}" Text="{DynamicResource ui.Zeitraum}" VerticalAlignment="Center" Margin="0,0,10,0"/>
                                 <ComboBox x:Name="UsagePeriodCombo" Width="200" SelectionChanged="UsagePeriod_SelectionChanged">
-                                    <ComboBoxItem Content="Heute"/>
-                                    <ComboBoxItem Content="Letzte 7 Tage"/>
-                                    <ComboBoxItem Content="Dieser Monat" IsSelected="True"/>
-                                    <ComboBoxItem Content="Letzte 30 Tage"/>
-                                    <ComboBoxItem Content="Gesamt"/>
+                                    <ComboBoxItem Content="{DynamicResource ui.Heute}"/>
+                                    <ComboBoxItem Content="{DynamicResource ui.Letzte7Tage}"/>
+                                    <ComboBoxItem Content="{DynamicResource ui.DieserMonat}" IsSelected="True"/>
+                                    <ComboBoxItem Content="{DynamicResource ui.Letzte30Tage}"/>
+                                    <ComboBoxItem Content="{DynamicResource ui.Gesamt}"/>
                                 </ComboBox>
                             </StackPanel>
 
@@ -884,19 +864,19 @@
                                 <Border Style="{StaticResource Tile}" Background="#1F3B82F6">
                                     <StackPanel>
                                         <TextBlock x:Name="UsageRequestsTile" FontSize="20" FontWeight="SemiBold"/>
-                                        <TextBlock Text="Antworten" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Text="{DynamicResource ui.Antworten}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource Tile}" Background="#1F8B5CF6">
                                     <StackPanel>
                                         <TextBlock x:Name="UsageTokensTile" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="Tokens gesendet / erhalten" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Text="{DynamicResource ui.TokensGesendetErhalten}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource Tile}" Background="#1FF97316">
                                     <StackPanel>
                                         <TextBlock x:Name="UsageCostTile" FontSize="20" FontWeight="SemiBold"/>
-                                        <TextBlock Text="Kosten – ungefähr" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Text="{DynamicResource ui.KostenUngefaehr}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                     </StackPanel>
                                 </Border>
                             </UniformGrid>
@@ -904,31 +884,27 @@
                             <!-- Tabelle je Modell -->
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Je Modell"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.JeModell}"/>
                                     <ListView x:Name="UsageList" BorderThickness="0" Background="Transparent" Margin="0,4,0,0">
                                         <ListView.View>
                                             <GridView>
-                                                <GridViewColumn Header="Anbieter" Width="130" DisplayMemberBinding="{Binding Provider}"/>
-                                                <GridViewColumn Header="Modell" Width="230" DisplayMemberBinding="{Binding Model}"/>
-                                                <GridViewColumn Header="Antworten" Width="80" DisplayMemberBinding="{Binding Requests}"/>
-                                                <GridViewColumn Header="Tokens ein" Width="95" DisplayMemberBinding="{Binding InputTokens}"/>
-                                                <GridViewColumn Header="Tokens aus" Width="95" DisplayMemberBinding="{Binding OutputTokens}"/>
-                                                <GridViewColumn Header="Kosten" Width="170" DisplayMemberBinding="{Binding Cost}"/>
+                                                <GridViewColumn Header="{DynamicResource ui.Anbieter}" Width="130" DisplayMemberBinding="{Binding Provider}"/>
+                                                <GridViewColumn Header="{DynamicResource ui.Modell}" Width="230" DisplayMemberBinding="{Binding Model}"/>
+                                                <GridViewColumn Header="{DynamicResource ui.Antworten}" Width="80" DisplayMemberBinding="{Binding Requests}"/>
+                                                <GridViewColumn Header="{DynamicResource ui.TokensEin}" Width="95" DisplayMemberBinding="{Binding InputTokens}"/>
+                                                <GridViewColumn Header="{DynamicResource ui.TokensAus}" Width="95" DisplayMemberBinding="{Binding OutputTokens}"/>
+                                                <GridViewColumn Header="{DynamicResource ui.Kosten}" Width="170" DisplayMemberBinding="{Binding Cost}"/>
                                             </GridView>
                                         </ListView.View>
                                     </ListView>
                                     <TextBlock x:Name="UsageEmpty" Style="{StaticResource Hint}" Margin="0,8,0,0" Visibility="Collapsed"
-                                               Text="In diesem Zeitraum gab es noch keine Antworten."/>
+                                               Text="{DynamicResource ui.InDiesemZeitraumGabEs}"/>
                                     <TextBlock Style="{StaticResource Hint}" Margin="0,12,0,0">
-                                        <Run FontWeight="SemiBold" Text="So entstehen die Kosten:"/>
-                                        „gemeldet“ = Betrag, den der Anbieter mit der Antwort geschickt hat (OpenRouter).
-                                        „≈ geschätzt“ = Tokens × Listenpreis aus der öffentlichen Preisliste von OpenRouter (OpenAI, Anthropic
-                                        und Antworten ohne gemeldeten Betrag). „unbekannt“ = kein Preis gefunden. Lokale Anbieter (LM Studio, Ollama) kosten nichts.
-                                        Gezählt wird ab Version 1.11; ältere Antworten wurden aus den gespeicherten Chats übernommen.
-                                        Das Löschen eines Chats ändert den Verbrauch nicht.
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.SoEntstehenDieKosten}"/>
+                                        <Run Text="{DynamicResource ui.GemeldetBetragDenDerAnbieter}"/>
                                     </TextBlock>
                                     <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                        <Button Content="Zähler zurücksetzen" Click="ClearUsage_Click"/>
+                                        <Button Content="{DynamicResource ui.ZaehlerZuruecksetzen}" Click="ClearUsage_Click"/>
                                         <TextBlock x:Name="UsageStatus" Style="{StaticResource Hint}" Margin="12,0,0,0" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </StackPanel>
@@ -938,65 +914,60 @@
                 </TabItem>
 
                 <!-- ========== Plugins ========== -->
-                <TabItem Header="Plugins">
+                <TabItem Header="{DynamicResource ui.Plugins}">
                     <ScrollViewer x:Name="PluginsScroll" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="32,24,32,24" MaxWidth="860" HorizontalAlignment="Left">
-                            <TextBlock Style="{StaticResource PageTitle}" Text="Plugins"/>
+                            <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource ui.Plugins}"/>
                             <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,18" TextWrapping="Wrap"
-                                       Text="Plugins geben dem Modell zusätzliche Fähigkeiten, z. B. das aktuelle Wetter abfragen. Jedes Plugin lässt sich einzeln einschalten und einstellen."/>
+                                       Text="{DynamicResource ui.PluginsGebenDemModellZusaetzliche}"/>
 
                             <Border Style="{StaticResource Card}" Background="#1A3B82F6" BorderBrush="#663B82F6">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="So funktioniert's"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.SoFunktioniertS}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        Ist ein Plugin eingeschaltet, kann das Modell es bei Bedarf selbst aufrufen – frag einfach ganz normal,
-                                        z. B. „Wie wird das Wetter morgen in Hamburg?“. Im Chat siehst du, wenn ein Plugin läuft, und unter der
-                                        Antwort, welche benutzt wurden.<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Nicht jedes Modell kann Plugins nutzen."/>
-                                        In der Modellliste stehen geeignete Modelle mit 🔧. Ohne diese Fähigkeit antwortet das Modell einfach ohne Plugins.<LineBreak/>
+                                        <Run Text="{DynamicResource ui.IstEinPluginEingeschaltetKann}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.NichtJedesModellKannPlugins}"/>
+                                        <Run Text="{DynamicResource ui.InDerModelllisteStehenGeeignete}"/><LineBreak/>
                                         <Run x:Name="PluginModelInfo" FontWeight="SemiBold"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
 
-                            <TextBlock Style="{StaticResource SubHeading}" Text="Installierte Plugins" Margin="0,8,0,10"/>
+                            <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.InstalliertePlugins}" Margin="0,8,0,10"/>
                             <StackPanel x:Name="PluginList"/>
 
-                            <TextBlock Style="{StaticResource SubHeading}" Text="Weitere Plugins" Margin="0,18,0,10"/>
+                            <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.WeiterePlugins}" Margin="0,18,0,10"/>
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap">
-                                        Aus dem Plugin-Katalog im
+                                        <Run Text="{DynamicResource ui.AusDemPluginKatalogIm}"/>
                                         <Hyperlink NavigateUri="https://github.com/ghaslbe/FreeGuenther/tree/main/plugins"
-                                                   RequestNavigate="Link_RequestNavigate">GitHub-Projekt</Hyperlink>
-                                        herunterladen oder eine Plugin-Datei (.json) importieren. Vor der Installation siehst du, worauf das Plugin zugreift.
+                                                   RequestNavigate="Link_RequestNavigate"><Run Text="{DynamicResource ui.GitHubProjekt}"/></Hyperlink>
+                                        <Run Text="{DynamicResource ui.HerunterladenOderEinePluginDatei}"/>
                                     </TextBlock>
                                     <StackPanel x:Name="CatalogList" Margin="0,10,0,0"/>
                                     <TextBlock x:Name="CatalogStatus" Style="{StaticResource Hint}" Margin="0,6,0,0" TextWrapping="Wrap"/>
                                     <WrapPanel Margin="0,12,0,0">
-                                        <Button Content="Katalog neu laden" Click="ReloadCatalog_Click" Margin="0,0,8,8" Padding="12,5"/>
-                                        <Button Content="Plugin-Datei importieren …" Click="ImportPluginFile_Click" Margin="0,0,8,8" Padding="12,5"/>
+                                        <Button Content="{DynamicResource ui.KatalogNeuLaden}" Click="ReloadCatalog_Click" Margin="0,0,8,8" Padding="12,5"/>
+                                        <Button Content="{DynamicResource ui.PluginDateiImportieren}" Click="ImportPluginFile_Click" Margin="0,0,8,8" Padding="12,5"/>
                                     </WrapPanel>
                                     <DockPanel Margin="0,4,0,0">
-                                        <Button DockPanel.Dock="Right" Content="Von Adresse installieren" Click="ImportPluginUrl_Click"
+                                        <Button DockPanel.Dock="Right" Content="{DynamicResource ui.VonAdresseInstallieren}" Click="ImportPluginUrl_Click"
                                                 Margin="8,0,0,0" Padding="12,5"/>
-                                        <TextBox x:Name="PluginUrlBox" ToolTip="Adresse einer Plugin-Datei, z. B. https://…/mein-plugin.json"/>
+                                        <TextBox x:Name="PluginUrlBox" ToolTip="{DynamicResource ui.AdresseEinerPluginDateiZ}"/>
                                     </DockPanel>
                                 </StackPanel>
                             </Border>
 
                             <Border Style="{StaticResource Card}" Background="#1FF59E0B" BorderBrush="#66F59E0B">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="⚠ Sicherheit"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Sicherheit}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        Installiere nur Plugins aus Quellen, denen du vertraust.<LineBreak/>
-                                        • <Run FontWeight="SemiBold" Text="Web-Plugins"/> rufen nur die angezeigten Adressen ab. Dabei geht das,
-                                        was das Modell einträgt (z. B. ein Ortsname), an diesen Dienst.<LineBreak/>
-                                        • <Run FontWeight="SemiBold" Text="Eingebaute Plugins"/> laufen in FreeGuenther selbst. „Dateien“ kann nur lesen
-                                        und nur im freigegebenen Ordner.<LineBreak/>
-                                        • <Run FontWeight="SemiBold" Text="MCP-Plugins"/> verbinden sich mit einem MCP-Server bzw. starten ein Programm
-                                        auf deinem Rechner – das kann je nach Server viel dürfen. Deshalb wird vor jeder Aktion nachgefragt.<LineBreak/>
-                                        Bei Online-Anbietern gehen die Ergebnisse der Plugins mit an den Anbieter und kosten Tokens.
+                                        <Run Text="{DynamicResource ui.InstalliereNurPluginsAusQuellen}"/><LineBreak/>
+                                        • <Run FontWeight="SemiBold" Text="{DynamicResource ui.WebPlugins}"/> <Run Text="{DynamicResource ui.RufenNurDieAngezeigtenAdressen}"/><LineBreak/>
+                                        • <Run FontWeight="SemiBold" Text="{DynamicResource ui.EingebautePlugins}"/> <Run Text="{DynamicResource ui.LaufenInFreeGuentherSelbstDateien}"/><LineBreak/>
+                                        • <Run FontWeight="SemiBold" Text="{DynamicResource ui.MCPPlugins}"/> <Run Text="{DynamicResource ui.VerbindenSichMitEinemMCP}"/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.BeiOnlineAnbieternGehenDie}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
@@ -1005,243 +976,193 @@
                 </TabItem>
 
                 <!-- ========== Hilfe ========== -->
-                <TabItem Header="Hilfe">
+                <TabItem Header="{DynamicResource ui.Hilfe}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="32,24,32,24" MaxWidth="860" HorizontalAlignment="Left">
-                            <TextBlock Style="{StaticResource PageTitle}" Text="Hilfe"/>
+                            <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource ui.Hilfe}"/>
                             <TextBlock Style="{StaticResource Body}" Margin="0,0,0,18"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}">
-                                Ein einfacher Chat-Client für lokale und Online-Sprachmodelle. <Run x:Name="VersionRun"/>
-                                Projekt auf GitHub:
+                                <Run Text="{DynamicResource ui.EinEinfacherChatClientFuer}"/> <Run x:Name="VersionRun"/>
+                                <Run Text="{DynamicResource ui.ProjektAufGitHub}"/>
                                 <Hyperlink NavigateUri="https://github.com/ghaslbe/FreeGuenther"
-                                           RequestNavigate="Link_RequestNavigate">github.com/ghaslbe/FreeGuenther</Hyperlink>
+                                           RequestNavigate="Link_RequestNavigate"><Run Text="{DynamicResource ui.GithubComGhaslbeFreeGuenther}"/></Hyperlink>
                                 ·
                                 <Hyperlink NavigateUri="https://github.com/ghaslbe/FreeGuenther/releases/latest"
-                                           RequestNavigate="Link_RequestNavigate">Neueste Version</Hyperlink>
+                                           RequestNavigate="Link_RequestNavigate"><Run Text="{DynamicResource ui.NeuesteVersion}"/></Hyperlink>
                             </TextBlock>
 
                             <!-- Warnkarte: Kosten bei Online-Diensten absichern -->
                             <Border Style="{StaticResource Card}" Background="#1FF59E0B" BorderBrush="#66F59E0B">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="⚠ Kosten absichern: bei jedem API-Schlüssel ein Limit setzen"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.KostenAbsichernBeiJedemAPI}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        Ein API-Schlüssel ist wie eine Kreditkarte: Wer ihn kennt, kann auf deine Kosten Anfragen stellen.
-                                        Gerät er in falsche Hände (geteilter Rechner, Screenshot, Schadsoftware, versehentlich veröffentlicht)
-                                        oder läuft die Nutzung aus dem Ruder (viele Bilder, sehr lange Antworten, teure Modelle), entstehen
-                                        schnell hohe Kosten.<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Setze deshalb unbedingt bei jedem Schlüssel bzw. Konto ein Ausgabenlimit,"/>
-                                        bevor du ihn in FreeGuenther einträgst:<LineBreak/>
+                                        <Run Text="{DynamicResource ui.EinAPISchluesselIstWie}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.SetzeDeshalbUnbedingtBeiJedem}"/>
+                                        <Run Text="{DynamicResource ui.BevorDuIhnInFreeGuenther}"/><LineBreak/>
                                         •
-                                        <Hyperlink NavigateUri="https://openrouter.ai/settings/keys" RequestNavigate="Link_RequestNavigate">OpenRouter</Hyperlink>:
-                                        Jeder Schlüssel kann ein eigenes Guthaben-Limit bekommen – beim Anlegen bzw. Bearbeiten des Schlüssels eintragen.
-                                        Zusätzlich nur so viel Guthaben aufladen, wie du brauchst, und automatisches Aufladen ausschalten.<LineBreak/>
+                                        <Hyperlink NavigateUri="https://openrouter.ai/settings/keys" RequestNavigate="Link_RequestNavigate"><Run Text="{DynamicResource ui.OpenRouter}"/></Hyperlink><Run Text="{DynamicResource ui.JederSchluesselKannEinEigenes}"/><LineBreak/>
                                         •
-                                        <Hyperlink NavigateUri="https://platform.openai.com/settings/organization/limits" RequestNavigate="Link_RequestNavigate">OpenAI</Hyperlink>:
-                                        In den Organisations-Einstellungen unter „Limits“ ein Budget bzw. Nutzungslimit festlegen; automatisches Aufladen ausschalten.<LineBreak/>
+                                        <Hyperlink NavigateUri="https://platform.openai.com/settings/organization/limits" RequestNavigate="Link_RequestNavigate"><Run Text="{DynamicResource ui.OpenAI}"/></Hyperlink><Run Text="{DynamicResource ui.InDenOrganisationsEinstellungenUnter}"/><LineBreak/>
                                         •
-                                        <Hyperlink NavigateUri="https://platform.claude.com/settings/limits" RequestNavigate="Link_RequestNavigate">Anthropic</Hyperlink>:
-                                        In der Claude-Konsole unter „Limits“ ein Ausgabenlimit (Spend Limit) festlegen.<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Außerdem:"/>
-                                        Für FreeGuenther einen eigenen Schlüssel anlegen (nicht denselben wie für andere Programme) – dann lässt er sich
-                                        gezielt sperren. Bei Verdacht auf Missbrauch den Schlüssel sofort beim Anbieter löschen und einen neuen
-                                        erstellen. Die Kosten jeder Antwort zeigt FreeGuenther unter der Antwort, sofern der Anbieter sie meldet;
-                                        eine Übersicht je Modell gibt es unter „Verbrauch“ – beides nur als Schätzung, verbindlich ist
-                                        allein die Abrechnung im Konto des Anbieters.<LineBreak/>
-                                        Lokale Anbieter (LM Studio, Ollama) brauchen keinen Schlüssel und kosten nichts.
+                                        <Hyperlink NavigateUri="https://platform.claude.com/settings/limits" RequestNavigate="Link_RequestNavigate"><Run Text="{DynamicResource ui.Anthropic}"/></Hyperlink><Run Text="{DynamicResource ui.InDerClaudeKonsoleUnter}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.Ausserdem}"/>
+                                        <Run Text="{DynamicResource ui.FuerFreeGuentherEinenEigenenSchluessel}"/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.LokaleAnbieterLMStudioOllama}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
 
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Plugins"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Plugins}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        Plugins geben dem Modell zusätzliche Fähigkeiten. Unter <Run FontWeight="SemiBold" Text="Plugins"/>
-                                        schaltest du jedes einzeln ein und stellst es ein (⚙ Einstellungen). Mitgeliefert sind
-                                        <Run FontWeight="SemiBold" Text="Wetter"/>, <Run FontWeight="SemiBold" Text="Datum und Uhrzeit"/> und
-                                        <Run FontWeight="SemiBold" Text="Dateien"/> (liest nur in einem freigegebenen Ordner),
-                                        <Run FontWeight="SemiBold" Text="Webseite abrufen"/> (lädt eine Adresse per GET) und
-                                        <Run FontWeight="SemiBold" Text="Webhook"/> (schickt eine Antwort samt Bild als JSON per POST an eine Adresse –
-                                        Knopf „Senden“ unter jeder Antwort). Weitere lädst du
-                                        aus dem Katalog oder importierst eine Plugin-Datei. Alles läuft ohne zusätzliche Installation.<LineBreak/>
-                                        Danach einfach normal fragen, z. B. „Wie wird das Wetter morgen in Köln?“ – das Modell ruft das Plugin
-                                        selbst auf. Im Chat siehst du „🔧 Wetter …“, unter der Antwort, welche Plugins benutzt wurden.<LineBreak/>
-                                        Voraussetzung: ein Modell, das Werkzeuge aufrufen kann (in der Modellliste mit 🔧). Kann es das nicht,
-                                        kommt die Antwort ohne Plugins und ein Hinweis erscheint.<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="MCP:"/> Plugins vom Typ MCP verbinden sich mit einem MCP-Server (Model Context
-                                        Protocol). Weil der Server viel dürfen kann, fragt FreeGuenther vor jeder Aktion nach.
+                                        <Run Text="{DynamicResource ui.PluginsGebenDemModellZusaetzliche2}"/> <Run FontWeight="SemiBold" Text="{DynamicResource ui.Plugins}"/>
+                                        <Run Text="{DynamicResource ui.SchaltestDuJedesEinzelnEin}"/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.Wetter}"/>, <Run FontWeight="SemiBold" Text="{DynamicResource ui.DatumUndUhrzeit}"/> <Run Text="{DynamicResource ui.Und}"/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.Dateien}"/> <Run Text="{DynamicResource ui.LiestNurInEinemFreigegebenen}"/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.WebseiteAbrufen}"/> <Run Text="{DynamicResource ui.LaedtEineAdressePerGET}"/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.Webhook}"/> <Run Text="{DynamicResource ui.SchicktEineAntwortSamtBild}"/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.DanachEinfachNormalFragenZ}"/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.VoraussetzungEinModellDasWerkzeuge}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.MCP}"/> <Run Text="{DynamicResource ui.PluginsVomTypMCPVerbinden}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
 
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Was passiert gerade? / Verbrauch"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.WasPassiertGeradeVerbrauch}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        Solange noch kein Antworttext da ist, zeigt eine graue Zeile im Chat, was gerade passiert – z. B.
-                                        „Anfrage gesendet, warte auf Antwort“, „hat die Anfrage angenommen“ oder „Das Modell denkt nach“ –
-                                        mit den Sekunden seit dem Senden. Sobald Text kommt, verschwindet sie. Dauert es ungewöhnlich lange,
-                                        steht dort ein Hinweis; abbrechen geht jederzeit mit dem Stopp-Knopf.<LineBreak/>
-                                        Unter <Run FontWeight="SemiBold" Text="Verbrauch"/> zählt FreeGuenther Antworten, Tokens und ungefähre Kosten
-                                        je Modell mit (Heute, 7 Tage, Monat, 30 Tage, Gesamt).
-                                        <Run FontWeight="SemiBold" Text="Das ist nur eine Schätzung"/> – die exakten Kosten stehen nur im Konto
-                                        des jeweiligen Anbieters.
+                                        <Run Text="{DynamicResource ui.SolangeNochKeinAntworttextDa}"/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.Unter}"/> <Run FontWeight="SemiBold" Text="{DynamicResource ui.Verbrauch}"/> <Run Text="{DynamicResource ui.ZaehltFreeGuentherAntwortenTokensUnd}"/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.DasIstNurEineSchaetzung}"/> <Run Text="{DynamicResource ui.DieExaktenKostenStehenNur}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
 
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Erste Schritte"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.ErsteSchritte}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        1. Unter „Einstellungen“ den Anbieter wählen. Die Links darunter führen zur Website, zu den Schlüsseln und Preisen.<LineBreak/>
-                                        2. Bei lokalen Anbietern ggf. die Server-Adresse anpassen, bei Online-Diensten den API-Schlüssel eintragen.<LineBreak/>
-                                        3. „Liste aktualisieren“, ein Modell wählen und „Speichern“ klicken.<LineBreak/>
-                                        4. Unter „Chat“ eine Frage eintippen und Enter drücken. Die Antwort erscheint Wort für Wort.
+                                        <Run Text="{DynamicResource ui.1UnterEinstellungenDenAnbieter}"/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.2BeiLokalenAnbieternGgf}"/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.3ListeAktualisierenEinModell}"/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.4UnterChatEineFrage}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
 
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Anbieter"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Anbieter}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        <Run FontWeight="SemiBold" Text="LM Studio"/> (lokal, Standard http://localhost:1234): Server unter „Developer“ starten;
-                                        für andere Rechner „Serve on Local Network“ einschalten.<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Ollama"/> (lokal, Standard http://localhost:11434): Modelle mit „ollama pull“ laden;
-                                        für andere Rechner OLLAMA_HOST=0.0.0.0 setzen.<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="OpenAI"/>, <Run FontWeight="SemiBold" Text="Anthropic (Claude)"/>,
-                                        <Run FontWeight="SemiBold" Text="OpenRouter"/> (online): brauchen einen API-Schlüssel und kosten pro Nutzung.
-                                        Nachrichten und Bilder werden dabei an den jeweiligen Dienst gesendet.<LineBreak/>
-                                        Bei OpenRouter kannst du den <Run FontWeight="SemiBold" Text="Standort der Rechenzentren"/> festlegen.
-                                        Über die Hoster-Auswahl (Europa, Deutschland oder USA) geht das mit jedem Tarif, beruht aber auf den
-                                        Standortangaben der Hoster. Garantiert (Europa oder USA) gibt es nur im Business-Tarif. Die Modellliste
-                                        zeigt jeweils nur Modelle, die in der Region laufen.<LineBreak/>
-                                        Die API-Schlüssel werden verschlüsselt gespeichert und sind nur mit deinem Windows-Konto lesbar.
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.LMStudio}"/> <Run Text="{DynamicResource ui.LokalStandardHttpLocalhost1234}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.Ollama}"/> <Run Text="{DynamicResource ui.LokalStandardHttpLocalhost11434}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.OpenAI}"/>, <Run FontWeight="SemiBold" Text="{DynamicResource ui.AnthropicClaude}"/>,
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.OpenRouter}"/> <Run Text="{DynamicResource ui.OnlineBrauchenEinenAPISchluessel}"/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.BeiOpenRouterKannstDuDen}"/> <Run FontWeight="SemiBold" Text="{DynamicResource ui.StandortDerRechenzentren}"/> <Run Text="{DynamicResource ui.FestlegenUeberDieHosterAuswahl}"/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.DieAPISchluesselWerdenVerschluesselt}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
 
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Bedienung"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Bedienung}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        <Run FontWeight="SemiBold" Text="Enter"/> – Nachricht senden<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Umschalt + Enter"/> – neue Zeile<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Strg + V"/> – Bild (z. B. Screenshot) oder kopierte Dateien anhängen<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="/ im Eingabefeld"/> – Vorlagen und Personas auswählen (↑↓, Enter, Esc)<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Datei"/> – PDF-, Word- oder Textdatei anhängen; der Text geht mit der Nachricht ans Modell<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Modelle vergleichen"/> – dieselbe Frage an zwei Modelle, Antworten nebeneinander<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Kostenbremse"/> – Tages-/Monatsbudget für Online-Anbieter, unter „Verbrauch“<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Stopp-Knopf"/> – laufende Antwort abbrechen<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Suchfeld links"/> – Chats nach Titel filtern<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Kopieren unter einer Antwort"/> – Antwort (mit Markdown) in die Zwischenablage<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Neu erzeugen unter einer Antwort"/> – dieselbe Frage nochmal stellen (z. B. nach einem Modellwechsel)<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Bearbeiten unter deiner Nachricht"/> – Nachricht ändern und neu senden; die Antworten ab dort werden ersetzt<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Kopieren über einem Code-Block"/> – nur den Code in die Zwischenablage<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Export-Knopf oben rechts"/> – Chat als Markdown oder HTML speichern (HTML im Browser drucken = PDF)<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Hochscrollen während einer Antwort"/> – der Chat springt nicht mehr ans Ende, bis du wieder ganz unten bist<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Zeile unter jeder Antwort"/> – Anbieter, Modell, Geschwindigkeit
-                                        (Token/s), Token-Verbrauch (in/out) und Dauer, soweit der Anbieter das meldet
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.Enter}"/> <Run Text="{DynamicResource ui.NachrichtSenden}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.UmschaltEnter}"/> <Run Text="{DynamicResource ui.NeueZeile}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.StrgV}"/> <Run Text="{DynamicResource ui.BildZBScreenshotOder}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.ImEingabefeld}"/> <Run Text="{DynamicResource ui.VorlagenUndPersonasAuswaehlenEnter}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.Datei}"/> <Run Text="{DynamicResource ui.PDFWordOderTextdateiAnhaengen}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.ModelleVergleichen}"/> <Run Text="{DynamicResource ui.DieselbeFrageAnZweiModelle}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.Kostenbremse2}"/> <Run Text="{DynamicResource ui.TagesMonatsbudgetFuerOnlineAnbieter}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.StoppKnopf}"/> <Run Text="{DynamicResource ui.LaufendeAntwortAbbrechen}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.SuchfeldLinks}"/> <Run Text="{DynamicResource ui.ChatsNachTitelFiltern}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.KopierenUnterEinerAntwort}"/> <Run Text="{DynamicResource ui.AntwortMitMarkdownInDie}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.NeuErzeugenUnterEinerAntwort}"/> <Run Text="{DynamicResource ui.DieselbeFrageNochmalStellenZ}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.BearbeitenUnterDeinerNachricht}"/> <Run Text="{DynamicResource ui.NachrichtAendernUndNeuSenden}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.KopierenUeberEinemCodeBlock}"/> <Run Text="{DynamicResource ui.NurDenCodeInDie}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.ExportKnopfObenRechts}"/> <Run Text="{DynamicResource ui.ChatAlsMarkdownOderHTML}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.HochscrollenWaehrendEinerAntwort}"/> <Run Text="{DynamicResource ui.DerChatSpringtNichtMehr}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.ZeileUnterJederAntwort}"/> <Run Text="{DynamicResource ui.AnbieterModellGeschwindigkeitTokenS}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
 
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Chats und Verlauf"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.ChatsUndVerlauf}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        Jeder Chat wird automatisch gespeichert und erscheint links in der Liste, gruppiert nach Datum.
-                                        Ein Klick darauf öffnet ihn wieder, „Neuer Chat“ beginnt ein neues Gespräch.<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Chat löschen:"/> über den Papierkorb in der Chatliste (erscheint
-                                        beim Darüberfahren), per Rechtsklick → „Chat löschen“, mit der Entf-Taste in der Liste oder über
-                                        den Papierkorb oben rechts im geöffneten Chat. Vorher kommt immer eine Sicherheitsabfrage.<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Verlauf mitsenden:"/>
-                                        Mit Haken (Standard) kennt das Modell alles, was vorher im Chat gesagt wurde, so kann man ein Gespräch führen.
-                                        Ohne Haken bekommt es nur die aktuelle Nachricht. Das ist schneller und gut für einzelne, unabhängige Fragen.
+                                        <Run Text="{DynamicResource ui.JederChatWirdAutomatischGespeichert}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.ChatLoeschen2}"/> <Run Text="{DynamicResource ui.UeberDenPapierkorbInDer}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.VerlaufMitsenden2}"/>
+                                        <Run Text="{DynamicResource ui.MitHakenStandardKenntDas}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
 
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Bilder"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Bilder}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        Modelle mit 🖼 verstehen Bilder. Ein Bild hängst du mit „Bild“, mit Strg + V oder durch Hineinziehen ins Fenster an.
-                                        Schreib dazu, was du wissen willst, z. B. „Lies mal das Bild aus“.
-                                        Große Bilder werden automatisch verkleinert. Im Chat erscheint eine Vorschau; ein Klick darauf öffnet das Bild in voller Größe.
+                                        <Run Text="{DynamicResource ui.ModelleMitVerstehenBilderEin}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
 
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Bilder erzeugen"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.BilderErzeugen}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        Modelle mit 🎨 in der Modellliste erzeugen Bilder (bei OpenRouter z. B. Gemini Image oder GPT Image,
-                                        bei OpenAI gpt-image und DALL·E). Ist so ein Modell aktiv, ist deine Nachricht die Bildbeschreibung.<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Bearbeiten:"/> Häng ein Bild an, oder schreib einfach eine Änderung
-                                        („mach daraus eine Nachtszene“). Mit „Verlauf mitsenden“ dient dann das zuletzt erzeugte Bild als Vorlage.<LineBreak/>
-                                        Unter dem Bild: „Bild kopieren“, „Speichern“ (als PNG) und – falls gemeldet – die Kosten. Ein Klick auf das
-                                        Bild öffnet es in voller Größe. Bilder kosten meist deutlich mehr als Text.
+                                        <Run Text="{DynamicResource ui.ModelleMitInDerModellliste}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.Bearbeiten}"/> <Run Text="{DynamicResource ui.HaengEinBildAnOder}"/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.UnterDemBildBildKopieren}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
 
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Wenn es nicht klappt"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.WennEsNichtKlappt}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        <Run FontWeight="SemiBold" Text="„Fehler“ / keine Verbindung:"/>
-                                        Lokal: Läuft LM Studio bzw. Ollama? Ist der Zugriff aus dem Netzwerk erlaubt? Stimmt die Adresse? Lässt die Firewall den Port durch?
-                                        Online: Stimmt der API-Schlüssel, und ist beim Anbieter Guthaben vorhanden?<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Fehler wegen Temperatur o. Ä.:"/>
-                                        Manche Modelle (z. B. Reasoning-Modelle) lehnen einzelne Feineinstellungen ab – dort den Haken entfernen.<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Modellliste ist leer:"/>
-                                        In den Einstellungen „Liste aktualisieren“ klicken, nachdem die Adresse stimmt.<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Erste Antwort dauert lange:"/>
-                                        LM Studio lädt das Modell erst. Danach geht es schneller.<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Bild-Knopf ausgegraut:"/>
-                                        Das gewählte Modell versteht keine Bilder. Wähle eines mit 🖼.
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.FehlerKeineVerbindung}"/>
+                                        <Run Text="{DynamicResource ui.LokalLaeuftLMStudioBzw}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.FehlerWegenTemperaturOAe}"/>
+                                        <Run Text="{DynamicResource ui.MancheModelleZBReasoning}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.ModelllisteIstLeer}"/>
+                                        <Run Text="{DynamicResource ui.InDenEinstellungenListeAktualisieren}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.ErsteAntwortDauertLange}"/>
+                                        <Run Text="{DynamicResource ui.LMStudioLaedtDasModell}"/><LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.BildKnopfAusgegraut}"/>
+                                        <Run Text="{DynamicResource ui.DasGewaehlteModellVerstehtKeine}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
 
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Daten"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Daten}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        Chats, Bilder und Einstellungen liegen nur auf diesem Rechner in
-                                        <Run FontFamily="Consolas" Text="%LOCALAPPDATA%\FreeGuenther\chats.db"/>.
-                                        Gesendet wird ausschließlich an den eingestellten Anbieter.
+                                        <Run Text="{DynamicResource ui.ChatsBilderUndEinstellungenLiegen}"/>
+                                        <Run FontFamily="Consolas" Text="%LOCALAPPDATA%\FreeGuenther\chats.db"/><Run Text="{DynamicResource ui.GesendetWirdAusschliesslichAnDen}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
 
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Lizenz und Haftungsausschluss"/>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.LizenzUndHaftungsausschluss}"/>
                                     <TextBlock Style="{StaticResource Body}">
-                                        Diese Software steht unter der <Run FontWeight="SemiBold" Text="MIT-Lizenz"/>.
-                                        Sie darf frei genutzt, verändert und weitergegeben werden.<LineBreak/>
-                                        Sie wird <Run FontWeight="SemiBold" Text="ohne jede Gewährleistung"/> bereitgestellt. Die Autoren übernehmen
-                                        <Run FontWeight="SemiBold" Text="keinerlei Haftung"/> für Schäden, Datenverlust oder sonstige Folgen der Nutzung.
-                                        Antworten von KI-Modellen können falsch sein. Prüfe wichtige Informationen selbst.
+                                        <Run Text="{DynamicResource ui.DieseSoftwareStehtUnterDer}"/> <Run FontWeight="SemiBold" Text="{DynamicResource ui.MITLizenz}"/><Run Text="{DynamicResource ui.SieDarfFreiGenutztVeraendert}"/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.SieWird}"/> <Run FontWeight="SemiBold" Text="{DynamicResource ui.OhneJedeGewaehrleistung}"/> <Run Text="{DynamicResource ui.BereitgestelltDieAutorenUebernehmen}"/>
+                                        <Run FontWeight="SemiBold" Text="{DynamicResource ui.KeinerleiHaftung}"/> <Run Text="{DynamicResource ui.FuerSchaedenDatenverlustOderSonstige}"/>
                                     </TextBlock>
                                     <TextBlock Style="{StaticResource Hint}" FontFamily="Consolas" FontSize="11" Margin="0,12,0,0">
-                                        MIT License – Copyright (c) 2026 ghaslbe<LineBreak/><LineBreak/>
-                                        Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-                                        associated documentation files (the "Software"), to deal in the Software without restriction, including
-                                        without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-                                        copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-                                        following conditions:<LineBreak/><LineBreak/>
-                                        The above copyright notice and this permission notice shall be included in all copies or substantial
-                                        portions of the Software.<LineBreak/><LineBreak/>
-                                        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-                                        LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
-                                        EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-                                        IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-                                        USE OR OTHER DEALINGS IN THE SOFTWARE.
+                                        <Run Text="{DynamicResource ui.MITLicenseCopyrightC2026}"/><LineBreak/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.PermissionIsHerebyGrantedFree}"/><LineBreak/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.TheAboveCopyrightNoticeAnd}"/><LineBreak/><LineBreak/>
+                                        <Run Text="{DynamicResource ui.THESOFTWAREISPROVIDEDAS}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
@@ -1250,7 +1171,7 @@
                 </TabItem>
 
                 <!-- ========== Modelle vergleichen ========== -->
-                <TabItem Header="Vergleich">
+                <TabItem Header="{DynamicResource ui.Vergleich}">
                     <Grid Margin="28,20,28,10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -1259,11 +1180,9 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <StackPanel>
-                            <TextBlock Style="{StaticResource PageTitle}" Text="Modelle vergleichen"/>
+                            <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource ui.ModelleVergleichen}"/>
                             <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,12">
-                                Dieselbe Frage geht gleichzeitig an zwei Modelle – auch lokal gegen online. Darunter stehen jeweils Dauer,
-                                Token/s, Tokens und Kosten. Es gilt der System-Prompt aus den Einstellungen; die Fragen landen nicht in der Chatliste.
-                                Online-Anbieter brauchen ihren Schlüssel in den Einstellungen.
+                                <Run Text="{DynamicResource ui.DieselbeFrageGehtGleichzeitigAn}"/>
                             </TextBlock>
                         </StackPanel>
 
@@ -1276,24 +1195,24 @@
                             <Border Style="{StaticResource Card}" Padding="14,12" Margin="0">
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Top">
-                                        <ComboBox x:Name="CompareProviderLeft" DisplayMemberPath="Label" AutomationProperties.Name="Anbieter links"
+                                        <ComboBox x:Name="CompareProviderLeft" DisplayMemberPath="Label" AutomationProperties.Name="{DynamicResource ui.AnbieterLinks}"
                                                   SelectionChanged="CompareProvider_SelectionChanged"/>
                                         <ComboBox x:Name="CompareModelLeft" DisplayMemberPath="Label" SelectedValuePath="Id" Margin="0,6,0,8"
-                                                  TextSearch.TextPath="Id" MaxDropDownHeight="420" AutomationProperties.Name="Modell links"/>
+                                                  TextSearch.TextPath="Id" MaxDropDownHeight="420" AutomationProperties.Name="{DynamicResource ui.ModellLinks}"/>
                                         <Border x:Name="CompareKeyLeft" Visibility="Collapsed" CornerRadius="10" Padding="10,8" Margin="0,0,0,8"
                                                 Background="#1FF59E0B" BorderBrush="#66F59E0B" BorderThickness="1">
                                             <StackPanel>
                                                 <TextBlock x:Name="CompareKeyHintLeft" TextWrapping="Wrap" FontSize="12.5"/>
                                                 <DockPanel Margin="0,6,0,0">
-                                                    <Button DockPanel.Dock="Right" Content="Speichern" Margin="6,0,0,0" Tag="left"
+                                                    <Button DockPanel.Dock="Right" Content="{DynamicResource ui.Speichern}" Margin="6,0,0,0" Tag="left"
                                                             Click="SaveCompareKey_Click"/>
                                                     <ToggleButton x:Name="CompareKeyRevealLeft" DockPanel.Dock="Right" Margin="6,0,0,0" Padding="10,0"
-                                                                  ToolTip="Schlüssel anzeigen bzw. wieder verbergen"
-                                                                  AutomationProperties.Name="Schlüssel links anzeigen">
+                                                                  ToolTip="{DynamicResource ui.SchluesselAnzeigenBzwWiederVerbergen}"
+                                                                  AutomationProperties.Name="{DynamicResource ui.SchluesselLinksAnzeigen}">
                                                         <TextBlock Text="&#xE7B3;" FontFamily="{StaticResource IconFont}" FontSize="14"/>
                                                     </ToggleButton>
                                                     <Grid>
-                                                        <PasswordBox x:Name="CompareKeyBoxLeft" AutomationProperties.Name="API-Schlüssel links"/>
+                                                        <PasswordBox x:Name="CompareKeyBoxLeft" AutomationProperties.Name="{DynamicResource ui.APISchluesselLinks}"/>
                                                         <TextBox x:Name="CompareKeyPlainLeft" Visibility="Collapsed" FontFamily="Cascadia Mono, Consolas"/>
                                                     </Grid>
                                                 </DockPanel>
@@ -1311,24 +1230,24 @@
                             <Border Grid.Column="2" Style="{StaticResource Card}" Padding="14,12" Margin="0">
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Top">
-                                        <ComboBox x:Name="CompareProviderRight" DisplayMemberPath="Label" AutomationProperties.Name="Anbieter rechts"
+                                        <ComboBox x:Name="CompareProviderRight" DisplayMemberPath="Label" AutomationProperties.Name="{DynamicResource ui.AnbieterRechts}"
                                                   SelectionChanged="CompareProvider_SelectionChanged"/>
                                         <ComboBox x:Name="CompareModelRight" DisplayMemberPath="Label" SelectedValuePath="Id" Margin="0,6,0,8"
-                                                  TextSearch.TextPath="Id" MaxDropDownHeight="420" AutomationProperties.Name="Modell rechts"/>
+                                                  TextSearch.TextPath="Id" MaxDropDownHeight="420" AutomationProperties.Name="{DynamicResource ui.ModellRechts}"/>
                                         <Border x:Name="CompareKeyRight" Visibility="Collapsed" CornerRadius="10" Padding="10,8" Margin="0,0,0,8"
                                                 Background="#1FF59E0B" BorderBrush="#66F59E0B" BorderThickness="1">
                                             <StackPanel>
                                                 <TextBlock x:Name="CompareKeyHintRight" TextWrapping="Wrap" FontSize="12.5"/>
                                                 <DockPanel Margin="0,6,0,0">
-                                                    <Button DockPanel.Dock="Right" Content="Speichern" Margin="6,0,0,0" Tag="right"
+                                                    <Button DockPanel.Dock="Right" Content="{DynamicResource ui.Speichern}" Margin="6,0,0,0" Tag="right"
                                                             Click="SaveCompareKey_Click"/>
                                                     <ToggleButton x:Name="CompareKeyRevealRight" DockPanel.Dock="Right" Margin="6,0,0,0" Padding="10,0"
-                                                                  ToolTip="Schlüssel anzeigen bzw. wieder verbergen"
-                                                                  AutomationProperties.Name="Schlüssel rechts anzeigen">
+                                                                  ToolTip="{DynamicResource ui.SchluesselAnzeigenBzwWiederVerbergen}"
+                                                                  AutomationProperties.Name="{DynamicResource ui.SchluesselRechtsAnzeigen}">
                                                         <TextBlock Text="&#xE7B3;" FontFamily="{StaticResource IconFont}" FontSize="14"/>
                                                     </ToggleButton>
                                                     <Grid>
-                                                        <PasswordBox x:Name="CompareKeyBoxRight" AutomationProperties.Name="API-Schlüssel rechts"/>
+                                                        <PasswordBox x:Name="CompareKeyBoxRight" AutomationProperties.Name="{DynamicResource ui.APISchluesselRechts}"/>
                                                         <TextBox x:Name="CompareKeyPlainRight" Visibility="Collapsed" FontFamily="Cascadia Mono, Consolas"/>
                                                     </Grid>
                                                 </DockPanel>
@@ -1350,18 +1269,18 @@
                                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                             <DockPanel>
                                 <Button x:Name="CompareSendButton" DockPanel.Dock="Right" Style="{StaticResource SendButtonStyle}"
-                                        ToolTip="An beide Modelle senden (Enter)" Click="CompareSend_Click" VerticalAlignment="Bottom"
-                                        AutomationProperties.Name="An beide senden"/>
+                                        ToolTip="{DynamicResource ui.AnBeideModelleSendenEnter}" Click="CompareSend_Click" VerticalAlignment="Bottom"
+                                        AutomationProperties.Name="{DynamicResource ui.AnBeideSenden}"/>
                                 <Button x:Name="CompareStopButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Margin="0,0,6,0"
-                                        Visibility="Collapsed" ToolTip="Abbrechen" Click="CompareStop_Click" VerticalAlignment="Bottom"
-                                        AutomationProperties.Name="Vergleich abbrechen">
+                                        Visibility="Collapsed" ToolTip="{DynamicResource ui.Abbrechen}" Click="CompareStop_Click" VerticalAlignment="Bottom"
+                                        AutomationProperties.Name="{DynamicResource ui.VergleichAbbrechen}">
                                     <TextBlock Text="&#xE71A;" FontFamily="{StaticResource IconFont}" FontSize="14"/>
                                 </Button>
                                 <Grid>
                                     <TextBox x:Name="CompareInput" FontSize="15" Style="{StaticResource PlainTextBox}" Padding="2,4"
                                              AcceptsReturn="True" TextWrapping="Wrap" MinHeight="40" MaxHeight="160"
                                              VerticalScrollBarVisibility="Auto" PreviewKeyDown="CompareInput_PreviewKeyDown"/>
-                                    <TextBlock Text="Frage an beide Modelle …" FontSize="15" Margin="4,6,0,0" IsHitTestVisible="False"
+                                    <TextBlock Text="{DynamicResource ui.FrageAnBeideModelle}" FontSize="15" Margin="4,6,0,0" IsHitTestVisible="False"
                                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                                Visibility="{Binding Text.IsEmpty, ElementName=CompareInput, Converter={StaticResource BoolToVis}}"/>
                                 </Grid>

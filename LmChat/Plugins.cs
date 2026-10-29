@@ -104,17 +104,17 @@ public sealed class PluginManifest
                 var hosts = Tools.SelectMany(t => t.Requests)
                     .Select(r => Uri.TryCreate(Regex.Replace(r.Url, @"\{[^}]*\}", "x"), UriKind.Absolute, out var u) ? u.Host : "?")
                     .Distinct();
-                return "Fragt ab: " + string.Join(", ", hosts);
+                return L.T("Fragt ab:") + " " + string.Join(", ", hosts);
             case "mcp" when Mcp!.Url is { Length: > 0 } url:
-                return "Verbindet sich mit dem MCP-Server " + url;
+                return L.F("Verbindet sich mit dem MCP-Server {0}", url);
             case "mcp":
-                return "Startet auf diesem Rechner: " + Mcp!.Command + " " + string.Join(" ", Mcp.Args);
+                return L.T("Startet auf diesem Rechner:") + " " + Mcp!.Command + " " + string.Join(" ", Mcp.Args);
             default:
-                return "Eingebaut, keine Verbindung nach außen";
+                return L.T("Eingebaut, keine Verbindung nach außen");
         }
     }
 
-    public string TypeLabel => Type switch { "mcp" => "MCP", "builtin" => "eingebaut", _ => "Web" };
+    public string TypeLabel => Type switch { "mcp" => "MCP", "builtin" => L.T("eingebaut"), _ => "Web" };
 }
 
 public sealed class PluginSetting

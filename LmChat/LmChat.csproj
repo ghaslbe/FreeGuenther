@@ -24,7 +24,7 @@
   <PropertyGroup>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <!-- Bei jeder Änderung hochzählen: Major.Minor.Patch -->
-    <Version>1.18.1</Version>
+    <Version>1.19.0</Version>
     <Authors>ghaslbe</Authors>
     <Copyright>Copyright (c) 2026 ghaslbe – MIT-Lizenz</Copyright>
   </PropertyGroup>
@@ -33,6 +33,8 @@
     <Resource Include="app.ico" />
     <Resource Include="app-logo.png" />
     <!-- Mitgelieferte Plugins (dieselben Dateien bilden den Online-Katalog im Ordner plugins/) -->
+    <!-- Sprachen: lang.de.json, lang.en.json … -->
+    <EmbeddedResource Include="Lang\*.json" LogicalName="lang.%(Filename).json" />
     <EmbeddedResource Include="..\plugins\wetter.json" LogicalName="plugin.wetter.json" />
     <EmbeddedResource Include="..\plugins\datum-uhrzeit.json" LogicalName="plugin.datum-uhrzeit.json" />
     <EmbeddedResource Include="..\plugins\dateien.json" LogicalName="plugin.dateien.json" />

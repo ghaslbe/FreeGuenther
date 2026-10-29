@@ -16,7 +16,7 @@ public record ChatInfo(long Id, string Title, DateTime Updated)
         get
         {
             var days = (DateTime.Today - Updated.Date).Days;
-            return days <= 0 ? "Heute" : days == 1 ? "Gestern" : days < 7 ? "Letzte 7 Tage" : days < 30 ? "Letzte 30 Tage" : "Älter";
+            return L.T(days <= 0 ? "Heute" : days == 1 ? "Gestern" : days < 7 ? "Letzte 7 Tage" : days < 30 ? "Letzte 30 Tage" : "Älter");
         }
     }
 }

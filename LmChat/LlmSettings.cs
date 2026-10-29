@@ -36,7 +36,7 @@ public sealed class PromptTemplate
     public bool Persona { get; set; }
 
     // Nur für die Anzeige in Listen
-    [JsonIgnore] public string Kind => Persona ? "🎭 Persona" : "📝 Vorlage";
+    [JsonIgnore] public string Kind => Persona ? "🎭 " + L.T("Persona") : "📝 " + L.T("Vorlage");
     [JsonIgnore]
     public string Preview
     {
@@ -47,16 +47,17 @@ public sealed class PromptTemplate
         }
     }
 
+    // Mitgelieferte Beispiele in der eingestellten Sprache (werden erst beim Speichern in den Einstellungen fest übernommen)
     public static List<PromptTemplate> Defaults() =>
     [
-        new() { Name = "Übersetzen ins Englische", Text = "Übersetze den folgenden Text ins Englische. Gib nur die Übersetzung aus:\n\n" },
-        new() { Name = "Zusammenfassen", Text = "Fasse den folgenden Text in höchstens 5 Stichpunkten zusammen:\n\n" },
-        new() { Name = "Korrekturlesen", Text = "Korrigiere Rechtschreibung, Grammatik und Zeichensetzung im folgenden Text. " +
-                                                "Gib den korrigierten Text aus und nenne danach kurz die wichtigsten Änderungen:\n\n" },
-        new() { Name = "E-Mail aus Stichpunkten", Text = "Formuliere aus den folgenden Stichpunkten eine kurze, freundliche E-Mail:\n\n" },
-        new() { Name = "Kurz und knapp", Persona = true, Text = "Antworte so kurz wie möglich – ohne Einleitung, ohne Wiederholungen, ohne Schlussformel." },
-        new() { Name = "Einfach erklärt", Persona = true, Text = "Erkläre alles so einfach, dass es ein 12-jähriges Kind versteht. Verwende Beispiele aus dem Alltag und vermeide Fachwörter." },
-        new() { Name = "Erfahrener Entwickler", Persona = true, Text = "Du bist ein erfahrener Softwareentwickler. Antworte präzise, mit lauffähigem Code und einer kurzen Begründung. Weise auf Fallstricke hin." },
+        new() { Name = L.T("Übersetzen ins Englische"), Text = L.T("Übersetze den folgenden Text ins Englische. Gib nur die Übersetzung aus:") + "\n\n" },
+        new() { Name = L.T("Zusammenfassen"), Text = L.T("Fasse den folgenden Text in höchstens 5 Stichpunkten zusammen:") + "\n\n" },
+        new() { Name = L.T("Korrekturlesen"), Text = L.T("Korrigiere Rechtschreibung, Grammatik und Zeichensetzung im folgenden Text. " +
+                                                         "Gib den korrigierten Text aus und nenne danach kurz die wichtigsten Änderungen:") + "\n\n" },
+        new() { Name = L.T("E-Mail aus Stichpunkten"), Text = L.T("Formuliere aus den folgenden Stichpunkten eine kurze, freundliche E-Mail:") + "\n\n" },
+        new() { Name = L.T("Kurz und knapp"), Persona = true, Text = L.T("Antworte so kurz wie möglich – ohne Einleitung, ohne Wiederholungen, ohne Schlussformel.") },
+        new() { Name = L.T("Einfach erklärt"), Persona = true, Text = L.T("Erkläre alles so einfach, dass es ein 12-jähriges Kind versteht. Verwende Beispiele aus dem Alltag und vermeide Fachwörter.") },
+        new() { Name = L.T("Erfahrener Entwickler"), Persona = true, Text = L.T("Du bist ein erfahrener Softwareentwickler. Antworte präzise, mit lauffähigem Code und einer kurzen Begründung. Weise auf Fallstricke hin.") },
     ];
 }
 

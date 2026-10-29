@@ -13,7 +13,7 @@ internal sealed class ConsentWindow : Window
 
     public ConsentWindow()
     {
-        Title = "FreeGuenther – Zustimmung";
+        Title = "FreeGuenther – " + L.T("Zustimmung");
         ThemeMode = ThemeMode.System;
         Width = 560;
         SizeToContent = SizeToContent.Height;
@@ -24,9 +24,9 @@ internal sealed class ConsentWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(_answer, "Zustimmung");
 
         var info = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 14, LineHeight = 21, Margin = new Thickness(0, 0, 0, 14) };
-        info.Inlines.Add(new Run("FreeGuenther ist kostenlose Software und wird ohne jede Gewährleistung bereitgestellt (MIT-Lizenz). " +
-                                 "Antworten von KI-Modellen können falsch sein – prüfe wichtige Informationen selbst. Bei Online-Anbietern " +
-                                 "gehen deine Nachrichten an den Anbieter, und es können Kosten entstehen."));
+        info.Inlines.Add(new Run(L.T("FreeGuenther ist kostenlose Software und wird ohne jede Gewährleistung bereitgestellt (MIT-Lizenz). " +
+                                     "Antworten von KI-Modellen können falsch sein – prüfe wichtige Informationen selbst. Bei Online-Anbietern " +
+                                     "gehen deine Nachrichten an den Anbieter, und es können Kosten entstehen.")));
         info.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorSecondaryBrush");
 
         var statement = new Border
@@ -38,27 +38,29 @@ internal sealed class ConsentWindow : Window
             BorderBrush = new SolidColorBrush(Color.FromArgb(0x66, 0xF5, 0x9E, 0x0B)),
             Child = new TextBlock
             {
-                Text = "Ich stimme zu, dass ich diese Anwendung auf meine eigene Verantwortung nutze.",
+                Text = L.T("Ich stimme zu, dass ich diese Anwendung auf meine eigene Verantwortung nutze."),
                 TextWrapping = TextWrapping.Wrap,
                 FontSize = 15,
                 FontWeight = FontWeights.SemiBold
             }
         };
 
-        var ok = new Button { Content = "Weiter", IsDefault = true, MinWidth = 110, Padding = new Thickness(0, 6, 0, 6) };
+        var ok = new Button { Content = L.T("Weiter"), IsDefault = true, MinWidth = 110, Padding = new Thickness(0, 6, 0, 6) };
         ok.SetResourceReference(StyleProperty, "AccentButtonStyle");
         ok.Click += (_, _) => Confirm();
-        var quit = new Button { Content = "Beenden", IsCancel = true, MinWidth = 110, Padding = new Thickness(0, 6, 0, 6), Margin = new Thickness(8, 0, 0, 0) };
+        var quit = new Button { Content = L.T("Beenden"), IsCancel = true, MinWidth = 110, Padding = new Thickness(0, 6, 0, 6), Margin = new Thickness(8, 0, 0, 0) };
+        System.Windows.Automation.AutomationProperties.SetName(ok, "Weiter");
+        System.Windows.Automation.AutomationProperties.SetName(quit, "Beenden");
 
         Content = new StackPanel
         {
             Margin = new Thickness(28, 24, 28, 22),
             Children =
             {
-                new TextBlock { Text = "Willkommen bei FreeGuenther", FontSize = 22, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 10) },
+                new TextBlock { Text = L.T("Willkommen bei FreeGuenther"), FontSize = 22, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 10) },
                 info,
                 statement,
-                new TextBlock { Text = "Gib JA in das folgende Feld ein (Groß- und Kleinschreibung egal):", Margin = new Thickness(0, 16, 0, 0), TextWrapping = TextWrapping.Wrap },
+                new TextBlock { Text = L.T("Gib JA in das folgende Feld ein (Groß- und Kleinschreibung egal):"), Margin = new Thickness(0, 16, 0, 0), TextWrapping = TextWrapping.Wrap },
                 _answer,
                 new StackPanel
                 {
@@ -72,15 +74,20 @@ internal sealed class ConsentWindow : Window
         Loaded += (_, _) => _answer.Focus();
     }
 
-    // Nur „ja“ zählt als Zustimmung – jede andere Eingabe beendet die App (DialogResult false)
+    // Nur „ja“ zählt als Zustimmung (bzw. das „Ja“ der gewählten Sprache, z. B. „yes“, „oui“, „sí“, „sì“) –
+    // jede andere Eingabe beendet die App (DialogResult false)
     private void Confirm()
     {
-        if (_answer.Text.Trim().Equals("ja", StringComparison.OrdinalIgnoreCase))
+        // Groß-/Kleinschreibung und Akzente egal („si“ zählt wie „sí“)
+        static bool Same(string a, string b) => string.Compare(a, b, System.Globalization.CultureInfo.CurrentCulture,
+            System.Globalization.CompareOptions.IgnoreCase | System.Globalization.CompareOptions.IgnoreNonSpace) == 0;
+        var answer = _answer.Text.Trim();
+        if (Same(answer, "ja") || Same(answer, L.T("ja")))
         {
             DialogResult = true;
             return;
         }
-        MessageBox.Show(this, "Ohne Zustimmung kann FreeGuenther nicht genutzt werden. Die Anwendung wird jetzt beendet.",
+        MessageBox.Show(this, L.T("Ohne Zustimmung kann FreeGuenther nicht genutzt werden. Die Anwendung wird jetzt beendet."),
             "FreeGuenther", MessageBoxButton.OK, MessageBoxImage.Information);
         DialogResult = false;
     }

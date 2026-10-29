@@ -19,8 +19,8 @@ public enum ProviderKind { LmStudio, Ollama, OpenAI, Anthropic, OpenRouter }
 // Tools = Modell kann Werkzeuge aufrufen, also Plugins nutzen (null = unbekannt)
 public record ModelInfo(string Id, bool? Vision, bool Loaded, bool ImageGen = false, bool? Tools = null)
 {
-    public string Label => Id + (ImageGen ? "    🎨 erzeugt Bilder" : "") + (Vision == true ? "    🖼 versteht Bilder" : "") +
-                           (Tools == true ? "    🔧 Plugins" : "") + (Loaded ? "    ● geladen" : "");
+    public string Label => Id + (ImageGen ? "    🎨 " + L.T("erzeugt Bilder") : "") + (Vision == true ? "    🖼 " + L.T("versteht Bilder") : "") +
+                           (Tools == true ? "    🔧 Plugins" : "") + (Loaded ? "    ● " + L.T("geladen") : "");
 }
 
 // Feste Eigenschaften eines Anbieters: Standard-Adresse, Schlüssel nötig?, welche Feineinstellungen er versteht
@@ -37,7 +37,9 @@ public sealed record ProviderInfo(
     bool SupportsRepeatPenalty)
 {
     public bool NeedsKey => KeyUrl != null;
-    public string Label => (IsLocal ? "Lokal  ·  " : "Remote  ·  ") + Name;
+    public string Label => L.T(IsLocal ? "Lokal" : "Remote") + "  ·  " + Name;
+
+    // Beschreibung und Link-Beschriftungen sind deutsch hinterlegt und werden beim Anzeigen mit L.T übersetzt
 
     // Nützliche Seiten des Anbieters (Website, Schlüssel, Modelle, Preise) – werden in den Einstellungen verlinkt
     public (string Text, string Url)[] Links => Kind switch
@@ -113,8 +115,10 @@ public sealed record ProviderInfo(
 // Standortwahl bei OpenRouter:
 //  "hoster-…" = nur Hoster-Endpunkte mit bekanntem Standort in der Region (geht mit jedem Tarif, Annäherung)
 //  "eu" / "us" = In-Region-Routing von OpenRouter über eu./us.openrouter.ai (garantiert, nur Business-Tarif)
-public sealed record RegionOption(string Code, string Label)
+public sealed record RegionOption(string Code, string GermanLabel)
 {
+    public string Label => L.T(GermanLabel);
+
     public static readonly RegionOption[] All =
     [
         new("", "Weltweit – alle Hoster (Standard)"),
@@ -127,8 +131,8 @@ public sealed record RegionOption(string Code, string Label)
 
     public static string Name(string code) => code switch
     {
-        "eu" => "EU, garantiert",
-        "us" => "USA, garantiert",
+        "eu" => L.T("EU, garantiert"),
+        "us" => L.T("USA, garantiert"),
         "hoster-eu" => "EU-Hoster",
         "hoster-de" => "DE-Hoster",
         "hoster-us" => "US-Hoster",
@@ -417,7 +421,7 @@ public static class LlmClient
                         }
                         catch (HttpRequestException) { }
                         if (++done % 25 == 0)
-                            progress?.Invoke($"Prüfe Hoster-Standorte … {done} von {models.Count} Modellen");
+                            progress?.Invoke(L.F("Prüfe Hoster-Standorte … {0} von {1} Modellen", done, models.Count));
                         return ok ? m : null;
                     }));
                     return checks.OfType<ModelInfo>().ToList();
@@ -514,7 +518,7 @@ public static class LlmClient
             var json = JsonNode.Parse(text);
             var b64 = (string?)json?["data"]?[0]?["b64_json"];
             if (string.IsNullOrEmpty(b64))
-                throw new HttpRequestException("Der Anbieter hat kein Bild geliefert.");
+                throw new HttpRequestException(L.T("Der Anbieter hat kein Bild geliefert."));
             var usage = json?["usage"];
             return new ImageResult(
                 Convert.FromBase64String(b64),
@@ -583,7 +587,7 @@ public static class LlmClient
             var tags = await OpenRouterHosting.TagsInRegionAsync(Http, EffectiveServer(p, r.Server, r.Region), r.Model, r.Region, ct);
             if (tags.Count == 0)
                 throw new HttpRequestException(
-                    $"Für {r.Model} ist kein Hoster mit Standort {RegionOption.Name(r.Region)} bekannt – bitte ein anderes Modell wählen.");
+                    L.F("Für {0} ist kein Hoster mit Standort {1} bekannt – bitte ein anderes Modell wählen.", r.Model, RegionOption.Name(r.Region)));
             body["provider"] = new JsonObject
             {
                 ["only"] = new JsonArray(tags.Select(t => (JsonNode)JsonValue.Create(t)).ToArray()),
@@ -803,7 +807,7 @@ public static class LlmClient
                 {
                     AddUsage(result, null, messageDelta.Usage.OutputTokens, null);
                     if (messageDelta.Delta.StopReason == "refusal")
-                        onChunk("\n\n*[Das Modell hat diese Anfrage abgelehnt.]*");
+                        onChunk("\n\n*" + L.T("[Das Modell hat diese Anfrage abgelehnt.]") + "*");
                 }
             }
 

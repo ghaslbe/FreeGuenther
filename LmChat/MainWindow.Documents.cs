@@ -21,7 +21,7 @@ public partial class MainWindow
         var problems = new List<string>();
         foreach (var path in files.Where(DocumentReader.IsSupported))
         {
-            StatusText.Text = $"Lese „{Path.GetFileName(path)}“ …";
+            StatusText.Text = L.F("Lese „{0}“ …", Path.GetFileName(path));
             try
             {
                 AddDocument(await Task.Run(() => DocumentReader.Read(path)));
@@ -32,7 +32,7 @@ public partial class MainWindow
             }
         }
         if (unsupported.Count > 0)
-            problems.Add($"Nicht unterstützt: {string.Join(", ", unsupported)} (geht: Bilder, PDF, Word .docx, Text- und Code-Dateien).");
+            problems.Add(L.F("Nicht unterstützt: {0} (geht: Bilder, PDF, Word .docx, Text- und Code-Dateien).", string.Join(", ", unsupported)));
         StatusText.Text = problems.Count > 0 ? string.Join(" ", problems) : DocumentsSummary();
         InputBox.Focus();
     }
@@ -55,9 +55,9 @@ public partial class MainWindow
         if (_pendingDocuments.Count == 0) return "";
         var tokens = _pendingDocuments.Sum(d => DocumentReader.EstimateTokens(d.Text));
         var warning = tokens > 8000
-            ? " Das ist viel: Lokale Modelle verarbeiten oft nur 4.000–32.000 Tokens – ggf. in LM Studio die Kontextlänge erhöhen."
+            ? " " + L.T("Das ist viel: Lokale Modelle verarbeiten oft nur 4.000–32.000 Tokens – ggf. in LM Studio die Kontextlänge erhöhen.")
             : "";
-        return $"{_pendingDocuments.Count} Datei(en) angehängt, zusammen ≈ {tokens:N0} Tokens.{warning}";
+        return L.F("{0} Datei(en) angehängt, zusammen ≈ {1:N0} Tokens.", _pendingDocuments.Count, tokens) + warning;
     }
 
     // Kärtchen über dem Eingabefeld: je Datei Name, Größe in Tokens und ein Knopf zum Entfernen
@@ -70,7 +70,7 @@ public partial class MainWindow
             {
                 Style = (Style)FindResource("IconButton"),
                 Padding = new Thickness(6, 3, 6, 3),
-                ToolTip = "Datei entfernen",
+                ToolTip = L.T("Datei entfernen"),
                 Content = new TextBlock { Text = "", FontFamily = (System.Windows.Media.FontFamily)FindResource("IconFont"), FontSize = 10 }
             };
             System.Windows.Automation.AutomationProperties.SetName(remove, $"{document.Name} entfernen");

@@ -98,6 +98,7 @@ public partial class MainWindow : Window
         SetupReveal(CompareKeyBoxRight, CompareKeyPlainRight, CompareKeyRevealRight);
         ChatBox.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler(ChatBox_ScrollChanged));
         ShowSettings();
+        ShowLanguageChoice();
         // Beim Befüllen der Einstellungen kann ein Element dort den Fokus bekommen – immer im Chat starten
         Loaded += (_, _) =>
         {
@@ -149,7 +150,7 @@ public partial class MainWindow : Window
         };
         var rows = _store.UsageByModel(since);
         var priceNote = await EnsurePricesAsync(rows, TimeSpan.FromSeconds(20))
-            ? "" : "Preisliste nicht erreichbar – Kosten ohne Angabe des Anbieters sind unbekannt.";
+            ? "" : L.T("Preisliste nicht erreichbar – Kosten ohne Angabe des Anbieters sind unbekannt.");
 
         double total = 0;
         var anyEstimate = false;
@@ -162,11 +163,11 @@ public partial class MainWindow : Window
             anyUnknown |= kind is CostKind.Partial or CostKind.Unknown;
             var cost = kind switch
             {
-                CostKind.Local => "0 $ (lokal)",
-                CostKind.Reported => FormatDollar(amount) + " gemeldet",
-                CostKind.Estimated => "≈ " + FormatDollar(amount) + " geschätzt",
-                CostKind.Partial => "mind. " + FormatDollar(amount),
-                _ => "unbekannt"
+                CostKind.Local => L.T("0 $ (lokal)"),
+                CostKind.Reported => L.F("{0} gemeldet", FormatDollar(amount)),
+                CostKind.Estimated => L.F("≈ {0} geschätzt", FormatDollar(amount)),
+                CostKind.Partial => L.F("mind. {0}", FormatDollar(amount)),
+                _ => L.T("unbekannt")
             };
             return new UsageLine(ProviderInfo.Get(r.Provider).Name, r.Model, r.Requests.ToString("N0"), r.InputTokens.ToString("N0"),
                 r.OutputTokens.ToString("N0"), cost);
@@ -179,8 +180,8 @@ public partial class MainWindow : Window
         UsageTokensTile.Text = $"{rows.Sum(r => r.InputTokens):N0} / {rows.Sum(r => r.OutputTokens):N0}";
         UsageCostTile.Text = "≈ " + FormatDollar(total) + (anyUnknown ? " +" : "");
         UsageStatus.Text = priceNote.Length > 0 ? priceNote
-            : anyUnknown ? "„+“: Für manche Antworten ist kein Preis bekannt, die Summe ist also eher höher."
-            : anyEstimate ? "Enthält geschätzte Beträge." : "";
+            : anyUnknown ? L.T("„+“: Für manche Antworten ist kein Preis bekannt, die Summe ist also eher höher.")
+            : anyEstimate ? L.T("Enthält geschätzte Beträge.") : "";
     }
 
     private static string FormatDollar(double d) =>
@@ -188,8 +189,8 @@ public partial class MainWindow : Window
 
     private void ClearUsage_Click(object sender, RoutedEventArgs e)
     {
-        if (MessageBox.Show(this, "Alle mitgezählten Tokens und Kosten löschen? Die Chats bleiben erhalten.",
-                "Zähler zurücksetzen", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+        if (MessageBox.Show(this, L.T("Alle mitgezählten Tokens und Kosten löschen? Die Chats bleiben erhalten."),
+                L.T("Zähler zurücksetzen"), MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
             return;
         _store.ClearUsage();
         _ = ShowUsageAsync();
@@ -210,7 +211,7 @@ public partial class MainWindow : Window
     private void UpdateEmptyState()
     {
         EmptyState.Visibility = IsReady && ChatBox.Document.Blocks.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        ChatTitleText.Text = _currentChat?.Title ?? "Neuer Chat";
+        ChatTitleText.Text = _currentChat?.Title ?? L.T("Neuer Chat");
         DeleteChatButton.Visibility = _currentChat == null ? Visibility.Hidden : Visibility.Visible;
         ExportChatButton.Visibility = _currentChat == null || _messages.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
@@ -294,50 +295,49 @@ public partial class MainWindow : Window
         var hasKey = ApiKeyBox.Password.Trim().Length > 0;
         var hasModel = ModelCombo.SelectedItem is ModelInfo;
         var saved = ready && _settings.Provider == info.Kind;
-        SetupGuideTitle.Text = saved ? "Fertig eingerichtet – du kannst loslegen!" : "So geht's los – in 4 Schritten";
+        SetupGuideTitle.Text = L.T(saved ? "Fertig eingerichtet – du kannst loslegen!" : "So geht's los – in 4 Schritten");
         SetupDoneButton.Visibility = saved ? Visibility.Visible : Visibility.Collapsed;
 
         SetupSteps.Children.Clear();
-        AddStep(true, "1. Anbieter wählen", new Run($"Gewählt: {info.Name}. Ändern kannst du das unten unter „Anbieter“."));
+        AddStep(true, L.T("1. Anbieter wählen"), new Run(L.F("Gewählt: {0}. Ändern kannst du das unten unter „Anbieter“.", info.Name)));
 
         if (info.NeedsKey)
         {
             var limit = info.Links.FirstOrDefault(l => l.Item1.Contains("Limit"));
             var body = new List<Inline>
             {
-                new Run("Beim Anbieter ein Konto anlegen und einen Schlüssel erstellen: "),
+                new Run(L.T("Beim Anbieter ein Konto anlegen und einen Schlüssel erstellen:") + " "),
                 MakeLink(info.KeyUrl!.Replace("https://", ""), info.KeyUrl),
-                new Run(". Den Schlüssel kopieren und unten bei „API-Schlüssel“ einfügen. ")
+                new Run(". " + L.T("Den Schlüssel kopieren und unten bei „API-Schlüssel“ einfügen.") + " ")
             };
             if (limit.Item2 != null)
             {
-                body.Add(new Run("Gleich dabei ein ") { FontWeight = FontWeights.SemiBold });
-                body.Add(MakeLink("Ausgabenlimit setzen", limit.Item2));
-                body.Add(new Run(", damit nie mehr als gewollt abgebucht wird."));
+                body.Add(new Run(L.T("Gleich dabei ein Ausgabenlimit setzen, damit nie mehr als gewollt abgebucht wird.") + " ") { FontWeight = FontWeights.SemiBold });
+                body.Add(MakeLink(L.T("⚠ Ausgabenlimit setzen"), limit.Item2));
             }
-            AddStep(hasKey, "2. API-Schlüssel eintragen", body.ToArray());
+            AddStep(hasKey, L.T("2. API-Schlüssel eintragen"), body.ToArray());
         }
         else if (info.Kind == ProviderKind.LmStudio)
-            AddStep(_modelsLoadedFor == info.Kind, "2. LM Studio starten",
-                new Run("LM Studio installieren ("), MakeLink("lmstudio.ai", "https://lmstudio.ai"),
-                new Run("), dort ein Modell herunterladen (z. B. Gemma oder Qwen) und unter „Developer“ den Server starten. " +
-                        "Läuft LM Studio auf einem anderen Rechner: dort „Serve on Local Network“ einschalten und unten dessen Adresse eintragen. " +
-                        "Danach unten bei „Modell“ auf „Liste aktualisieren“ klicken."));
+            AddStep(_modelsLoadedFor == info.Kind, L.T("2. LM Studio starten"),
+                new Run(L.T("LM Studio installieren:") + " "), MakeLink("lmstudio.ai", "https://lmstudio.ai"),
+                new Run(". " + L.T("Dort ein Modell herunterladen (z. B. Gemma oder Qwen) und unter „Developer“ den Server starten. " +
+                                   "Läuft LM Studio auf einem anderen Rechner: dort „Serve on Local Network“ einschalten und unten dessen Adresse eintragen. " +
+                                   "Danach unten bei „Modell“ auf „Liste aktualisieren“ klicken.")));
         else
-            AddStep(_modelsLoadedFor == info.Kind, "2. Ollama starten",
-                new Run("Ollama installieren ("), MakeLink("ollama.com", "https://ollama.com"),
-                new Run(") und ein Modell laden, z. B. in der Eingabeaufforderung: "),
+            AddStep(_modelsLoadedFor == info.Kind, L.T("2. Ollama starten"),
+                new Run(L.T("Ollama installieren:") + " "), MakeLink("ollama.com", "https://ollama.com"),
+                new Run(". " + L.T("Dann ein Modell laden, z. B. in der Eingabeaufforderung:") + " "),
                 new Run("ollama pull gemma3") { FontFamily = new FontFamily("Cascadia Mono, Consolas") },
-                new Run(". Danach unten bei „Modell“ auf „Liste aktualisieren“ klicken."));
+                new Run(". " + L.T("Danach unten bei „Modell“ auf „Liste aktualisieren“ klicken.")));
 
-        AddStep(hasModel, "3. Modell auswählen",
-            new Run("Unten unter „Modell“ eins aus der Liste wählen" + info.Kind switch
+        AddStep(hasModel, L.T("3. Modell auswählen"),
+            new Run(L.T("Unten unter „Modell“ eins aus der Liste wählen.") + " " + L.T(info.Kind switch
             {
-                ProviderKind.OpenRouter => ". Für den Anfang gut: „openrouter/auto“ – sucht automatisch ein passendes Modell aus.",
-                ProviderKind.OpenAI or ProviderKind.Anthropic => ". Die Liste erscheint, sobald der Schlüssel eingetragen ist (sonst „Liste aktualisieren“).",
-                _ => ". Ist die Liste leer, läuft der Server noch nicht oder die Adresse stimmt nicht."
-            }));
-        AddStep(saved, "4. Speichern", new Run("Ganz unten auf „Speichern“ klicken – danach kannst du im Chat loslegen."));
+                ProviderKind.OpenRouter => "Für den Anfang gut: „openrouter/auto“ – sucht automatisch ein passendes Modell aus.",
+                ProviderKind.OpenAI or ProviderKind.Anthropic => "Die Liste erscheint, sobald der Schlüssel eingetragen ist (sonst „Liste aktualisieren“).",
+                _ => "Ist die Liste leer, läuft der Server noch nicht oder die Adresse stimmt nicht."
+            })));
+        AddStep(saved, L.T("4. Speichern"), new Run(L.T("Ganz unten auf „Speichern“ klicken – danach kannst du im Chat loslegen.")));
     }
 
     private void AddStep(bool done, string title, params Inline[] body)
@@ -395,28 +395,28 @@ public partial class MainWindow : Window
         var config = _settings.Current;
         if (config.Model.Length == 0)
         {
-            StatusText.Text = "Bitte zuerst unter „Einstellungen“ ein Modell auswählen und speichern.";
+            StatusText.Text = L.T("Bitte zuerst unter „Einstellungen“ ein Modell auswählen und speichern.");
             return;
         }
         if (provider.NeedsKey && config.ApiKey.Length == 0)
         {
-            StatusText.Text = $"Für {provider.Name} fehlt der API-Schlüssel – bitte unter „Einstellungen“ eintragen.";
+            StatusText.Text = L.F("Für {0} fehlt der API-Schlüssel – bitte unter „Einstellungen“ eintragen.", provider.Name);
             return;
         }
         if (image != null && CurrentVision == false)
         {
-            StatusText.Text = "Das gewählte Modell kann keine Bilder verarbeiten – Bild entfernen oder Modell wechseln.";
+            StatusText.Text = L.T("Das gewählte Modell kann keine Bilder verarbeiten – Bild entfernen oder Modell wechseln.");
             return;
         }
         var imageMode = CurrentImageGen;
         if (imageMode && text.Length == 0)
         {
-            StatusText.Text = "Beschreibe in Worten, welches Bild erzeugt bzw. wie das Bild verändert werden soll.";
+            StatusText.Text = L.T("Beschreibe in Worten, welches Bild erzeugt bzw. wie das Bild verändert werden soll.");
             return;
         }
         if (imageMode && documents.Count > 0)
         {
-            StatusText.Text = "Bildmodelle können keine Dateien lesen – Datei entfernen oder ein Text-Modell wählen.";
+            StatusText.Text = L.T("Bildmodelle können keine Dateien lesen – Datei entfernen oder ein Text-Modell wählen.");
             return;
         }
 
@@ -425,7 +425,7 @@ public partial class MainWindow : Window
         _checkingBudget = false;
         if (!allowed)
         {
-            StatusText.Text = "Nicht gesendet – die Kostenbremse ist erreicht (siehe „Verbrauch“).";
+            StatusText.Text = L.T("Nicht gesendet – die Kostenbremse ist erreicht (siehe „Verbrauch“).");
             return;
         }
 
@@ -467,7 +467,7 @@ public partial class MainWindow : Window
         var pluginNotes = new List<string>();
 
         // Statuszeile über der Antwort: was gerade passiert und seit wann – verschwindet, sobald Text kommt
-        var phase = $"Anfrage an {provider.Name} wird vorbereitet";
+        var phase = L.F("Anfrage an {0} wird vorbereitet", provider.Name);
         var phaseRun = new Run();
         var phaseLine = new Paragraph(phaseRun) { Margin = new Thickness(0), FontSize = 13 };
         phaseLine.SetResourceReference(TextElement.ForegroundProperty, "TextFillColorSecondaryBrush");
@@ -477,8 +477,8 @@ public partial class MainWindow : Window
         {
             var seconds = (int)clock.Elapsed.TotalSeconds;
             var hint = seconds < 30 ? ""
-                : provider.IsLocal && !imageMode ? " – dauert länger, evtl. wird das Modell erst geladen"
-                : " – dauert länger als üblich, abbrechen geht jederzeit mit ■";
+                : " – " + L.T(provider.IsLocal && !imageMode ? "dauert länger, evtl. wird das Modell erst geladen"
+                    : "dauert länger als üblich, abbrechen geht jederzeit mit ■");
             phaseRun.Text = $"⏳ {phase} … {seconds} s{hint}";
             // Während der Denkphase das Ende des Gedankengangs mitlaufen lassen
             if (reasoning.Length > 0)
@@ -505,7 +505,7 @@ public partial class MainWindow : Window
             if (!ticker.IsEnabled) return;
             ticker.Stop();
             answerView.Body.Blocks.Remove(phaseLine);
-            StatusText.Text = "Antwort wird empfangen …";
+            StatusText.Text = L.T("Antwort wird empfangen …");
         }
         ticker.Tick += (_, _) => ShowPhase();
         ticker.Start();
@@ -520,8 +520,8 @@ public partial class MainWindow : Window
                     ? _messages.LastOrDefault(m => m.Role == "assistant" && m.Image != null)?.Image
                     : null);
                 SetPhase(reference != null
-                    ? $"🎨 {provider.Name} bearbeitet das Bild – das kann eine Weile dauern"
-                    : $"🎨 {provider.Name} erzeugt das Bild – das kann eine Weile dauern");
+                    ? "🎨 " + L.F("{0} bearbeitet das Bild – das kann eine Weile dauern", provider.Name)
+                    : "🎨 " + L.F("{0} erzeugt das Bild – das kann eine Weile dauern", provider.Name));
                 var img = await LlmClient.GenerateImageAsync(request, text, reference, _cts.Token);
                 generated = ToPng(img.Image);
                 result.InputTokens = img.InputTokens;
@@ -545,10 +545,10 @@ public partial class MainWindow : Window
                     if (!ticker.IsEnabled) return;
                     SetPhase(p switch
                     {
-                        LlmClient.Phase.FindingHosters => $"Suche Hoster mit Standort {RegionOption.Name(config.Region)}",
-                        LlmClient.Phase.Sending => $"Anfrage an {provider.Name} gesendet, warte auf Antwort",
-                        LlmClient.Phase.Connected => $"{provider.Name} hat die Anfrage angenommen, warte auf die ersten Wörter",
-                        _ => "💭 Das Modell denkt nach"
+                        LlmClient.Phase.FindingHosters => L.F("Suche Hoster mit Standort {0}", RegionOption.Name(config.Region)),
+                        LlmClient.Phase.Sending => L.F("Anfrage an {0} gesendet, warte auf Antwort", provider.Name),
+                        LlmClient.Phase.Connected => L.F("{0} hat die Anfrage angenommen, warte auf die ersten Wörter", provider.Name),
+                        _ => "💭 " + L.T("Das Modell denkt nach")
                     });
                 }, result, toolBox, _cts.Token, piece =>
                 {
@@ -561,21 +561,21 @@ public partial class MainWindow : Window
                 {
                     config.ModelTools = false;
                     _settings.Save(_store);
-                    pluginNotes.Add("Hinweis: Dieses Modell kann keine Plugins nutzen – die Antwort kam ohne Plugins.");
+                    pluginNotes.Add(L.T("Hinweis: Dieses Modell kann keine Plugins nutzen – die Antwort kam ohne Plugins."));
                 }
             }
             ticker.Stop();
-            StatusText.Text = "Fertig.";
+            StatusText.Text = L.T("Fertig.");
         }
         catch (OperationCanceledException)
         {
-            note = "[abgebrochen]";
-            StatusText.Text = "Abgebrochen.";
+            note = L.T("[abgebrochen]");
+            StatusText.Text = L.T("Abgebrochen.");
         }
         catch (Exception ex)
         {
-            note = $"[Fehler: {ex.Message}]";
-            StatusText.Text = "Fehler – Anbieter, Schlüssel und Modell in den Einstellungen prüfen.";
+            note = L.F("[Fehler: {0}]", ex.Message);
+            StatusText.Text = L.T("Fehler – Anbieter, Schlüssel und Modell in den Einstellungen prüfen.");
         }
         finally
         {
@@ -659,7 +659,7 @@ public partial class MainWindow : Window
             UpdatePersonaChip();
             InputBox.Focus();
             if (success && budgetWarning != null)
-                StatusText.Text = "Fertig. " + budgetWarning;
+                StatusText.Text = L.T("Fertig.") + " " + budgetWarning;
 
             // Erste Antwort in einem neuen Chat: Titel vom Modell vorschlagen lassen (läuft im Hintergrund)
             if (success && answer.Length > 0 && !imageMode && _settings.AutoTitle && _messages.Count == 2 && _currentChat is { } titled)
@@ -717,12 +717,12 @@ public partial class MainWindow : Window
         if (!_plugins.Enabled.Any()) return null;
         if (config.ModelTools == false)
         {
-            notes.Add("Hinweis: Das gewählte Modell kann keine Plugins nutzen – sie wurden nicht angeboten.");
+            notes.Add(L.T("Hinweis: Das gewählte Modell kann keine Plugins nutzen – sie wurden nicht angeboten."));
             return null;
         }
         var problems = new List<string>();
         var tools = await _plugins.CollectToolsAsync(setPhase, problems, ct);
-        notes.AddRange(problems.Select(p => "Plugin nicht verfügbar – " + p));
+        notes.AddRange(problems.Select(p => L.T("Plugin nicht verfügbar") + " – " + p));
         if (tools.Count == 0) return null;
 
         return new ToolBox
@@ -734,10 +734,10 @@ public partial class MainWindow : Window
                 if (entry.Plugin == null) return "Fehler: Dieses Werkzeug gibt es nicht.";
                 var summary = ArgumentSummary(arguments);
                 if (_plugins.AskBeforeRun(entry.Plugin))
-                    setPhase($"❓ Warte auf deine Bestätigung für „{entry.Plugin.Name}“ (Fenster „Plugin ausführen?“)");
+                    setPhase("❓ " + L.F("Warte auf deine Bestätigung für „{0}“ (Fenster „Plugin ausführen?“)", entry.Plugin.Name));
                 if (_plugins.AskBeforeRun(entry.Plugin) && !ConfirmTool(entry.Plugin, entry.Tool, arguments))
                 {
-                    used.Add($"{entry.Plugin.Name} abgelehnt");
+                    used.Add(L.F("{0} abgelehnt", entry.Plugin.Name));
                     return "Der Nutzer hat diese Aktion nicht erlaubt. Frag nach oder antworte ohne.";
                 }
                 setPhase($"🔧 {entry.Plugin.Name}: {entry.Tool}{(summary.Length > 0 ? $" ({summary})" : "")}");
@@ -774,9 +774,9 @@ public partial class MainWindow : Window
     {
         var args = arguments.Length > 600 ? arguments[..600] + " …" : arguments;
         return MessageBox.Show(this,
-            $"Das Modell möchte das Plugin „{plugin.Name}“ verwenden:\n\nAktion: {tool}\nAngaben: {args}\n\n" +
-            "Erlauben? (Die Rückfrage lässt sich unter Plugins → Einstellungen des Plugins abschalten.)",
-            "Plugin ausführen?", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
+            L.F("Das Modell möchte das Plugin „{0}“ verwenden:", plugin.Name) + "\n\n" + L.T("Aktion:") + $" {tool}\n" + L.T("Angaben:") + $" {args}\n\n" +
+            L.T("Erlauben? (Die Rückfrage lässt sich unter Plugins → Einstellungen des Plugins abschalten.)"),
+            L.T("Plugin ausführen?"), MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
     }
 
     private void Stop_Click(object sender, RoutedEventArgs e) => _cts?.Cancel();
@@ -812,7 +812,7 @@ public partial class MainWindow : Window
         UpdateEmptyState();
         UpdatePersonaChip();
         NavChat.IsChecked = true;
-        StatusText.Text = "Neuer Chat.";
+        StatusText.Text = L.T("Neuer Chat.");
         InputBox.Focus();
     }
 
@@ -844,17 +844,17 @@ public partial class MainWindow : Window
     {
         if (_cts != null)
         {
-            StatusText.Text = "Während eine Antwort läuft, kann kein Chat gelöscht werden.";
+            StatusText.Text = L.T("Während eine Antwort läuft, kann kein Chat gelöscht werden.");
             return;
         }
-        if (MessageBox.Show(this, $"Chat „{chat.Title}“ wirklich löschen?", "Chat löschen",
+        if (MessageBox.Show(this, L.F("Chat „{0}“ wirklich löschen?", chat.Title), L.T("Chat löschen"),
                 MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
 
         _store.DeleteChat(chat.Id);
         _chats.Remove(chat);
         if (chat.Id == _currentChat?.Id)
             NewChat_Click(this, new RoutedEventArgs());
-        StatusText.Text = $"Chat „{chat.Title}“ gelöscht.";
+        StatusText.Text = L.F("Chat „{0}“ gelöscht.", chat.Title);
     }
 
     private void SelectChatSilently(ChatInfo? chat)
@@ -867,7 +867,7 @@ public partial class MainWindow : Window
     private static string MakeTitle(string text)
     {
         var firstLine = text.Split('\n')[0].Trim();
-        if (firstLine.Length == 0) return "Bild";
+        if (firstLine.Length == 0) return L.T("Bild");
         return firstLine.Length > 40 ? firstLine[..40] + "…" : firstLine;
     }
 
@@ -904,7 +904,7 @@ public partial class MainWindow : Window
         var words = reasoning.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
         var expander = new Expander
         {
-            Header = $"💭 Gedankengang ({words:N0} Wörter)",
+            Header = "💭 " + L.F("Gedankengang ({0:N0} Wörter)", words),
             Content = text,
             IsExpanded = false,
             FontSize = 13,
@@ -928,7 +928,7 @@ public partial class MainWindow : Window
         InputBox.Text = message.Content;
         InputBox.CaretIndex = InputBox.Text.Length;
         RestoreAttachments(message);
-        StatusText.Text = "Nachricht bearbeiten und mit Enter neu senden.";
+        StatusText.Text = L.T("Nachricht bearbeiten und mit Enter neu senden.");
         InputBox.Focus();
     }
 
@@ -939,7 +939,7 @@ public partial class MainWindow : Window
         var index = _messages.FindIndex(m => m.Id == answer.Id);
         if (index < 1 || _messages[index - 1].Role != "user" || _currentChat == null)
         {
-            StatusText.Text = "Zu dieser Antwort gibt es keine Frage zum erneuten Senden.";
+            StatusText.Text = L.T("Zu dieser Antwort gibt es keine Frage zum erneuten Senden.");
             return;
         }
         if (index < _messages.Count - 1 && !ConfirmTruncate(_messages.Count - index - 1)) return;
@@ -962,8 +962,8 @@ public partial class MainWindow : Window
     }
 
     private bool ConfirmTruncate(int later) =>
-        MessageBox.Show(this, $"Danach folgen noch {later} weitere Nachricht(en). Sie werden dabei aus dem Chat entfernt. Fortfahren?",
-            "Nachrichten ersetzen", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
+        MessageBox.Show(this, L.F("Danach folgen noch {0} weitere Nachricht(en). Sie werden dabei aus dem Chat entfernt. Fortfahren?", later),
+            L.T("Nachrichten ersetzen"), MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
 
     private void TruncateFrom(int index)
     {
@@ -981,8 +981,8 @@ public partial class MainWindow : Window
         var safeTitle = string.Concat(chat.Title.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)).Trim().TrimEnd('…');
         var dialog = new SaveFileDialog
         {
-            Title = "Chat exportieren",
-            Filter = "Markdown|*.md|HTML – im Browser lesen, drucken oder als PDF speichern|*.html",
+            Title = L.T("Chat exportieren"),
+            Filter = "Markdown|*.md|" + L.T("HTML – im Browser lesen, drucken oder als PDF speichern") + "|*.html",
             FileName = $"{(safeTitle.Length > 0 ? safeTitle : "Chat")}.md"
         };
         if (dialog.ShowDialog(this) != true) return;
@@ -992,11 +992,11 @@ public partial class MainWindow : Window
         try
         {
             File.WriteAllText(dialog.FileName, html ? ChatToHtml(chat) : ChatToMarkdown(chat), new UTF8Encoding(false));
-            StatusText.Text = $"Chat exportiert: {dialog.FileName}";
+            StatusText.Text = L.F("Chat exportiert: {0}", dialog.FileName);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            StatusText.Text = $"Export fehlgeschlagen: {ex.Message}";
+            StatusText.Text = L.F("Export fehlgeschlagen: {0}", ex.Message);
         }
     }
 
@@ -1004,15 +1004,15 @@ public partial class MainWindow : Window
     {
         var sb = new StringBuilder();
         sb.AppendLine($"# {chat.Title}").AppendLine();
-        sb.AppendLine($"*Exportiert aus FreeGuenther {AppVersion} am {DateTime.Now:dd.MM.yyyy HH:mm}*").AppendLine();
+        sb.AppendLine("*" + L.F("Exportiert aus FreeGuenther {0} am {1:g}", AppVersion, DateTime.Now) + "*").AppendLine();
         foreach (var m in _messages)
         {
             sb.AppendLine("---").AppendLine();
-            sb.AppendLine(m.Role == "user" ? "### Du" : $"### {m.Stats?.Model ?? "Antwort"}").AppendLine();
+            sb.AppendLine(m.Role == "user" ? "### " + L.T("Du") : $"### {m.Stats?.Model ?? L.T("Antwort")}").AppendLine();
             if (m.Image != null)
                 sb.AppendLine($"![Bild](data:image/png;base64,{Convert.ToBase64String(m.Image)})").AppendLine();
             foreach (var d in m.Documents ?? [])
-                sb.AppendLine($"📄 *Angehängt: {d.Name}*").AppendLine();
+                sb.AppendLine("📄 *" + L.F("Angehängt: {0}", d.Name) + "*").AppendLine();
             if (m.Content.Length > 0)
                 sb.AppendLine(m.Content.TrimEnd()).AppendLine();
             if (m.Stats != null)
@@ -1027,7 +1027,7 @@ public partial class MainWindow : Window
         var sb = new StringBuilder();
         sb.Append($$"""
             <!doctype html>
-            <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+            <html lang="{{L.Current}}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
             <title>{{Enc(chat.Title)}}</title>
             <style>
             body { font: 15px/1.6 "Segoe UI", system-ui, sans-serif; max-width: 820px; margin: 32px auto; padding: 0 16px; color: #1f1f1f; background: #fff; }
@@ -1040,20 +1040,20 @@ public partial class MainWindow : Window
             @media print { body { margin: 0; } .user { break-inside: avoid; } }
             </style></head><body>
             <h1>{{Enc(chat.Title)}}</h1>
-            <div class="meta">Exportiert aus FreeGuenther {{AppVersion}} am {{DateTime.Now:dd.MM.yyyy HH:mm}}</div>
+            <div class="meta">{{Enc(L.F("Exportiert aus FreeGuenther {0} am {1:g}", AppVersion, DateTime.Now))}}</div>
 
             """);
         foreach (var m in _messages)
         {
             var img = m.Image != null ? $"<p><img src=\"data:image/png;base64,{Convert.ToBase64String(m.Image)}\" alt=\"Bild\"></p>" : "";
-            var docs = string.Concat((m.Documents ?? []).Select(d => $"<div class=\"meta\">📄 Angehängt: {Enc(d.Name)}</div>"));
+            var docs = string.Concat((m.Documents ?? []).Select(d => $"<div class=\"meta\">📄 {Enc(L.F("Angehängt: {0}", d.Name))}</div>"));
             if (m.Role == "user")
                 sb.AppendLine($"<div class=\"user\">{img}{docs}{Enc(m.Content)}</div>");
             else
             {
                 sb.AppendLine("<div class=\"answer\">");
                 if (m.Reasoning is { Length: > 0 } r)
-                    sb.AppendLine($"<details><summary>Gedankengang</summary><div>{Enc(r)}</div></details>");
+                    sb.AppendLine($"<details><summary>{Enc(L.T("Gedankengang"))}</summary><div>{Enc(r)}</div></details>");
                 sb.AppendLine(img).AppendLine(MarkdownRenderer.ToHtml(m.Content));
                 if (m.Stats != null)
                     sb.AppendLine($"<div class=\"stats\">{Enc(FormatStats(m.Stats))}</div>");
@@ -1157,7 +1157,7 @@ public partial class MainWindow : Window
 
     private static string FormatStats(AnswerStats s)
     {
-        var parts = new List<string> { $"{s.Provider} · {s.Model}" + (s.Hoster != null ? $" (über {s.Hoster})" : "") };
+        var parts = new List<string> { $"{s.Provider} · {s.Model}" + (s.Hoster != null ? " " + L.F("(über {0})", s.Hoster) : "") };
         if (s.TokensPerSecond is { } tps)
             parts.Add($"{tps:0.0} Token/s");
         if (s.InputTokens != null || s.OutputTokens != null)
@@ -1201,15 +1201,16 @@ public partial class MainWindow : Window
         body.Blocks.Add(line);
     }
 
-    // Kleiner Knopf mit Symbol und Text (unter Nachrichten)
+    // Kleiner Knopf mit Symbol und Text (unter Nachrichten). text und tooltip sind deutsch und werden übersetzt;
+    // der Name für Bedienungshilfen/UI-Automation bleibt der deutsche Text.
     private (Button Button, TextBlock Label) SmallButton(string glyph, string text, string tooltip, string? automationName = null)
     {
-        var label = new TextBlock { Text = text, Margin = new Thickness(5, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        var label = new TextBlock { Text = L.T(text), Margin = new Thickness(5, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         var button = new Button
         {
             Style = (Style)FindResource("IconButton"),
             Padding = new Thickness(6, 2, 8, 2),
-            ToolTip = tooltip,
+            ToolTip = L.T(tooltip),
             FontSize = 11.5,
             Content = new StackPanel
             {
@@ -1238,9 +1239,9 @@ public partial class MainWindow : Window
         button.Click += async (_, _) =>
         {
             if (!action()) return;
-            label.Text = text == "Speichern" ? "Gespeichert ✓" : "Kopiert ✓";
+            label.Text = L.T(automationName == "Bild speichern" ? "Gespeichert ✓" : "Kopiert ✓");
             await Task.Delay(1800);
-            label.Text = text;
+            label.Text = L.T(text);
         };
         return new InlineUIContainer(button) { BaselineAlignment = BaselineAlignment.Center };
     }
@@ -1248,12 +1249,12 @@ public partial class MainWindow : Window
     // Knopf „Senden“ (Plugin Webhook): schickt diese Antwort als JSON an die eingestellte Adresse
     private InlineUIContainer WebhookButton(ChatMessage answer)
     {
-        var label = new TextBlock { Text = "Senden", Margin = new Thickness(5, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        var label = new TextBlock { Text = L.T("Senden"), Margin = new Thickness(5, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         var button = new Button
         {
             Style = (Style)FindResource("IconButton"),
             Padding = new Thickness(6, 2, 8, 2),
-            ToolTip = "Diese Antwort als JSON an den Webhook senden (Plugin „Webhook“)",
+            ToolTip = L.T("Diese Antwort als JSON an den Webhook senden (Plugin „Webhook“)"),
             Content = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -1269,11 +1270,11 @@ public partial class MainWindow : Window
         {
             if (_plugins.ActiveWebhook is not { } webhook)
             {
-                StatusText.Text = "Das Plugin „Webhook“ ist ausgeschaltet (Plugins → Webhook).";
+                StatusText.Text = L.T("Das Plugin „Webhook“ ist ausgeschaltet (Plugins → Webhook).");
                 return;
             }
             button.IsEnabled = false;
-            label.Text = "Sende …";
+            label.Text = L.T("Sende …");
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             string result;
             try
@@ -1285,9 +1286,9 @@ public partial class MainWindow : Window
                 result = "Fehler: Zeitüberschreitung beim Senden.";
             }
             StatusText.Text = result;
-            label.Text = result.StartsWith("Fehler") ? "Fehler ✗" : "Gesendet ✓";
+            label.Text = L.T(result.StartsWith("Fehler") ? "Fehler ✗" : "Gesendet ✓");
             await Task.Delay(2500);
-            label.Text = "Senden";
+            label.Text = L.T("Senden");
             button.IsEnabled = true;
         };
         return new InlineUIContainer(button) { BaselineAlignment = BaselineAlignment.Center };
@@ -1316,7 +1317,7 @@ public partial class MainWindow : Window
                 Thread.Sleep(50);
             }
         }
-        StatusText.Text = "Die Zwischenablage ist gerade belegt – bitte nochmal versuchen.";
+        StatusText.Text = L.T("Die Zwischenablage ist gerade belegt – bitte nochmal versuchen.");
         return false;
     }
 
@@ -1324,13 +1325,13 @@ public partial class MainWindow : Window
     {
         var dialog = new SaveFileDialog
         {
-            Title = "Bild speichern",
-            Filter = "PNG-Bild|*.png",
+            Title = L.T("Bild speichern"),
+            Filter = L.T("PNG-Bild") + "|*.png",
             FileName = $"FreeGuenther-Bild-{DateTime.Now:yyyy-MM-dd-HHmmss}.png"
         };
         if (dialog.ShowDialog(this) != true) return false;
         File.WriteAllBytes(dialog.FileName, png);
-        StatusText.Text = $"Bild gespeichert: {dialog.FileName}";
+        StatusText.Text = L.F("Bild gespeichert: {0}", dialog.FileName);
         return true;
     }
 
@@ -1367,7 +1368,7 @@ public partial class MainWindow : Window
             Stretch = Stretch.Uniform,
             HorizontalAlignment = HorizontalAlignment.Left,
             Cursor = Cursors.Hand,
-            ToolTip = "Klicken zum Vergrößern"
+            ToolTip = L.T("Klicken zum Vergrößern")
         };
         RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
         image.MouseLeftButtonUp += (_, _) => OpenImage(png);
@@ -1404,8 +1405,8 @@ public partial class MainWindow : Window
         var documents = string.Join(";", DocumentReader.Extensions.Select(x => "*" + x));
         var dialog = new OpenFileDialog
         {
-            Title = "Datei anhängen",
-            Filter = $"Bilder und Dokumente|{images};{documents}|Bilder|{images}|PDF, Word und Text|{documents}",
+            Title = L.T("Datei anhängen"),
+            Filter = $"{L.T("Bilder und Dokumente")}|{images};{documents}|{L.T("Bilder")}|{images}|{L.T("PDF, Word und Text")}|{documents}",
             Multiselect = true
         };
         if (dialog.ShowDialog(this) == true)
@@ -1469,7 +1470,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex) when (ex is NotSupportedException or IOException or UriFormatException)
         {
-            StatusText.Text = $"Bild konnte nicht geladen werden: {ex.Message}";
+            StatusText.Text = L.F("Bild konnte nicht geladen werden: {0}", ex.Message);
         }
     }
 
@@ -1477,7 +1478,7 @@ public partial class MainWindow : Window
     {
         if (CurrentVision == false)
         {
-            StatusText.Text = "Das gewählte Modell kann keine Bilder verarbeiten.";
+            StatusText.Text = L.T("Das gewählte Modell kann keine Bilder verarbeiten.");
             return;
         }
         if (_cts != null) return;
@@ -1503,7 +1504,7 @@ public partial class MainWindow : Window
         preview.StreamSource = new MemoryStream(png);
         preview.EndInit();
         AttachmentImage.Source = preview;
-        AttachmentText.Text = $"Bild angehängt ({preview.PixelWidth} × {preview.PixelHeight}, {png.Length / 1024} KB)";
+        AttachmentText.Text = L.F("Bild angehängt ({0} × {1}, {2} KB)", preview.PixelWidth, preview.PixelHeight, png.Length / 1024);
         AttachmentPanel.Visibility = Visibility.Visible;
     }
 
@@ -1588,17 +1589,17 @@ public partial class MainWindow : Window
             var key = shown ? ApiKeyBox.Password.Trim() : config.ApiKey;
             var server = shown ? ServerBox.Text.Trim() : config.Server;
             var model = shown ? ModelCombo.SelectedValue as string ?? config.Model : config.Model;
-            var where = row.Info.NeedsKey ? (key.Length > 0 ? "Schlüssel ✓" : "kein Schlüssel")
+            var where = row.Info.NeedsKey ? L.T(key.Length > 0 ? "Schlüssel ✓" : "kein Schlüssel")
                 : server.Replace("http://", "").Replace("https://", "");
-            row.Status = $"{where} · {(model.Length > 0 ? model : "kein Modell")}";
-            row.ActiveMark = kind == _settings.Provider ? "  ● im Chat" : "";
+            row.Status = $"{where} · {(model.Length > 0 ? model : L.T("kein Modell"))}";
+            row.ActiveMark = kind == _settings.Provider ? "  ● " + L.T("im Chat") : "";
         }
         var info = ShownProvider;
         var active = info.Kind == _settings.Provider;
         ProviderTitle.Text = info.Name;
-        ModelHeading.Text = $"Modell – {info.Name}";
+        ModelHeading.Text = L.T("Modell") + " – " + info.Name;
         UseProviderButton.Visibility = active ? Visibility.Collapsed : Visibility.Visible;
-        ProviderActiveNote.Text = active ? "● Wird gerade im Chat verwendet." : $"Im Chat antwortet gerade {ActiveProvider.Name}.";
+        ProviderActiveNote.Text = active ? "● " + L.T("Wird gerade im Chat verwendet.") : L.F("Im Chat antwortet gerade {0}.", ActiveProvider.Name);
     }
 
     private void ProviderList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1629,17 +1630,7 @@ public partial class MainWindow : Window
     {
         _shownProvider = info.Kind;
         var config = _draft.Config(info.Kind);
-        ProviderHint.Text = info.Description;
-        ProviderLinks.Inlines.Clear();
-        ProviderLinks.Inlines.Add(new Run("Links:  ") { FontWeight = FontWeights.SemiBold });
-        foreach (var (text, url) in info.Links)
-        {
-            if (ProviderLinks.Inlines.Count > 1)
-                ProviderLinks.Inlines.Add(new Run("   ·   ") { Foreground = Brushes.Gray });
-            var link = new Hyperlink(new Run(text)) { NavigateUri = new Uri(url), ToolTip = url };
-            link.RequestNavigate += Link_RequestNavigate;
-            ProviderLinks.Inlines.Add(link);
-        }
+        ShowProviderTexts(info);
         ServerBox.Text = config.Server;
         ApiKeyPanel.Visibility = info.NeedsKey ? Visibility.Visible : Visibility.Collapsed;
         if (info.KeyUrl != null)
@@ -1647,6 +1638,27 @@ public partial class MainWindow : Window
             KeyLink.NavigateUri = new Uri(info.KeyUrl);
             KeyLinkText.Text = info.KeyUrl.Replace("https://", "");
         }
+        ShowProviderRest(info, config);
+    }
+
+    // Beschreibung und Links des gezeigten Anbieters (auch nach einem Sprachwechsel)
+    private void ShowProviderTexts(ProviderInfo info)
+    {
+        ProviderHint.Text = L.T(info.Description);
+        ProviderLinks.Inlines.Clear();
+        ProviderLinks.Inlines.Add(new Run(L.T("Links:") + "  ") { FontWeight = FontWeights.SemiBold });
+        foreach (var (text, url) in info.Links)
+        {
+            if (ProviderLinks.Inlines.Count > 1)
+                ProviderLinks.Inlines.Add(new Run("   ·   ") { Foreground = Brushes.Gray });
+            var link = new Hyperlink(new Run(L.T(text))) { NavigateUri = new Uri(url), ToolTip = url };
+            link.RequestNavigate += Link_RequestNavigate;
+            ProviderLinks.Inlines.Add(link);
+        }
+    }
+
+    private void ShowProviderRest(ProviderInfo info, ProviderConfig config)
+    {
         ApiKeyReveal.IsChecked = false;   // Schlüssel beim Wechsel des Anbieters wieder verbergen
         ApiKeyBox.Password = config.ApiKey;
         RegionPanel.Visibility = info.Kind == ProviderKind.OpenRouter ? Visibility.Visible : Visibility.Collapsed;
@@ -1683,7 +1695,7 @@ public partial class MainWindow : Window
     {
         foreach (var row in ParamRows)
             row.Value = null;
-        SettingsStatus.Text = "Alle Feineinstellungen auf Standard – zum Übernehmen „Speichern“ klicken.";
+        SettingsStatus.Text = L.T("Alle Feineinstellungen auf Standard – zum Übernehmen „Speichern“ klicken.");
     }
 
     private void SaveSettings_Click(object sender, RoutedEventArgs e) => SaveSettings(activate: false);
@@ -1700,19 +1712,19 @@ public partial class MainWindow : Window
             server = (info.IsLocal ? "http://" : "https://") + server;
         if (!Uri.TryCreate(server, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
         {
-            SettingsStatus.Text = $"Die Server-Adresse ist ungültig. Standard für {info.Name}: {info.DefaultServer}";
+            SettingsStatus.Text = L.F("Die Server-Adresse ist ungültig. Standard für {0}: {1}", info.Name, info.DefaultServer);
             return;
         }
         var complete = (!info.NeedsKey || ApiKeyBox.Password.Trim().Length > 0) && ModelCombo.SelectedItem is ModelInfo;
         activate |= info.Kind == _settings.Provider || (!IsReady && complete);
         if (activate && info.NeedsKey && ApiKeyBox.Password.Trim().Length == 0)
         {
-            SettingsStatus.Text = $"Für {info.Name} wird ein API-Schlüssel benötigt.";
+            SettingsStatus.Text = L.F("Für {0} wird ein API-Schlüssel benötigt.", info.Name);
             return;
         }
         if (activate && ModelCombo.SelectedItem is not ModelInfo)
         {
-            SettingsStatus.Text = "Bitte ein Modell auswählen (ggf. erst „Liste aktualisieren“).";
+            SettingsStatus.Text = L.T("Bitte ein Modell auswählen (ggf. erst „Liste aktualisieren“).");
             return;
         }
 
@@ -1736,8 +1748,8 @@ public partial class MainWindow : Window
         UpdateModelUi();
         UpdateProviderRows();
         SettingsStatus.Text = activate
-            ? $"Gespeichert – im Chat aktiv: {info.Name}, {_settings.Current.Model} ({DateTime.Now:HH:mm:ss})."
-            : $"Gespeichert – {info.Name} ist eingerichtet, im Chat antwortet weiter {ActiveProvider.Name} ({DateTime.Now:HH:mm:ss}).";
+            ? L.F("Gespeichert – im Chat aktiv: {0}, {1} ({2:HH:mm:ss}).", info.Name, _settings.Current.Model, DateTime.Now)
+            : L.F("Gespeichert – {0} ist eingerichtet, im Chat antwortet weiter {1} ({2:HH:mm:ss}).", info.Name, ActiveProvider.Name, DateTime.Now);
     }
 
     private async void ReloadModels_Click(object sender, RoutedEventArgs e) => await LoadModelsAsync();
@@ -1751,13 +1763,13 @@ public partial class MainWindow : Window
         // Die OpenRouter-Modellliste ist öffentlich, alle anderen Online-Dienste brauchen dafür den Schlüssel
         if (info.NeedsKey && key.Length == 0 && info.Kind != ProviderKind.OpenRouter)
         {
-            SettingsStatus.Text = $"Für die Modellliste von {info.Name} bitte zuerst den API-Schlüssel eintragen.";
+            SettingsStatus.Text = L.F("Für die Modellliste von {0} bitte zuerst den API-Schlüssel eintragen.", info.Name);
             return;
         }
 
         var selected = ModelCombo.SelectedValue as string ?? _draft.Config(info.Kind).Model;
         var loadId = ++_modelLoadId;
-        SettingsStatus.Text = $"Lade Modelle von {info.Name} …";
+        SettingsStatus.Text = L.F("Lade Modelle von {0} …", info.Name);
         try
         {
             // Der Hoster-Filter prüft jedes Modell einzeln – das dauert beim ersten Mal etwas länger
@@ -1770,16 +1782,17 @@ public partial class MainWindow : Window
             foreach (var m in models)
                 _models.Add(m);
             _modelsLoadedFor = models.Count > 0 ? info.Kind : null;
-            var where = region.Length > 0 ? $" (nur {RegionOption.Name(region)})" : "";
-            SettingsStatus.Text = $"{models.Count} Modelle von {info.Name}{where} gefunden." +
+            SettingsStatus.Text = (region.Length > 0
+                    ? L.F("{0} Modelle von {1} (nur {2}) gefunden.", models.Count, info.Name, RegionOption.Name(region))
+                    : L.F("{0} Modelle von {1} gefunden.", models.Count, info.Name)) +
                 (selected.Length > 0 && models.All(m => m.Id != selected)
-                    ? $" „{selected}“ ist hier nicht verfügbar – bitte ein anderes Modell wählen."
+                    ? " " + L.F("„{0}“ ist hier nicht verfügbar – bitte ein anderes Modell wählen.", selected)
                     : "");
         }
         catch (Exception ex)
         {
             if (loadId != _modelLoadId) return;
-            SettingsStatus.Text = $"Modelle konnten nicht geladen werden: {ex.Message}";
+            SettingsStatus.Text = L.F("Modelle konnten nicht geladen werden: {0}", ex.Message);
             // Liste nicht ladbar: bisherige Auswahl trotzdem anzeigen
             var saved = _draft.Config(info.Kind);
             EnsureModelItem(selected, saved.Model == selected ? saved.ModelVision : null,
@@ -1833,8 +1846,8 @@ public partial class MainWindow : Window
         System.Windows.Data.CollectionViewSource.GetDefaultView(_models).Refresh();
         var filtered = ModelSearchBox.Text.Trim().Length > 0 || ModelFilterCombo.SelectedIndex > 0;
         ModelFilterInfo.Text = filtered
-            ? $"{_models.Count(MatchesModelSearch)} von {_models.Count} Modellen passen – Liste aufklappen zum Auswählen."
-            : _models.Count > 0 ? $"{_models.Count} Modelle" : "";
+            ? L.F("{0} von {1} Modellen passen – Liste aufklappen zum Auswählen.", _models.Count(MatchesModelSearch), _models.Count)
+            : _models.Count > 0 ? L.F("{0} Modelle", _models.Count) : "";
     }
 
     private void EnsureModelItem(string id, bool? vision, bool imageGen = false, bool? tools = null)
@@ -1852,17 +1865,17 @@ public partial class MainWindow : Window
         if (ProviderTitle != null) UpdateProviderRows();
         var visionHint = model?.Vision switch
         {
-            true => "🖼 Dieses Modell versteht Bilder.",
-            false => "Dieses Modell versteht nur Text.",
-            _ => model == null ? "" : "Ob das Modell Bilder versteht, meldet dieser Anbieter nicht – einfach ausprobieren."
+            true => "🖼 " + L.T("Dieses Modell versteht Bilder."),
+            false => L.T("Dieses Modell versteht nur Text."),
+            _ => model == null ? "" : L.T("Ob das Modell Bilder versteht, meldet dieser Anbieter nicht – einfach ausprobieren.")
         };
         ModelHint.Text = model?.ImageGen == true
-            ? "🎨 Dieses Modell erzeugt Bilder: Deine Nachricht ist die Bildbeschreibung. Ein angehängtes Bild (oder mit " +
-              "„Verlauf mitsenden“ das zuletzt erzeugte) dient als Vorlage zum Bearbeiten. Bilder kosten meist mehr als Text."
+            ? "🎨 " + L.T("Dieses Modell erzeugt Bilder: Deine Nachricht ist die Bildbeschreibung. Ein angehängtes Bild (oder mit " +
+                          "„Verlauf mitsenden“ das zuletzt erzeugte) dient als Vorlage zum Bearbeiten. Bilder kosten meist mehr als Text.")
             : visionHint + model?.Tools switch
             {
-                true => " 🔧 Kann Plugins nutzen.",
-                false => " Kann keine Plugins nutzen.",
+                true => " 🔧 " + L.T("Kann Plugins nutzen."),
+                false => " " + L.T("Kann keine Plugins nutzen."),
                 _ => ""
             };
     }
@@ -1873,8 +1886,8 @@ public partial class MainWindow : Window
         var model = _settings.Current.Model;
         var region = RegionOption.Name(_settings.Current.Region);
         var provider = ActiveProvider.Name + (region.Length > 0 ? $" ({region})" : "");
-        var modelText = model.Length > 0 ? model : "kein Modell gewählt";
-        var visionText = CurrentImageGen ? "erzeugt Bilder" : vision switch { true => "versteht Bilder", false => "nur Text", _ => "" };
+        var modelText = model.Length > 0 ? model : L.T("kein Modell gewählt");
+        var visionText = L.T(CurrentImageGen ? "erzeugt Bilder" : vision switch { true => "versteht Bilder", false => "nur Text", _ => "" });
 
         // Karte unten in der Seitenleiste
         ProviderInfoText.Text = provider;
@@ -1885,20 +1898,22 @@ public partial class MainWindow : Window
         TileProvider.Text = provider;
         TileModel.Text = modelText.Contains('/') ? modelText[(modelText.LastIndexOf('/') + 1)..] : modelText;
         TileModel.ToolTip = modelText;
-        TileModelHint.Text = "Aktives Modell" + (visionText.Length > 0 ? $" · {visionText}" : "");
+        TileModelHint.Text = L.T("Aktives Modell") + (visionText.Length > 0 ? $" · {visionText}" : "");
 
         EmptyStateHint.Text = CurrentImageGen
-            ? $"🎨 {modelText} über {provider} erzeugt Bilder: Beschreibe, was zu sehen sein soll. " +
-              "Mit einem angehängten Bild wird dieses bearbeitet."
-            : $"Du chattest mit {modelText} über {provider}." +
-              (vision == false ? " PDF-, Word- und Textdateien" : " Bilder sowie PDF-, Word- und Textdateien") +
-              " kannst du per „Datei“, Strg+V oder Hineinziehen anhängen. „/“ öffnet Vorlagen und Personas.";
+            ? "🎨 " + L.F("{0} über {1} erzeugt Bilder: Beschreibe, was zu sehen sein soll. Mit einem angehängten Bild wird dieses bearbeitet.",
+                modelText, provider)
+            : L.F("Du chattest mit {0} über {1}.", modelText, provider) + " " +
+              L.T(vision == false
+                  ? "PDF-, Word- und Textdateien kannst du per „Datei“, Strg+V oder Hineinziehen anhängen."
+                  : "Bilder sowie PDF-, Word- und Textdateien kannst du per „Datei“, Strg+V oder Hineinziehen anhängen.") + " " +
+              L.T("„/“ öffnet Vorlagen und Personas.");
         UpdateSetupState();
         // Dateien gehen immer; Bilder nur, wenn das Modell sie versteht (Bildmodelle: nur Bilder als Vorlage)
         ImageButton.IsEnabled = _cts == null && !(CurrentImageGen && vision == false);
-        ImageButton.ToolTip = CurrentImageGen ? "Bild als Vorlage anhängen (auch per Strg+V oder Hineinziehen)"
+        ImageButton.ToolTip = L.T(CurrentImageGen ? "Bild als Vorlage anhängen (auch per Strg+V oder Hineinziehen)"
             : vision == false ? "PDF-, Word- oder Textdatei anhängen – Bilder versteht dieses Modell nicht"
-            : "Bild, PDF-, Word- oder Textdatei anhängen (auch per Strg+V oder Hineinziehen)";
+            : "Bild, PDF-, Word- oder Textdatei anhängen (auch per Strg+V oder Hineinziehen)");
     }
 
     // ---------- Hilfe ----------

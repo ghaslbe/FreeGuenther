@@ -17,12 +17,12 @@ public partial class MainWindow
 
     private void ShowPlugins(bool loadCatalog = false)
     {
-        var model = _settings.Current.Model.Length > 0 ? _settings.Current.Model : "kein Modell";
+        var model = _settings.Current.Model.Length > 0 ? _settings.Current.Model : L.T("kein Modell");
         PluginModelInfo.Text = _settings.Current.ModelTools switch
         {
-            true => $"✓ Dein aktives Modell ({model}) kann Plugins nutzen.",
-            false => $"✗ Dein aktives Modell ({model}) kann keine Plugins nutzen – wähle in den Einstellungen ein Modell mit 🔧.",
-            _ => $"Ob dein aktives Modell ({model}) Plugins nutzen kann, meldet der Anbieter nicht – einfach ausprobieren."
+            true => L.F("✓ Dein aktives Modell ({0}) kann Plugins nutzen.", model),
+            false => L.F("✗ Dein aktives Modell ({0}) kann keine Plugins nutzen – wähle in den Einstellungen ein Modell mit 🔧.", model),
+            _ => L.F("Ob dein aktives Modell ({0}) Plugins nutzen kann, meldet der Anbieter nicht – einfach ausprobieren.", model)
         };
         PluginList.Children.Clear();
         foreach (var m in _plugins.Plugins)
@@ -42,10 +42,10 @@ public partial class MainWindow
         var head = new DockPanel();
         var toggle = new CheckBox
         {
-            Content = "Aktiv",
+            Content = L.T("Aktiv"),
             IsChecked = state.Enabled,
             VerticalAlignment = VerticalAlignment.Center,
-            ToolTip = "Plugin für das Modell freigeben"
+            ToolTip = L.T("Plugin für das Modell freigeben")
         };
         RoutedEventHandler onToggle = async (_, _) =>
         {
@@ -65,7 +65,7 @@ public partial class MainWindow
         head.Children.Add(toggle);
         var title = new TextBlock { Style = (Style)FindResource("Heading"), TextWrapping = TextWrapping.Wrap };
         title.Inlines.Add(new Run(m.Name));
-        title.Inlines.Add(new Run($"   {m.Version} · {m.TypeLabel}" + (m.IsBuiltIn ? " · mitgeliefert" : ""))
+        title.Inlines.Add(new Run($"   {m.Version} · {m.TypeLabel}" + (m.IsBuiltIn ? " · " + L.T("mitgeliefert") : ""))
         {
             FontSize = 12, FontWeight = FontWeights.Normal, Foreground = Brushes.Gray
         });
@@ -76,20 +76,20 @@ public partial class MainWindow
         var info = new TextBlock { Style = (Style)FindResource("Hint"), Margin = new Thickness(0, 6, 0, 0) };
         info.Inlines.Add(new Run(m.AccessSummary()));
         if (m.Type != "mcp")
-            info.Inlines.Add(new Run("   ·   Aktionen: " + string.Join(", ", m.Tools.Select(t => t.Name))));
+            info.Inlines.Add(new Run("   ·   " + L.T("Aktionen:") + " " + string.Join(", ", m.Tools.Select(t => t.Name))));
         if (_plugins.AskBeforeRun(m))
-            info.Inlines.Add(new Run("   ·   fragt vor jeder Aktion nach"));
+            info.Inlines.Add(new Run("   ·   " + L.T("fragt vor jeder Aktion nach")));
         if (m.Homepage is { } homepage && Uri.TryCreate(homepage, UriKind.Absolute, out _))
         {
             info.Inlines.Add(new Run("   ·   "));
-            info.Inlines.Add(MakeLink("Website", homepage));
+            info.Inlines.Add(MakeLink(L.T("Website"), homepage));
         }
         panel.Children.Add(info);
 
         // Knöpfe: Einstellungen auf/zu, Entfernen
         var buttons = new WrapPanel { Margin = new Thickness(0, 4, 0, 0) };
         var open = _openPluginSettings.Contains(m.Id);
-        var settingsButton = new Button { Content = open ? "Einstellungen ausblenden" : "⚙ Einstellungen", Padding = new Thickness(12, 4, 12, 4), Margin = new Thickness(0, 0, 8, 0) };
+        var settingsButton = new Button { Content = open ? L.T("Einstellungen ausblenden") : "⚙ " + L.T("Einstellungen"), Padding = new Thickness(12, 4, 12, 4), Margin = new Thickness(0, 0, 8, 0) };
         settingsButton.Click += (_, _) =>
         {
             if (!_openPluginSettings.Remove(m.Id)) _openPluginSettings.Add(m.Id);
@@ -100,13 +100,13 @@ public partial class MainWindow
         {
             var remove = new Button
             {
-                Content = m.IsBuiltIn ? "Update entfernen" : "Entfernen",
+                Content = L.T(m.IsBuiltIn ? "Update entfernen" : "Entfernen"),
                 Padding = new Thickness(12, 4, 12, 4),
-                ToolTip = m.IsBuiltIn ? "Zurück zur mitgelieferten Version" : "Plugin löschen (Einstellungen gehen verloren)"
+                ToolTip = L.T(m.IsBuiltIn ? "Zurück zur mitgelieferten Version" : "Plugin löschen (Einstellungen gehen verloren)")
             };
             remove.Click += async (_, _) =>
             {
-                if (MessageBox.Show(this, $"Plugin „{m.Name}“ entfernen?", "Plugin entfernen", MessageBoxButton.YesNo,
+                if (MessageBox.Show(this, L.F("Plugin „{0}“ entfernen?", m.Name), L.T("Plugin entfernen"), MessageBoxButton.YesNo,
                         MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
                 await _plugins.RemoveAsync(m);
                 ShowPlugins();
@@ -131,11 +131,11 @@ public partial class MainWindow
         {
             _plugins.SetValue(m, s, value);
             await _plugins.ResetAsync(m.Id);
-            status.Text = $"Gespeichert ({DateTime.Now:HH:mm:ss}).";
+            status.Text = L.F("Gespeichert ({0:HH:mm:ss}).", DateTime.Now);
         }
 
         if (m.Settings.Count == 0)
-            panel.Children.Add(new TextBlock { Style = (Style)FindResource("Hint"), Text = "Dieses Plugin hat keine eigenen Einstellungen." });
+            panel.Children.Add(new TextBlock { Style = (Style)FindResource("Hint"), Text = L.T("Dieses Plugin hat keine eigenen Einstellungen.") });
 
         foreach (var s in m.Settings)
         {
@@ -154,7 +154,7 @@ public partial class MainWindow
                 }
                 case "bool":
                 {
-                    var box = new CheckBox { Content = "Ein", IsChecked = value is "true" or "1" };
+                    var box = new CheckBox { Content = L.T("Ein"), IsChecked = value is "true" or "1" };
                     box.Checked += (_, _) => Changed(s, "true");
                     box.Unchecked += (_, _) => Changed(s, "false");
                     panel.Children.Add(box);
@@ -171,7 +171,7 @@ public partial class MainWindow
                 case "folder":
                 {
                     var row = new DockPanel();
-                    var pick = new Button { Content = "Ordner wählen …", Margin = new Thickness(8, 0, 0, 0), Padding = new Thickness(12, 4, 12, 4) };
+                    var pick = new Button { Content = L.T("Ordner wählen …"), Margin = new Thickness(8, 0, 0, 0), Padding = new Thickness(12, 4, 12, 4) };
                     DockPanel.SetDock(pick, Dock.Right);
                     var box = new TextBox { Text = value };
                     box.TextChanged += (_, _) => Changed(s, box.Text.Trim());
@@ -201,7 +201,7 @@ public partial class MainWindow
 
         var ask = new CheckBox
         {
-            Content = "Vor jeder Aktion dieses Plugins nachfragen",
+            Content = L.T("Vor jeder Aktion dieses Plugins nachfragen"),
             IsChecked = _plugins.AskBeforeRun(m),
             Margin = new Thickness(0, 14, 0, 0)
         };
@@ -209,7 +209,7 @@ public partial class MainWindow
         {
             state.AskBeforeRun = ask.IsChecked == true;
             _plugins.SaveStates();
-            status.Text = $"Gespeichert ({DateTime.Now:HH:mm:ss}).";
+            status.Text = L.F("Gespeichert ({0:HH:mm:ss}).", DateTime.Now);
         };
         ask.Checked += onAsk;
         ask.Unchecked += onAsk;
@@ -217,21 +217,21 @@ public partial class MainWindow
 
         if (m.Type == "mcp")
         {
-            var test = new Button { Content = "Verbindung testen", Margin = new Thickness(0, 10, 0, 0), Padding = new Thickness(12, 4, 12, 4), HorizontalAlignment = HorizontalAlignment.Left };
+            var test = new Button { Content = L.T("Verbindung testen"), Margin = new Thickness(0, 10, 0, 0), Padding = new Thickness(12, 4, 12, 4), HorizontalAlignment = HorizontalAlignment.Left };
             test.Click += async (_, _) =>
             {
-                status.Text = "Verbinde …";
+                status.Text = L.T("Verbinde …");
                 try
                 {
                     using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
                     var problems = new List<string>();
                     await _plugins.ResetAsync(m.Id);
                     var names = await _plugins.ToolNamesAsync(m, cts.Token);
-                    status.Text = $"✓ Verbunden – {names.Count} Aktionen: {string.Join(", ", names)}";
+                    status.Text = L.F("✓ Verbunden – {0} Aktionen: {1}", names.Count, string.Join(", ", names));
                 }
                 catch (Exception ex)
                 {
-                    status.Text = "✗ Keine Verbindung: " + ex.Message;
+                    status.Text = L.T("✗ Keine Verbindung:") + " " + ex.Message;
                 }
             };
             panel.Children.Add(test);
@@ -244,7 +244,7 @@ public partial class MainWindow
 
     private async Task LoadCatalogAsync()
     {
-        CatalogStatus.Text = "Lade Katalog …";
+        CatalogStatus.Text = L.T("Lade Katalog …");
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
@@ -253,7 +253,7 @@ public partial class MainWindow
         }
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or JsonException)
         {
-            CatalogStatus.Text = "Der Katalog ist gerade nicht erreichbar (keine Internetverbindung?). Import aus Datei geht trotzdem.";
+            CatalogStatus.Text = L.T("Der Katalog ist gerade nicht erreichbar (keine Internetverbindung?). Import aus Datei geht trotzdem.");
         }
         RenderCatalog();
     }
@@ -267,12 +267,12 @@ public partial class MainWindow
             var row = new DockPanel { Margin = new Thickness(0, 6, 0, 6) };
             var button = new Button { Padding = new Thickness(12, 4, 12, 4), Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, MinWidth = 120 };
             if (installed == null)
-                button.Content = "Installieren";
+                button.Content = L.T("Installieren");
             else if (PluginManager.CompareVersions(entry.Version, installed.Version) > 0)
-                button.Content = $"Aktualisieren ({entry.Version})";
+                button.Content = L.F("Aktualisieren ({0})", entry.Version);
             else
             {
-                button.Content = "✓ Installiert";
+                button.Content = "✓ " + L.T("Installiert");
                 button.IsEnabled = false;
             }
             button.Click += async (_, _) => await InstallPluginAsync(ct => PluginManager.DownloadAsync(entry.Url, ct));
@@ -280,7 +280,7 @@ public partial class MainWindow
             row.Children.Add(button);
             var text = new TextBlock { TextWrapping = TextWrapping.Wrap };
             text.Inlines.Add(new Run(entry.Name) { FontWeight = FontWeights.SemiBold });
-            text.Inlines.Add(new Run($"   {entry.Version} · {(entry.Type switch { "mcp" => "MCP", "builtin" => "eingebaut", _ => "Web" })}")
+            text.Inlines.Add(new Run($"   {entry.Version} · {(entry.Type switch { "mcp" => "MCP", "builtin" => L.T("eingebaut"), _ => "Web" })}")
             {
                 FontSize = 12, Foreground = Brushes.Gray
             });
@@ -295,7 +295,7 @@ public partial class MainWindow
 
     private async void ImportPluginFile_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog { Filter = "Plugin-Datei (*.json)|*.json", Title = "Plugin importieren" };
+        var dialog = new OpenFileDialog { Filter = L.T("Plugin-Datei") + " (*.json)|*.json", Title = L.T("Plugin importieren") };
         if (dialog.ShowDialog(this) == true)
             await InstallPluginAsync(_ => Task.FromResult(PluginManager.ReadFile(dialog.FileName)));
     }
@@ -305,7 +305,7 @@ public partial class MainWindow
         var url = PluginUrlBox.Text.Trim();
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != "https")
         {
-            CatalogStatus.Text = "Bitte eine vollständige https-Adresse einer Plugin-Datei eingeben.";
+            CatalogStatus.Text = L.T("Bitte eine vollständige https-Adresse einer Plugin-Datei eingeben.");
             return;
         }
         await InstallPluginAsync(ct => PluginManager.DownloadAsync(url, ct));
@@ -317,26 +317,26 @@ public partial class MainWindow
         PluginManifest m;
         try
         {
-            CatalogStatus.Text = "Lade Plugin …";
+            CatalogStatus.Text = L.T("Lade Plugin …");
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             m = await load(cts.Token);
             CatalogStatus.Text = "";
         }
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or JsonException or InvalidDataException or IOException)
         {
-            CatalogStatus.Text = "Das Plugin konnte nicht geladen werden: " + ex.Message;
+            CatalogStatus.Text = L.T("Das Plugin konnte nicht geladen werden:") + " " + ex.Message;
             return;
         }
 
         var warning = m.Type == "mcp"
-            ? "\n\n⚠ MCP-Plugin: Es verbindet sich mit einem MCP-Server bzw. startet ein Programm auf diesem Rechner. " +
-              "Was es darf, bestimmt dieser Server. Vor jeder Aktion wird nachgefragt."
+            ? "\n\n" + L.T("⚠ MCP-Plugin: Es verbindet sich mit einem MCP-Server bzw. startet ein Programm auf diesem Rechner. " +
+                           "Was es darf, bestimmt dieser Server. Vor jeder Aktion wird nachgefragt.")
             : "";
-        var tools = m.Type == "mcp" ? "" : "\nAktionen: " + string.Join(", ", m.Tools.Select(t => t.Name));
+        var tools = m.Type == "mcp" ? "" : "\n" + L.T("Aktionen:") + " " + string.Join(", ", m.Tools.Select(t => t.Name));
         if (MessageBox.Show(this,
-                $"Plugin „{m.Name}“ {m.Version} von {(m.Author.Length > 0 ? m.Author : "unbekannt")} installieren?\n\n{m.Description}\n\n" +
-                $"{m.AccessSummary()}{tools}{warning}\n\nNur installieren, wenn du der Quelle vertraust.",
-                "Plugin installieren", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+                L.F("Plugin „{0}“ {1} von {2} installieren?", m.Name, m.Version, m.Author.Length > 0 ? m.Author : L.T("unbekannt")) +
+                $"\n\n{m.Description}\n\n{m.AccessSummary()}{tools}{warning}\n\n" + L.T("Nur installieren, wenn du der Quelle vertraust."),
+                L.T("Plugin installieren"), MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
             return;
 
         await _plugins.InstallAsync(m);
@@ -344,7 +344,7 @@ public partial class MainWindow
         state.Enabled = true;
         _plugins.SaveStates();
         if (m.Settings.Count > 0) _openPluginSettings.Add(m.Id);
-        CatalogStatus.Text = $"✓ „{m.Name}“ installiert und eingeschaltet." + (m.Settings.Count > 0 ? " Bitte die Einstellungen prüfen." : "");
+        CatalogStatus.Text = L.F("✓ „{0}“ installiert und eingeschaltet.", m.Name) + (m.Settings.Count > 0 ? " " + L.T("Bitte die Einstellungen prüfen.") : "");
         ShowPlugins();
     }
 }

@@ -13,6 +13,7 @@ public partial class App : Application
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
         var store = new ChatStore(LmChat.MainWindow.DbPath);
+        L.Load(store.GetSetting("language"));   // "" bzw. nicht gesetzt = Sprache von Windows
         if (store.GetSetting("consent") == null)
         {
             if (new ConsentWindow().ShowDialog() != true)

@@ -39,7 +39,7 @@ public partial class MainWindow
         else
             _pendingPersona = copy;
         UpdatePersonaChip();
-        StatusText.Text = copy == null ? "Persona entfernt." : $"Persona „{copy.Name}“ gilt ab der nächsten Nachricht für diesen Chat.";
+        StatusText.Text = copy == null ? L.T("Persona entfernt.") : L.F("Persona „{0}“ gilt ab der nächsten Nachricht für diesen Chat.", copy.Name);
     }
 
     private void UpdatePersonaChip()
@@ -123,7 +123,7 @@ public partial class MainWindow
         {
             InputBox.Text = template.Text;
             InputBox.CaretIndex = InputBox.Text.Length;
-            StatusText.Text = $"Vorlage „{template.Name}“ eingefügt – jetzt deinen Text dazuschreiben.";
+            StatusText.Text = L.F("Vorlage „{0}“ eingefügt – jetzt deinen Text dazuschreiben.", template.Name);
         }
         InputBox.Focus();
     }
@@ -164,7 +164,7 @@ public partial class MainWindow
 
     private void NewTemplate_Click(object sender, RoutedEventArgs e)
     {
-        var t = new PromptTemplate { Name = "Neue Vorlage" };
+        var t = new PromptTemplate { Name = L.T("Neue Vorlage") };
         _draftTemplates.Add(t);
         TemplateList.SelectedItem = t;
         TemplateNameBox.Focus();

@@ -43,14 +43,14 @@ internal static class DocumentReader
         }
         catch (Exception ex) when (ex is not InvalidDataException)
         {
-            throw new InvalidDataException($"„{name}“ konnte nicht gelesen werden: {ex.Message}", ex);
+            throw new InvalidDataException(L.F("„{0}“ konnte nicht gelesen werden: {1}", name, ex.Message), ex);
         }
 
         text = text.Trim();
         if (text.Length == 0)
-            throw new InvalidDataException($"„{name}“ enthält keinen lesbaren Text (z. B. eine eingescannte PDF ohne Texterkennung).");
+            throw new InvalidDataException(L.F("„{0}“ enthält keinen lesbaren Text (z. B. eine eingescannte PDF ohne Texterkennung).", name));
         if (text.Length > MaxChars)
-            text = text[..MaxChars] + $"\n\n[… gekürzt – die Datei hat {text.Length:N0} Zeichen, mitgeschickt wurden die ersten {MaxChars:N0}.]";
+            text = text[..MaxChars] + "\n\n" + L.F("[… gekürzt – die Datei hat {0:N0} Zeichen, mitgeschickt wurden die ersten {1:N0}.]", text.Length, MaxChars);
         return new AttachedDocument(name, text);
     }
 
@@ -62,7 +62,7 @@ internal static class DocumentReader
         {
             var pageText = ContentOrderTextExtractor.GetText(page).Trim();
             if (pageText.Length == 0) continue;
-            sb.AppendLine($"[Seite {page.Number}]").AppendLine(pageText).AppendLine();
+            sb.AppendLine(L.F("[Seite {0}]", page.Number)).AppendLine(pageText).AppendLine();
         }
         return sb.ToString();
     }
@@ -72,7 +72,7 @@ internal static class DocumentReader
     {
         const string W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
         using var zip = ZipFile.OpenRead(path);
-        var entry = zip.GetEntry("word/document.xml") ?? throw new InvalidDataException("Keine gültige Word-Datei (.docx).");
+        var entry = zip.GetEntry("word/document.xml") ?? throw new InvalidDataException(L.T("Keine gültige Word-Datei (.docx)."));
         using var reader = XmlReader.Create(entry.Open(), new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit });
         var sb = new StringBuilder();
         reader.Read();
@@ -111,7 +111,7 @@ internal static class DocumentReader
             return sr.ReadToEnd();
         }
         if (Array.IndexOf(bytes, (byte)0) >= 0)
-            throw new InvalidDataException("Das ist keine Textdatei.");
+            throw new InvalidDataException(L.T("Das ist keine Textdatei."));
         try
         {
             return new UTF8Encoding(false, throwOnInvalidBytes: true).GetString(bytes);

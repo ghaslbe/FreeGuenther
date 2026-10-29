@@ -55,6 +55,7 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
 - **OpenRouter: Standort der Rechenzentren:** Die Modellliste zeigt nur Modelle, die in der gewählten Region laufen. Es gibt zwei Wege:
   - **Über Hoster-Auswahl (Europa, Deutschland oder USA, jeder Tarif):** Die App ermittelt pro Modell die Hoster-Endpunkte mit bekanntem Standort. Grundlage ist die Region in der Endpunkt-Kennung, z. B. `mistral/eu`, `amazon-bedrock/eu-central-1` oder `google-vertex/us`, ersatzweise die Rechenzentrums-Länder des Hosters. Beim Senden lässt die App per `provider.only` nur diese Endpunkte zu und schaltet Ausweichhoster ab (`allow_fallbacks: false`). Die Standortangaben stammen von OpenRouter und den Hostern und sind nicht garantiert; Endpunkte wie `…/global` gelten als unbekannt und werden ausgeschlossen. Stand Oktober 2026 meldet kein Endpunkt einen Standort in Deutschland, die DE-Liste ist deshalb leer.
   - **Garantiert (Europa oder USA, nur Business-Tarif):** Anfragen gehen über `eu.openrouter.ai` bzw. `us.openrouter.ai` ([In-Region-Routing](https://openrouter.ai/docs/guides/features/sovereign-ai)). Ohne Business-Tarif antwortet OpenRouter mit HTTP 403.
+- **Sprachen:** Deutsch, Englisch, Französisch, Spanisch und Italienisch. Standard ist die Sprache von Windows (sonst Englisch); umstellen geht in den Einstellungen ganz oben, ohne Neustart. Nicht übersetzt werden Plugins (Beschreibungen stammen aus der Plugin-Datei), eigene Vorlagen und der englische MIT-Lizenztext.
 - **Zustimmung beim ersten Start:** Vor dem ersten Start bestätigt man „Ich stimme zu, dass ich diese Anwendung auf meine eigene Verantwortung nutze“, indem man **JA** eintippt (Schreibweise egal). Jede andere Eingabe oder „Beenden“ schließt die App. Die Zustimmung wird in der Datenbank gespeichert (`settings` → `consent`), danach kommt der Dialog nicht mehr.
 - **Geführte Einrichtung:** Ist noch kein Modell eingerichtet, zeigt die Chat-Seite eine Willkommensseite. Dort wählst du „lokal“ (LM Studio, Ollama: kostenlos, kein Schlüssel) oder „online“ (OpenRouter empfohlen, OpenAI, Anthropic: mit API-Schlüssel und Ausgabenlimit). In den Einstellungen folgt eine Anleitung in 4 Schritten, die abhakt, was schon erledigt ist:
   1. Anbieter wählen
@@ -268,6 +269,9 @@ $env:FREEGUENTHER_DB = "$env:TEMP\freeguenther-test.db"; .\LmChat\publish\FreeGu
 | `LmChat/MainWindow.xaml` | Oberfläche: Chat, Einstellungen, Hilfe |
 | `LmChat/MainWindow.xaml.cs` | Logik: Chat, Bilder, Chatliste, Einstellungsseite |
 | `LmChat/MainWindow.Plugins.cs` | Plugin-Seite: Liste, Einstellungen je Plugin, Katalog, Import |
+| `LmChat/L.cs` | Mehrsprachigkeit: `L.T("deutscher Text")`, `L.F("… {0} …", wert)` und Laden der Sprache |
+| `LmChat/Lang/*.json` | Übersetzungen (`de.json` = Oberflächentexte `ui.…`, die anderen zusätzlich die Texte aus dem Code mit dem deutschen Text als Schlüssel) |
+| `LmChat/MainWindow.Language.cs` | Sprachauswahl und Neubeschriften nach einem Wechsel |
 | `LmChat/MainWindow.Compare.cs` | Seite „Modelle vergleichen“ |
 | `LmChat/MainWindow.Budget.cs` | Kostenbremse und Kostenberechnung (auch für die Verbrauchsseite) |
 | `LmChat/MainWindow.Templates.cs` | Vorlagen und Personas: Auswahl mit „/“, Verwaltung in den Einstellungen |

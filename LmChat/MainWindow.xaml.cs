@@ -63,7 +63,7 @@ public partial class MainWindow : Window
             c.Title.Contains(ChatSearchBox.Text.Trim(), StringComparison.CurrentCultureIgnoreCase);
         _chats.CollectionChanged += (_, _) => UpdateTiles();
         ChatList.ItemsSource = _chats;
-        ProviderCombo.ItemsSource = ProviderInfo.All;
+        ProviderList.ItemsSource = _providerRows;
         RegionCombo.ItemsSource = RegionOption.All;
         ModelCombo.ItemsSource = _models;
         System.Windows.Data.CollectionViewSource.GetDefaultView(_models).Filter = ModelMatchesFilter;
@@ -213,7 +213,7 @@ public partial class MainWindow : Window
     private void SetupProvider_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement { Tag: string tag } || !Enum.TryParse<ProviderKind>(tag, out var kind)) return;
-        ProviderCombo.SelectedItem = ProviderInfo.Get(kind);
+        SelectProviderRow(kind);
         NavSettings.IsChecked = true;
         SettingsScroll.ScrollToTop();
     }
@@ -225,7 +225,11 @@ public partial class MainWindow : Window
         NavChat.IsChecked = true;
     }
 
-    private void ApiKeyBox_PasswordChanged(object sender, RoutedEventArgs e) => UpdateSetupGuide();
+    private void ApiKeyBox_PasswordChanged(object sender, RoutedEventArgs e)
+    {
+        UpdateSetupGuide();
+        UpdateProviderRows();
+    }
 
     // Schritt-für-Schritt-Karte oben in den Einstellungen: zeigt, was schon erledigt ist und was als Nächstes kommt
     private void UpdateSetupGuide()
@@ -1502,13 +1506,53 @@ public partial class MainWindow : Window
         _maxTokensRow.Value = _draft.MaxTokens;
         _repeatPenaltyRow.Value = _draft.RepeatPenalty;
         _shownProvider = null;
-        ProviderCombo.SelectedItem = ProviderInfo.Get(_draft.Provider);
+        SelectProviderRow(_draft.Provider);
         UpdateModelUi();
     }
 
-    private void ProviderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    // Eine Zeile der Anbieterliste: Name, ob er im Chat aktiv ist, und kurz sein Stand (Schlüssel bzw. Adresse, Modell)
+    public sealed class ProviderRow(ProviderInfo info) : System.ComponentModel.INotifyPropertyChanged
     {
-        if (ProviderCombo.SelectedItem is not ProviderInfo info) return;
+        private string _status = "", _activeMark = "";
+        public ProviderInfo Info { get; } = info;
+        public string Status { get => _status; set { _status = value; Changed(nameof(Status)); } }
+        public string ActiveMark { get => _activeMark; set { _activeMark = value; Changed(nameof(ActiveMark)); } }
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        private void Changed(string name) => PropertyChanged?.Invoke(this, new(name));
+    }
+
+    private readonly List<ProviderRow> _providerRows = ProviderInfo.All.Select(p => new ProviderRow(p)).ToList();
+
+    private void SelectProviderRow(ProviderKind kind) =>
+        ProviderList.SelectedItem = _providerRows.First(r => r.Info.Kind == kind);
+
+    // Für den gerade gezeigten Anbieter zählen die Eingabefelder, für alle anderen der Entwurf
+    private void UpdateProviderRows()
+    {
+        foreach (var row in _providerRows)
+        {
+            var kind = row.Info.Kind;
+            var config = _draft.Config(kind);
+            var shown = kind == _shownProvider;
+            var key = shown ? ApiKeyBox.Password.Trim() : config.ApiKey;
+            var server = shown ? ServerBox.Text.Trim() : config.Server;
+            var model = shown ? ModelCombo.SelectedValue as string ?? config.Model : config.Model;
+            var where = row.Info.NeedsKey ? (key.Length > 0 ? "Schlüssel ✓" : "kein Schlüssel")
+                : server.Replace("http://", "").Replace("https://", "");
+            row.Status = $"{where} · {(model.Length > 0 ? model : "kein Modell")}";
+            row.ActiveMark = kind == _settings.Provider ? "  ● im Chat" : "";
+        }
+        var info = ShownProvider;
+        var active = info.Kind == _settings.Provider;
+        ProviderTitle.Text = info.Name;
+        ModelHeading.Text = $"Modell – {info.Name}";
+        UseProviderButton.Visibility = active ? Visibility.Collapsed : Visibility.Visible;
+        ProviderActiveNote.Text = active ? "● Wird gerade im Chat verwendet." : $"Im Chat antwortet gerade {ActiveProvider.Name}.";
+    }
+
+    private void ProviderList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ProviderList.SelectedItem is not ProviderRow { Info: var info }) return;
         // Eingaben des bisher gezeigten Anbieters im Entwurf merken, bevor gewechselt wird
         if (_shownProvider is { } previous)
             StoreProviderFields(previous);
@@ -1569,6 +1613,7 @@ public partial class MainWindow : Window
         EnsureModelItem(config.Model, config.ModelVision, config.ModelImageGen, config.ModelTools);
         ModelCombo.SelectedValue = config.Model;
         UpdateSetupGuide();
+        UpdateProviderRows();
         _ = LoadModelsAsync();
     }
 
@@ -1589,7 +1634,13 @@ public partial class MainWindow : Window
         SettingsStatus.Text = "Alle Feineinstellungen auf Standard – zum Übernehmen „Speichern“ klicken.";
     }
 
-    private void SaveSettings_Click(object sender, RoutedEventArgs e)
+    private void SaveSettings_Click(object sender, RoutedEventArgs e) => SaveSettings(activate: false);
+
+    private void UseProvider_Click(object sender, RoutedEventArgs e) => SaveSettings(activate: true);
+
+    // Speichert alle Einstellungen. Der Chat-Anbieter wechselt nur mit activate („Im Chat verwenden“) –
+    // oder beim ersten Einrichten, sobald der gezeigte Anbieter vollständig ist (Schlüssel und Modell)
+    private void SaveSettings(bool activate)
     {
         var info = ShownProvider;
         var server = ServerBox.Text.Trim().TrimEnd('/');
@@ -1600,12 +1651,14 @@ public partial class MainWindow : Window
             SettingsStatus.Text = $"Die Server-Adresse ist ungültig. Standard für {info.Name}: {info.DefaultServer}";
             return;
         }
-        if (info.NeedsKey && ApiKeyBox.Password.Trim().Length == 0)
+        var complete = (!info.NeedsKey || ApiKeyBox.Password.Trim().Length > 0) && ModelCombo.SelectedItem is ModelInfo;
+        activate |= info.Kind == _settings.Provider || (!IsReady && complete);
+        if (activate && info.NeedsKey && ApiKeyBox.Password.Trim().Length == 0)
         {
             SettingsStatus.Text = $"Für {info.Name} wird ein API-Schlüssel benötigt.";
             return;
         }
-        if (ModelCombo.SelectedItem is not ModelInfo)
+        if (activate && ModelCombo.SelectedItem is not ModelInfo)
         {
             SettingsStatus.Text = "Bitte ein Modell auswählen (ggf. erst „Liste aktualisieren“).";
             return;
@@ -1613,7 +1666,8 @@ public partial class MainWindow : Window
 
         ServerBox.Text = server;
         StoreProviderFields(info.Kind);
-        _draft.Provider = info.Kind;
+        if (activate)
+            _draft.Provider = info.Kind;
         _draft.SystemPrompt = SystemPromptBox.Text.Trim();
         _draft.AutoTitle = AutoTitleCheck.IsChecked == true;
         StoreTemplates();
@@ -1627,7 +1681,10 @@ public partial class MainWindow : Window
         _settings = _draft.Clone();
         _setupJustFinished |= !wasReady && IsReady;
         UpdateModelUi();
-        SettingsStatus.Text = $"Gespeichert – aktiv: {info.Name}, {_settings.Current.Model} ({DateTime.Now:HH:mm:ss}).";
+        UpdateProviderRows();
+        SettingsStatus.Text = activate
+            ? $"Gespeichert – im Chat aktiv: {info.Name}, {_settings.Current.Model} ({DateTime.Now:HH:mm:ss})."
+            : $"Gespeichert – {info.Name} ist eingerichtet, im Chat antwortet weiter {ActiveProvider.Name} ({DateTime.Now:HH:mm:ss}).";
     }
 
     private async void ReloadModels_Click(object sender, RoutedEventArgs e) => await LoadModelsAsync();
@@ -1739,6 +1796,7 @@ public partial class MainWindow : Window
         if (model != null)
             _selectedModelId = model.Id;
         UpdateSetupGuide();
+        if (ProviderTitle != null) UpdateProviderRows();
         var visionHint = model?.Vision switch
         {
             true => "🖼 Dieses Modell versteht Bilder.",

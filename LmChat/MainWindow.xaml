@@ -581,10 +581,39 @@
                                     <TextBlock Style="{StaticResource Hint}">
                                         Lokal auf deinem Rechner bzw. im Netzwerk (LM Studio, Ollama) oder bei einem Online-Dienst
                                         (OpenAI, Anthropic, OpenRouter). Jeder Anbieter merkt sich seine eigene Adresse, seinen Schlüssel
-                                        und sein Modell.
+                                        und sein Modell. Links anklicken zum Ansehen und Ändern – „Speichern“ ändert nicht, welcher Anbieter
+                                        im Chat antwortet; dafür gibt es „Im Chat verwenden“.
                                     </TextBlock>
-                                    <ComboBox x:Name="ProviderCombo" DisplayMemberPath="Label"
-                                              SelectionChanged="ProviderCombo_SelectionChanged"/>
+                                    <Grid Margin="0,6,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="230"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ListBox x:Name="ProviderList" VerticalAlignment="Top" SelectionChanged="ProviderList_SelectionChanged"
+                                                 AutomationProperties.Name="Anbieter">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Margin="2,3">
+                                                        <TextBlock>
+                                                            <Run Text="{Binding Info.Name, Mode=OneWay}" FontWeight="SemiBold"/>
+                                                            <Run Text="{Binding ActiveMark, Mode=OneWay}"
+                                                                 Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+                                                        </TextBlock>
+                                                        <TextBlock Text="{Binding Status}" FontSize="12" TextTrimming="CharacterEllipsis"
+                                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                        <StackPanel Grid.Column="1" Margin="18,0,0,0">
+                                    <DockPanel>
+                                        <Button x:Name="UseProviderButton" DockPanel.Dock="Right" Content="Im Chat verwenden" Padding="14,5"
+                                                Style="{StaticResource AccentButtonStyle}" Click="UseProvider_Click"
+                                                ToolTip="Speichern und diesen Anbieter mit seinem Modell für den Chat verwenden"/>
+                                        <TextBlock x:Name="ProviderTitle" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                    <TextBlock x:Name="ProviderActiveNote" FontSize="12.5" Margin="0,2,0,0"
+                                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
                                     <TextBlock x:Name="ProviderHint" Style="{StaticResource Hint}" Margin="0,8,0,4"/>
                                     <TextBlock x:Name="ProviderLinks" TextWrapping="Wrap"/>
 
@@ -637,13 +666,15 @@
                                         <ComboBox x:Name="RegionCombo" DisplayMemberPath="Label" SelectedValuePath="Code"
                                                   SelectionChanged="RegionCombo_SelectionChanged"/>
                                     </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
                                 </StackPanel>
                             </Border>
 
-                            <!-- Karte: Modell -->
+                            <!-- Karte: Modell (des links ausgewählten Anbieters) -->
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource Heading}" Text="Modell"/>
+                                    <TextBlock x:Name="ModelHeading" Style="{StaticResource Heading}" Text="Modell"/>
                                     <TextBlock Style="{StaticResource Hint}">
                                         Die Liste kommt direkt vom Anbieter („Liste aktualisieren“, nachdem Adresse und ggf. Schlüssel stimmen).
                                         <Run FontWeight="SemiBold" Text="🖼"/> = versteht Bilder,
@@ -763,6 +794,7 @@
 
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                                 <Button Content="Speichern" MinWidth="130" Padding="0,8" Click="SaveSettings_Click"
+                                        ToolTip="Alle Einstellungen speichern – der Anbieter im Chat bleibt, wie er ist"
                                         Style="{StaticResource AccentButtonStyle}"/>
                                 <Button Content="Alles auf Standard" Margin="8,0,0,0" Click="ResetParams_Click"/>
                                 <TextBlock x:Name="SettingsStatus" Margin="14,0,0,0" MaxWidth="520"

@@ -115,6 +115,8 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
 
   Große Bilder werden automatisch auf maximal 2048 px verkleinert. Im Chat erscheint eine Vorschau, ein Klick darauf öffnet das Bild in voller Größe.
 - **Einstellungen (eigene Seite):**
+  - Links die Liste aller Anbieter mit ihrem Stand, z. B. „Schlüssel ✓ · openrouter/auto“ oder „kein Schlüssel“; „● im Chat“ markiert den Anbieter, der gerade antwortet. Ein Klick zeigt rechts dessen Einstellungen.
+  - „Speichern“ speichert, ohne den Anbieter im Chat zu wechseln. So lässt sich z. B. ein OpenRouter-Schlüssel hinterlegen, während weiter LM Studio antwortet. Umschalten geht mit „Im Chat verwenden“. Ausnahme beim ersten Einrichten: Ist noch nichts fertig, wird der erste vollständige Anbieter automatisch verwendet.
   - Server-Adresse (wird beim Speichern geprüft)
   - Modell per Dropdown, direkt vom Anbieter geladen. 🎨 = erzeugt Bilder, 🖼 = versteht Bilder, ● = gerade geladen.
   - Darüber ein **Filter**: ein Suchfeld (alle Wörter müssen im Namen vorkommen, z. B. „gemini flash“) und eine Auswahl „Alle Modelle“, „Erzeugt Bilder“, „Versteht Bilder“ oder „Gerade geladen“. Daneben steht, wie viele Modelle passen.

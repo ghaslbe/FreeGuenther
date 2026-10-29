@@ -97,6 +97,7 @@ public partial class MainWindow
         if (_shownProvider == info.Kind)
             ApiKeyBox.Password = key;
         _settings.Save(_store);
+        UpdateProviderRows();
         side.KeyBox.Clear();
         CompareStatus.Text = $"API-Schlüssel für {info.Name} gespeichert.";
         foreach (var other in new[] { _left, _right })

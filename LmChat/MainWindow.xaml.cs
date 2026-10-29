@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _cts;
     private bool _suppressSelection;
     private bool _followStream = true;   // false, sobald man während einer Antwort hochscrollt
+    private bool _checkingBudget;         // Kostenbremse wird gerade geprüft – kein zweites Senden
 
     public MainWindow()
     {
@@ -88,9 +89,15 @@ public partial class MainWindow : Window
     private void Nav_Checked(object sender, RoutedEventArgs e)
     {
         if (MainTabs == null) return;
-        MainTabs.SelectedIndex = sender == NavSettings ? 1 : sender == NavUsage ? 2 : sender == NavPlugins ? 3 : sender == NavHelp ? 4 : 0;
+        MainTabs.SelectedIndex = sender == NavSettings ? 1 : sender == NavUsage ? 2 : sender == NavPlugins ? 3 : sender == NavHelp ? 4
+            : sender == NavCompare ? 5 : 0;
         if (sender == NavChat) InputBox.Focus();
-        if (sender == NavUsage) _ = ShowUsageAsync();
+        if (sender == NavCompare) ShowCompare();
+        if (sender == NavUsage)
+        {
+            _ = ShowUsageAsync();
+            _ = ShowBudgetAsync();
+        }
         if (sender == NavPlugins) ShowPlugins(loadCatalog: _catalog == null);
     }
 
@@ -115,55 +122,27 @@ public partial class MainWindow : Window
             _ => null
         };
         var rows = _store.UsageByModel(since);
-
-        // Listenpreise für OpenAI/Anthropic nur laden, wenn sie gebraucht werden
-        var priceNote = "";
-        if (rows.Any(r => !ProviderInfo.Get(r.Provider).IsLocal && r.CostCount < r.Requests))
-        {
-            try
-            {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-                await PriceEstimate.LoadAsync(cts.Token);
-            }
-            catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or OperationCanceledException or System.Text.Json.JsonException)
-            {
-                priceNote = "Preisliste nicht erreichbar – Kosten ohne Angabe des Anbieters sind unbekannt.";
-            }
-        }
+        var priceNote = await EnsurePricesAsync(rows, TimeSpan.FromSeconds(20))
+            ? "" : "Preisliste nicht erreichbar – Kosten ohne Angabe des Anbieters sind unbekannt.";
 
         double total = 0;
         var anyEstimate = false;
         var anyUnknown = false;
         var lines = rows.Select(r =>
         {
-            var info = ProviderInfo.Get(r.Provider);
-            string cost;
-            if (info.IsLocal)
-                cost = "0 $ (lokal)";
-            else if (r.CostCount == r.Requests)
+            var (amount, kind) = CostOf(r);
+            total += amount;
+            anyEstimate |= kind == CostKind.Estimated;
+            anyUnknown |= kind is CostKind.Partial or CostKind.Unknown;
+            var cost = kind switch
             {
-                total += r.Cost;
-                cost = FormatDollar(r.Cost) + " gemeldet";
-            }
-            // Ganz oder teilweise ohne gemeldete Kosten: alles nach Listenpreis schätzen
-            else if (PriceEstimate.Estimate(r.Provider, r.Model, r.InputTokens, r.OutputTokens) is { } estimate)
-            {
-                total += estimate;
-                anyEstimate = true;
-                cost = "≈ " + FormatDollar(estimate) + " geschätzt";
-            }
-            else if (r.CostCount > 0)
-            {
-                total += r.Cost;
-                anyUnknown = true;
-                cost = "mind. " + FormatDollar(r.Cost);
-            }
-            else
-            {
-                anyUnknown = true;
-                cost = "unbekannt";
-            }
-            return new UsageLine(info.Name, r.Model, r.Requests.ToString("N0"), r.InputTokens.ToString("N0"),
+                CostKind.Local => "0 $ (lokal)",
+                CostKind.Reported => FormatDollar(amount) + " gemeldet",
+                CostKind.Estimated => "≈ " + FormatDollar(amount) + " geschätzt",
+                CostKind.Partial => "mind. " + FormatDollar(amount),
+                _ => "unbekannt"
+            };
+            return new UsageLine(ProviderInfo.Get(r.Provider).Name, r.Model, r.Requests.ToString("N0"), r.InputTokens.ToString("N0"),
                 r.OutputTokens.ToString("N0"), cost);
         }).ToList();
 
@@ -337,7 +316,9 @@ public partial class MainWindow : Window
 
     private void InputBox_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter && Keyboard.Modifiers != ModifierKeys.Shift)
+        if (HandleTemplateKeys(e))
+            e.Handled = true;
+        else if (e.Key == Key.Enter && Keyboard.Modifiers != ModifierKeys.Shift)
         {
             e.Handled = true;
             Send_Click(sender, e);
@@ -352,7 +333,8 @@ public partial class MainWindow : Window
     {
         var text = InputBox.Text.Trim();
         var image = _pendingImage;
-        if ((text.Length == 0 && image == null) || _cts != null) return;
+        var documents = _pendingDocuments.ToList();
+        if ((text.Length == 0 && image == null && documents.Count == 0) || _cts != null || _checkingBudget) return;
 
         var provider = ActiveProvider;
         var config = _settings.Current;
@@ -377,28 +359,44 @@ public partial class MainWindow : Window
             StatusText.Text = "Beschreibe in Worten, welches Bild erzeugt bzw. wie das Bild verändert werden soll.";
             return;
         }
+        if (imageMode && documents.Count > 0)
+        {
+            StatusText.Text = "Bildmodelle können keine Dateien lesen – Datei entfernen oder ein Text-Modell wählen.";
+            return;
+        }
+
+        _checkingBudget = true;
+        var (allowed, budgetWarning) = await CheckBudgetAsync([provider]);
+        _checkingBudget = false;
+        if (!allowed)
+        {
+            StatusText.Text = "Nicht gesendet – die Kostenbremse ist erreicht (siehe „Verbrauch“).";
+            return;
+        }
 
         var newChat = _currentChat == null;
         if (_currentChat == null)
         {
-            _currentChat = _store.CreateChat(MakeTitle(text));
+            var title = MakeTitle(text.Length == 0 && documents.Count > 0 ? documents[0].Name : text);
+            _currentChat = _store.CreateChat(title, _pendingPersona);
             _chats.Insert(0, _currentChat);
             SelectChatSilently(_currentChat);
         }
         var chat = _currentChat;
 
-        var userMsg = new ChatMessage("user", text, image);
+        var userMsg = new ChatMessage("user", text, image) { Documents = documents.Count > 0 ? documents : null };
         userMsg = userMsg with { Id = _store.AddMessage(chat.Id, userMsg) };
         _messages.Add(userMsg);
         InputBox.Clear();
         ClearImage();
+        ClearDocuments();
         _followStream = true;
         AddMessageBlock(userMsg);
         var answerView = AddMessageBlock(new ChatMessage("assistant", ""), streaming: true);
 
         List<ChatMessage> toSend = HistoryCheck.IsChecked == true ? _messages.ToList() : [userMsg];
         var request = new ChatRequest(provider, config.Server, config.Region, config.ApiKey, config.Model,
-            _settings.SystemPrompt, _settings, toSend);
+            SystemPromptFor(chat.Persona), _settings, toSend);
 
         _cts = new CancellationTokenSource();
         SetBusy(true);
@@ -577,6 +575,8 @@ public partial class MainWindow : Window
                 _messages.Remove(userMsg);
                 InputBox.Text = text;
                 if (image != null) SetImage(image);
+                foreach (var document in documents)
+                    AddDocument(document);
             }
             if (_followStream) ChatBox.ScrollToEnd();
 
@@ -586,6 +586,7 @@ public partial class MainWindow : Window
                 _store.DeleteChat(chat.Id);
                 _chats.Remove(chat);
                 _currentChat = null;
+                _pendingPersona = chat.Persona;
             }
             else
             {
@@ -600,7 +601,10 @@ public partial class MainWindow : Window
             _cts = null;
             SetBusy(false);
             UpdateEmptyState();
+            UpdatePersonaChip();
             InputBox.Focus();
+            if (success && budgetWarning != null)
+                StatusText.Text = "Fertig. " + budgetWarning;
 
             // Erste Antwort in einem neuen Chat: Titel vom Modell vorschlagen lassen (läuft im Hintergrund)
             if (success && answer.Length > 0 && !imageMode && _settings.AutoTitle && _messages.Count == 2 && _currentChat is { } titled)
@@ -738,6 +742,7 @@ public partial class MainWindow : Window
         _messages.AddRange(_store.LoadMessages(chat.Id));
         RenderChat();
         UpdateEmptyState();
+        UpdatePersonaChip();
         NavChat.IsChecked = true;
         InputBox.Focus();
     }
@@ -745,10 +750,12 @@ public partial class MainWindow : Window
     private void NewChat_Click(object sender, RoutedEventArgs e)
     {
         _currentChat = null;
+        _pendingPersona = null;
         _messages.Clear();
         ChatBox.Document.Blocks.Clear();
         SelectChatSilently(null);
         UpdateEmptyState();
+        UpdatePersonaChip();
         NavChat.IsChecked = true;
         StatusText.Text = "Neuer Chat.";
         InputBox.Focus();
@@ -865,8 +872,7 @@ public partial class MainWindow : Window
         TruncateFrom(index);
         InputBox.Text = message.Content;
         InputBox.CaretIndex = InputBox.Text.Length;
-        ClearImage();
-        if (message.Image != null) SetImage(message.Image);
+        RestoreAttachments(message);
         StatusText.Text = "Nachricht bearbeiten und mit Enter neu senden.";
         InputBox.Focus();
     }
@@ -886,9 +892,18 @@ public partial class MainWindow : Window
         var question = _messages[index - 1];
         TruncateFrom(index - 1);
         InputBox.Text = question.Content;
-        ClearImage();
-        if (question.Image != null) SetImage(question.Image);
+        RestoreAttachments(question);
         Send_Click(this, new RoutedEventArgs());
+    }
+
+    // Bild und Dateien einer Nachricht wieder ans Eingabefeld hängen
+    private void RestoreAttachments(ChatMessage message)
+    {
+        ClearImage();
+        ClearDocuments();
+        if (message.Image != null) SetImage(message.Image);
+        foreach (var document in message.Documents ?? [])
+            AddDocument(document);
     }
 
     private bool ConfirmTruncate(int later) =>
@@ -941,6 +956,8 @@ public partial class MainWindow : Window
             sb.AppendLine(m.Role == "user" ? "### Du" : $"### {m.Stats?.Model ?? "Antwort"}").AppendLine();
             if (m.Image != null)
                 sb.AppendLine($"![Bild](data:image/png;base64,{Convert.ToBase64String(m.Image)})").AppendLine();
+            foreach (var d in m.Documents ?? [])
+                sb.AppendLine($"📄 *Angehängt: {d.Name}*").AppendLine();
             if (m.Content.Length > 0)
                 sb.AppendLine(m.Content.TrimEnd()).AppendLine();
             if (m.Stats != null)
@@ -974,8 +991,9 @@ public partial class MainWindow : Window
         foreach (var m in _messages)
         {
             var img = m.Image != null ? $"<p><img src=\"data:image/png;base64,{Convert.ToBase64String(m.Image)}\" alt=\"Bild\"></p>" : "";
+            var docs = string.Concat((m.Documents ?? []).Select(d => $"<div class=\"meta\">📄 Angehängt: {Enc(d.Name)}</div>"));
             if (m.Role == "user")
-                sb.AppendLine($"<div class=\"user\">{img}{Enc(m.Content)}</div>");
+                sb.AppendLine($"<div class=\"user\">{img}{docs}{Enc(m.Content)}</div>");
             else
             {
                 sb.AppendLine("<div class=\"answer\">");
@@ -1005,6 +1023,8 @@ public partial class MainWindow : Window
             var content = new StackPanel();
             if (m.Image != null)
                 content.Children.Add(MakeThumbnail(m.Image));
+            if (m.Documents is { Count: > 0 } documents)
+                content.Children.Add(DocumentList(documents));
             if (m.Content.Length > 0)
                 content.Children.Add(new TextBox
                 {
@@ -1015,7 +1035,7 @@ public partial class MainWindow : Window
                     Background = Brushes.Transparent,
                     Padding = new Thickness(0),
                     FontSize = 15,
-                    Margin = new Thickness(0, m.Image != null ? 8 : 0, 0, 0),
+                    Margin = new Thickness(0, m.Image != null || m.Documents is { Count: > 0 } ? 8 : 0, 0, 0),
                     Cursor = Cursors.IBeam
                 });
             var bubble = new Border
@@ -1325,13 +1345,16 @@ public partial class MainWindow : Window
 
     private void ImageButton_Click(object sender, RoutedEventArgs e)
     {
+        var images = string.Join(";", ImageExtensions.Select(x => "*" + x));
+        var documents = string.Join(";", DocumentReader.Extensions.Select(x => "*" + x));
         var dialog = new OpenFileDialog
         {
-            Title = "Bild anhängen",
-            Filter = "Bilder|" + string.Join(";", ImageExtensions.Select(x => "*" + x))
+            Title = "Datei anhängen",
+            Filter = $"Bilder und Dokumente|{images};{documents}|Bilder|{images}|PDF, Word und Text|{documents}",
+            Multiselect = true
         };
         if (dialog.ShowDialog(this) == true)
-            AttachImageFile(dialog.FileName);
+            AttachFiles(dialog.FileNames);
     }
 
     private void RemoveImage_Click(object sender, RoutedEventArgs e) => ClearImage();
@@ -1346,8 +1369,7 @@ public partial class MainWindow : Window
     private void Window_PreviewDrop(object sender, DragEventArgs e)
     {
         if (e.Data.GetData(DataFormats.FileDrop) is not string[] files) return;
-        var file = files.FirstOrDefault(IsImageFile);
-        if (file != null) AttachImageFile(file);
+        AttachFiles(files);
         e.Handled = true;
     }
 
@@ -1355,9 +1377,9 @@ public partial class MainWindow : Window
     {
         if (Clipboard.ContainsFileDropList())
         {
-            var file = Clipboard.GetFileDropList().Cast<string>().FirstOrDefault(IsImageFile);
-            if (file == null) return false;
-            AttachImageFile(file);
+            var files = Clipboard.GetFileDropList().Cast<string>().Where(f => IsImageFile(f) || DocumentReader.IsSupported(f)).ToList();
+            if (files.Count == 0) return false;
+            AttachFiles(files);
             return true;
         }
 
@@ -1473,6 +1495,7 @@ public partial class MainWindow : Window
     {
         SystemPromptBox.Text = _draft.SystemPrompt;
         AutoTitleCheck.IsChecked = _draft.AutoTitle;
+        ShowTemplates();
         _temperatureRow.Value = _draft.Temperature;
         _topPRow.Value = _draft.TopP;
         _topKRow.Value = _draft.TopK;
@@ -1593,6 +1616,7 @@ public partial class MainWindow : Window
         _draft.Provider = info.Kind;
         _draft.SystemPrompt = SystemPromptBox.Text.Trim();
         _draft.AutoTitle = AutoTitleCheck.IsChecked == true;
+        StoreTemplates();
         _draft.Temperature = _temperatureRow.Value;
         _draft.TopP = _topPRow.Value;
         _draft.TopK = _topKRow.Value;
@@ -1756,12 +1780,14 @@ public partial class MainWindow : Window
             ? $"🎨 {modelText} über {provider} erzeugt Bilder: Beschreibe, was zu sehen sein soll. " +
               "Mit einem angehängten Bild wird dieses bearbeitet."
             : $"Du chattest mit {modelText} über {provider}." +
-              (vision == false ? "" : " Bilder kannst du per Strg+V oder „Bild“ anhängen.");
+              (vision == false ? " PDF-, Word- und Textdateien" : " Bilder sowie PDF-, Word- und Textdateien") +
+              " kannst du per „Datei“, Strg+V oder Hineinziehen anhängen. „/“ öffnet Vorlagen und Personas.";
         UpdateSetupState();
-        ImageButton.IsEnabled = vision != false && _cts == null;
-        ImageButton.ToolTip = vision == false
-            ? "Dieses Modell kann keine Bilder verarbeiten"
-            : "Bild anhängen (auch per Strg+V oder Hineinziehen)";
+        // Dateien gehen immer; Bilder nur, wenn das Modell sie versteht (Bildmodelle: nur Bilder als Vorlage)
+        ImageButton.IsEnabled = _cts == null && !(CurrentImageGen && vision == false);
+        ImageButton.ToolTip = CurrentImageGen ? "Bild als Vorlage anhängen (auch per Strg+V oder Hineinziehen)"
+            : vision == false ? "PDF-, Word- oder Textdatei anhängen – Bilder versteht dieses Modell nicht"
+            : "Bild, PDF-, Word- oder Textdatei anhängen (auch per Strg+V oder Hineinziehen)";
     }
 
     // ---------- Hilfe ----------

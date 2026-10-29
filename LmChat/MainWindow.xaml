@@ -237,6 +237,8 @@
             <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
                 <RadioButton x:Name="NavChat" Style="{StaticResource NavItem}" Tag="&#xE8BD;" Content="Chat"
                              Checked="Nav_Checked"/>
+                <RadioButton x:Name="NavCompare" Style="{StaticResource NavItem}" Tag="&#xE8A9;" Content="Modelle vergleichen"
+                             Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Tag="&#xE713;" Content="Einstellungen"
                              Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavUsage" Style="{StaticResource NavItem}" Tag="&#xE9D2;" Content="Verbrauch"
@@ -418,6 +420,22 @@
                                 <DropShadowEffect BlurRadius="24" ShadowDepth="3" Direction="270" Opacity="0.10"/>
                             </Border.Effect>
                             <StackPanel>
+                                <!-- Persona dieses Chats -->
+                                <Border x:Name="PersonaPanel" Visibility="Collapsed" Margin="0,0,0,8" Padding="10,2,2,2"
+                                        CornerRadius="10" HorizontalAlignment="Left" Background="#1F8B5CF6">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="PersonaText" FontSize="12" VerticalAlignment="Center"/>
+                                        <Button Style="{StaticResource IconButton}" ToolTip="Persona entfernen" Padding="6,3"
+                                                AutomationProperties.Name="Persona entfernen"
+                                                VerticalAlignment="Center" Click="RemovePersona_Click">
+                                            <TextBlock Text="&#xE711;" FontFamily="{StaticResource IconFont}" FontSize="10"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Angehängte Dateien -->
+                                <WrapPanel x:Name="DocumentsPanel" Visibility="Collapsed" Margin="0,0,0,2"/>
+
                                 <!-- Angehängtes Bild -->
                                 <Border x:Name="AttachmentPanel" Visibility="Collapsed" Margin="0,0,0,8" Padding="6"
                                         CornerRadius="10" HorizontalAlignment="Left"
@@ -437,18 +455,28 @@
                                     <TextBox x:Name="InputBox" FontSize="15" Style="{StaticResource PlainTextBox}"
                                              Padding="2,4" AcceptsReturn="True" TextWrapping="Wrap"
                                              MinHeight="48" MaxHeight="200" VerticalScrollBarVisibility="Auto"
-                                             PreviewKeyDown="InputBox_PreviewKeyDown"/>
+                                             PreviewKeyDown="InputBox_PreviewKeyDown" TextChanged="InputBox_TextChanged"/>
                                     <TextBlock Text="Nachricht schreiben …" FontSize="15" Margin="4,6,0,0" IsHitTestVisible="False"
                                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                                Visibility="{Binding Text.IsEmpty, ElementName=InputBox, Converter={StaticResource BoolToVis}}"/>
                                 </Grid>
 
                                 <DockPanel Margin="0,6,0,0">
-                                    <Button x:Name="ImageButton" Style="{StaticResource IconButton}" Click="ImageButton_Click">
+                                    <Button x:Name="ImageButton" Style="{StaticResource IconButton}" Click="ImageButton_Click"
+                                            AutomationProperties.Name="Datei anhängen">
                                         <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xEB9F;" FontFamily="{StaticResource IconFont}" FontSize="15"
+                                            <TextBlock Text="&#xE723;" FontFamily="{StaticResource IconFont}" FontSize="15"
                                                        VerticalAlignment="Center"/>
-                                            <TextBlock Text="Bild" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Datei" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="TemplatesButton" Style="{StaticResource IconButton}" Click="TemplatesButton_Click"
+                                            ToolTip="Vorlagen und Personas (oder „/“ ins Eingabefeld tippen)"
+                                            AutomationProperties.Name="Vorlagen">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE8A5;" FontFamily="{StaticResource IconFont}" FontSize="15"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Text="Vorlagen" Margin="6,0,0,0" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
                                     <CheckBox x:Name="HistoryCheck" IsChecked="True" Margin="10,0,0,0" VerticalAlignment="Center"
@@ -465,10 +493,41 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- Auswahl von Vorlagen und Personas (öffnet sich mit „/“ im Eingabefeld) -->
+                        <Popup x:Name="TemplatePopup" PlacementTarget="{Binding ElementName=InputCard}" Placement="Top"
+                               StaysOpen="False" AllowsTransparency="True" VerticalOffset="-6">
+                            <Border CornerRadius="12" Padding="6" BorderThickness="1"
+                                    Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                                <StackPanel>
+                                    <TextBlock Text="Vorlagen und Personas – ↑↓ wählen, Enter übernehmen, Esc schließen" FontSize="11.5"
+                                               Margin="8,2,8,6" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                    <TextBlock x:Name="TemplatePickEmpty" Text="Keine passende Vorlage – anlegen kannst du sie unter Einstellungen."
+                                               Margin="8,0,8,6" Visibility="Collapsed" FontSize="13"/>
+                                    <ListBox x:Name="TemplatePickList" MaxHeight="300" BorderThickness="0" Background="Transparent"
+                                             PreviewMouseLeftButtonUp="TemplatePickList_MouseUp">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Margin="2,1">
+                                                    <TextBlock FontSize="13.5">
+                                                        <Run Text="{Binding Kind, Mode=OneWay}" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                        <Run Text="  "/>
+                                                        <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold"/>
+                                                    </TextBlock>
+                                                    <TextBlock Text="{Binding Preview}" FontSize="12" TextTrimming="CharacterEllipsis"
+                                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+
                         <TextBlock x:Name="StatusText" Grid.Row="3" HorizontalAlignment="Center" Margin="24,0,24,10"
                                    FontSize="12" TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                   Text="Enter = senden · Umschalt+Enter = neue Zeile · Strg+V = Bild einfügen"/>
+                                   Text="Enter = senden · Umschalt+Enter = neue Zeile · Strg+V = Bild/Datei einfügen · / = Vorlagen"/>
                     </Grid>
                 </TabItem>
 
@@ -643,6 +702,52 @@
                                 </StackPanel>
                             </Border>
 
+                            <!-- Karte: Vorlagen und Personas -->
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Heading}" Text="Vorlagen und Personas"/>
+                                    <TextBlock Style="{StaticResource Hint}">
+                                        Im Chat <Run FontWeight="SemiBold" Text="„/“"/> ins Eingabefeld tippen (oder Knopf „Vorlagen“), dann auswählen.
+                                        Eine <Run FontWeight="SemiBold" Text="Vorlage"/> setzt ihren Text ins Eingabefeld – du schreibst dann weiter.
+                                        Eine <Run FontWeight="SemiBold" Text="Persona"/> gilt für den ganzen Chat als zusätzliche Anweisung (wie der
+                                        System-Prompt) und steht als Kärtchen über dem Eingabefeld. Änderungen gelten nach „Speichern“.
+                                    </TextBlock>
+                                    <Grid Margin="0,6,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="250"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <DockPanel Margin="0,0,14,0">
+                                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                                                <Button Content="Neu" Padding="14,4" Click="NewTemplate_Click"/>
+                                                <Button Content="Löschen" Padding="14,4" Margin="8,0,0,0" Click="DeleteTemplate_Click"/>
+                                            </StackPanel>
+                                            <ListBox x:Name="TemplateList" Height="230" SelectionChanged="TemplateList_SelectionChanged">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock TextTrimming="CharacterEllipsis">
+                                                            <Run Text="{Binding Kind, Mode=OneWay}" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                            <Run Text="  "/>
+                                                            <Run Text="{Binding Name, Mode=OneWay}"/>
+                                                        </TextBlock>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </DockPanel>
+                                        <StackPanel x:Name="TemplateEditor" Grid.Column="1">
+                                            <TextBlock Text="Name" Margin="0,0,0,4"/>
+                                            <TextBox x:Name="TemplateNameBox" TextChanged="TemplateField_Changed"/>
+                                            <CheckBox x:Name="TemplatePersonaCheck" Margin="0,10,0,0" Checked="TemplateField_Changed"
+                                                      Unchecked="TemplateField_Changed"
+                                                      Content="Persona – gilt für den ganzen Chat als zusätzliche Anweisung"/>
+                                            <TextBlock Text="Text" Margin="0,10,0,4"/>
+                                            <TextBox x:Name="TemplateTextBox" Height="120" AcceptsReturn="True" TextWrapping="Wrap"
+                                                     VerticalScrollBarVisibility="Auto" TextChanged="TemplateField_Changed"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
                             <!-- Karte: Feineinstellungen -->
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
@@ -689,6 +794,31 @@
                                         <Hyperlink NavigateUri="https://platform.openai.com/usage" RequestNavigate="Link_RequestNavigate">OpenAI</Hyperlink> ·
                                         <Hyperlink NavigateUri="https://platform.claude.com/usage" RequestNavigate="Link_RequestNavigate">Anthropic</Hyperlink>
                                     </TextBlock>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Kostenbremse -->
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Heading}" Text="🛑 Kostenbremse"/>
+                                    <TextBlock Style="{StaticResource Hint}">
+                                        Ein eigenes Limit in LM Chat, zusätzlich zum Ausgabenlimit beim Anbieter. Ist es erreicht, fragt LM Chat
+                                        vor jeder Anfrage an einen Online-Anbieter nach – oder sperrt sie ganz. Ab 80 % kommt ein Hinweis.
+                                        Grundlage ist die Schätzung von dieser Seite. Lokale Modelle sind nie betroffen. Leer = kein Limit.
+                                    </TextBlock>
+                                    <WrapPanel Margin="0,4,0,0">
+                                        <TextBlock Text="Pro Tag (US-$):" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBox x:Name="DailyBudgetBox" Width="90" Margin="0,0,24,0"/>
+                                        <TextBlock Text="Pro Monat (US-$):" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBox x:Name="MonthlyBudgetBox" Width="90"/>
+                                    </WrapPanel>
+                                    <CheckBox x:Name="BudgetHardCheck" Margin="0,12,0,0"
+                                              Content="Hart sperren – bei erreichtem Limit ohne Nachfrage nichts mehr an Online-Anbieter senden"/>
+                                    <TextBlock x:Name="BudgetSpent" Style="{StaticResource Hint}" Margin="0,10,0,0"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <Button Content="Kostenbremse speichern" Click="SaveBudget_Click"/>
+                                        <TextBlock x:Name="BudgetStatus" Style="{StaticResource Hint}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
 
@@ -952,7 +1082,11 @@
                                     <TextBlock Style="{StaticResource Body}">
                                         <Run FontWeight="SemiBold" Text="Enter"/> – Nachricht senden<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Umschalt + Enter"/> – neue Zeile<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Strg + V"/> – Bild aus der Zwischenablage anhängen (z. B. Screenshot)<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Strg + V"/> – Bild (z. B. Screenshot) oder kopierte Dateien anhängen<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="/ im Eingabefeld"/> – Vorlagen und Personas auswählen (↑↓, Enter, Esc)<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Datei"/> – PDF-, Word- oder Textdatei anhängen; der Text geht mit der Nachricht ans Modell<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Modelle vergleichen"/> – dieselbe Frage an zwei Modelle, Antworten nebeneinander<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Kostenbremse"/> – Tages-/Monatsbudget für Online-Anbieter, unter „Verbrauch“<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Stopp-Knopf"/> – laufende Antwort abbrechen<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Suchfeld links"/> – Chats nach Titel filtern<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Kopieren unter einer Antwort"/> – Antwort (mit Markdown) in die Zwischenablage<LineBreak/>
@@ -1067,6 +1201,91 @@
                             </Border>
                         </StackPanel>
                     </ScrollViewer>
+                </TabItem>
+
+                <!-- ========== Modelle vergleichen ========== -->
+                <TabItem Header="Vergleich">
+                    <Grid Margin="28,20,28,10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource PageTitle}" Text="Modelle vergleichen"/>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,12">
+                                Dieselbe Frage geht gleichzeitig an zwei Modelle – auch lokal gegen online. Darunter stehen jeweils Dauer,
+                                Token/s, Tokens und Kosten. Es gilt der System-Prompt aus den Einstellungen; die Fragen landen nicht in der Chatliste.
+                                Online-Anbieter brauchen ihren Schlüssel in den Einstellungen.
+                            </TextBlock>
+                        </StackPanel>
+
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="14"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource Card}" Padding="14,12" Margin="0">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Top">
+                                        <ComboBox x:Name="CompareProviderLeft" DisplayMemberPath="Label" AutomationProperties.Name="Anbieter links"
+                                                  SelectionChanged="CompareProvider_SelectionChanged"/>
+                                        <ComboBox x:Name="CompareModelLeft" DisplayMemberPath="Label" SelectedValuePath="Id" Margin="0,6,0,8"
+                                                  TextSearch.TextPath="Id" MaxDropDownHeight="420" AutomationProperties.Name="Modell links"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="CompareStatsLeft" DockPanel.Dock="Bottom" FontSize="11.5" TextWrapping="Wrap" Margin="0,6,0,0"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                    <RichTextBox x:Name="CompareBoxLeft" IsReadOnly="True" IsDocumentEnabled="True" Background="Transparent"
+                                                 BorderThickness="0" VerticalScrollBarVisibility="Auto" FontSize="14.5" Padding="0">
+                                        <FlowDocument PagePadding="0" FontFamily="Segoe UI Variable Text, Segoe UI" LineHeight="22"/>
+                                    </RichTextBox>
+                                </DockPanel>
+                            </Border>
+                            <Border Grid.Column="2" Style="{StaticResource Card}" Padding="14,12" Margin="0">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Top">
+                                        <ComboBox x:Name="CompareProviderRight" DisplayMemberPath="Label" AutomationProperties.Name="Anbieter rechts"
+                                                  SelectionChanged="CompareProvider_SelectionChanged"/>
+                                        <ComboBox x:Name="CompareModelRight" DisplayMemberPath="Label" SelectedValuePath="Id" Margin="0,6,0,8"
+                                                  TextSearch.TextPath="Id" MaxDropDownHeight="420" AutomationProperties.Name="Modell rechts"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="CompareStatsRight" DockPanel.Dock="Bottom" FontSize="11.5" TextWrapping="Wrap" Margin="0,6,0,0"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                    <RichTextBox x:Name="CompareBoxRight" IsReadOnly="True" IsDocumentEnabled="True" Background="Transparent"
+                                                 BorderThickness="0" VerticalScrollBarVisibility="Auto" FontSize="14.5" Padding="0">
+                                        <FlowDocument PagePadding="0" FontFamily="Segoe UI Variable Text, Segoe UI" LineHeight="22"/>
+                                    </RichTextBox>
+                                </DockPanel>
+                            </Border>
+                        </Grid>
+
+                        <Border Grid.Row="2" Margin="0,14,0,6" CornerRadius="20" Padding="16,10,12,10"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <DockPanel>
+                                <Button x:Name="CompareSendButton" DockPanel.Dock="Right" Style="{StaticResource SendButtonStyle}"
+                                        ToolTip="An beide Modelle senden (Enter)" Click="CompareSend_Click" VerticalAlignment="Bottom"
+                                        AutomationProperties.Name="An beide senden"/>
+                                <Button x:Name="CompareStopButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Margin="0,0,6,0"
+                                        Visibility="Collapsed" ToolTip="Abbrechen" Click="CompareStop_Click" VerticalAlignment="Bottom"
+                                        AutomationProperties.Name="Vergleich abbrechen">
+                                    <TextBlock Text="&#xE71A;" FontFamily="{StaticResource IconFont}" FontSize="14"/>
+                                </Button>
+                                <Grid>
+                                    <TextBox x:Name="CompareInput" FontSize="15" Style="{StaticResource PlainTextBox}" Padding="2,4"
+                                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="40" MaxHeight="160"
+                                             VerticalScrollBarVisibility="Auto" PreviewKeyDown="CompareInput_PreviewKeyDown"/>
+                                    <TextBlock Text="Frage an beide Modelle …" FontSize="15" Margin="4,6,0,0" IsHitTestVisible="False"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                               Visibility="{Binding Text.IsEmpty, ElementName=CompareInput, Converter={StaticResource BoolToVis}}"/>
+                                </Grid>
+                            </DockPanel>
+                        </Border>
+                        <TextBlock x:Name="CompareStatus" Grid.Row="3" HorizontalAlignment="Center" FontSize="12"
+                                   TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    </Grid>
                 </TabItem>
             </TabControl>
         </Border>

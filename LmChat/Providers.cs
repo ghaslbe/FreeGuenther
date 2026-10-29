@@ -719,12 +719,13 @@ public static class LlmClient
     {
         if (m.Role == "assistant")
             return new JsonObject { ["role"] = "assistant", ["content"] = AssistantText(m) };
+        var text = m.TextForModel;
         if (m.Image == null)
-            return new JsonObject { ["role"] = m.Role, ["content"] = m.Content };
+            return new JsonObject { ["role"] = m.Role, ["content"] = text };
 
         var parts = new JsonArray();
-        if (m.Content.Length > 0)
-            parts.Add(new JsonObject { ["type"] = "text", ["text"] = m.Content });
+        if (text.Length > 0)
+            parts.Add(new JsonObject { ["type"] = "text", ["text"] = text });
         parts.Add(new JsonObject
         {
             ["type"] = "image_url",
@@ -836,8 +837,9 @@ public static class LlmClient
     {
         if (m.Role == "assistant")
             return new BetaAssistantMessageParam { Content = AssistantText(m) };
+        var text = m.TextForModel;
         if (m.Image == null)
-            return new BetaUserMessageParam { Content = m.Content };
+            return new BetaUserMessageParam { Content = text };
 
         var blocks = new List<BetaContentBlockParam>
         {
@@ -846,8 +848,8 @@ public static class LlmClient
                 Source = new BetaBase64ImageSource { Data = Convert.ToBase64String(m.Image), MediaType = MediaType.ImagePng }
             }
         };
-        if (m.Content.Length > 0)
-            blocks.Add(new BetaTextBlockParam { Text = m.Content });
+        if (text.Length > 0)
+            blocks.Add(new BetaTextBlockParam { Text = text });
         return new BetaUserMessageParam { Content = blocks };
     }
 

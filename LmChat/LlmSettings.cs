@@ -28,6 +28,41 @@ public sealed class ProviderConfig
     }
 }
 
+// Vorlage: Persona = wirkt als zusätzlicher System-Prompt für den ganzen Chat, sonst Text fürs Eingabefeld
+public sealed class PromptTemplate
+{
+    public string Name { get; set; } = "";
+    public string Text { get; set; } = "";
+    public bool Persona { get; set; }
+
+    // Nur für die Anzeige in Listen
+    [JsonIgnore] public string Kind => Persona ? "🎭 Persona" : "📝 Vorlage";
+    [JsonIgnore]
+    public string Preview
+    {
+        get
+        {
+            var oneLine = Text.ReplaceLineEndings(" ").Trim();
+            return oneLine.Length > 90 ? oneLine[..90] + " …" : oneLine;
+        }
+    }
+
+    public static List<PromptTemplate> Defaults() =>
+    [
+        new() { Name = "Übersetzen ins Englische", Text = "Übersetze den folgenden Text ins Englische. Gib nur die Übersetzung aus:\n\n" },
+        new() { Name = "Zusammenfassen", Text = "Fasse den folgenden Text in höchstens 5 Stichpunkten zusammen:\n\n" },
+        new() { Name = "Korrekturlesen", Text = "Korrigiere Rechtschreibung, Grammatik und Zeichensetzung im folgenden Text. " +
+                                                "Gib den korrigierten Text aus und nenne danach kurz die wichtigsten Änderungen:\n\n" },
+        new() { Name = "E-Mail aus Stichpunkten", Text = "Formuliere aus den folgenden Stichpunkten eine kurze, freundliche E-Mail:\n\n" },
+        new() { Name = "Kurz und knapp", Persona = true, Text = "Antworte so kurz wie möglich – ohne Einleitung, ohne Wiederholungen, ohne Schlussformel." },
+        new() { Name = "Einfach erklärt", Persona = true, Text = "Erkläre alles so einfach, dass es ein 12-jähriges Kind versteht. Verwende Beispiele aus dem Alltag und vermeide Fachwörter." },
+        new() { Name = "Erfahrener Entwickler", Persona = true, Text = "Du bist ein erfahrener Softwareentwickler. Antworte präzise, mit lauffähigem Code und einer kurzen Begründung. Weise auf Fallstricke hin." },
+    ];
+}
+
+// Ein Modell im Modellvergleich
+public sealed record CompareSlot(ProviderKind Provider, string Model);
+
 // Verschlüsselt Geheimnisse (API-Schlüssel) mit Windows DPAPI – nur für das eigene Windows-Konto lesbar
 public static class Secret
 {
@@ -57,6 +92,18 @@ public sealed class LlmSettings
     public Dictionary<ProviderKind, ProviderConfig> Providers { get; set; } = new();
     public string SystemPrompt { get; set; } = "";
     public bool AutoTitle { get; set; } = true;   // nach der ersten Antwort einen Chat-Titel vom Modell vorschlagen lassen
+
+    // Kostenbremse für Online-Anbieter in US-Dollar; null = kein Limit. Hart = ohne Nachfrage sperren.
+    public double? DailyBudget { get; set; }
+    public double? MonthlyBudget { get; set; }
+    public bool BudgetHardStop { get; set; }
+
+    // Vorlagen (Text fürs Eingabefeld) und Personas (System-Prompt je Chat); null = mitgelieferte Beispiele
+    public List<PromptTemplate>? Templates { get; set; }
+
+    // Modellvergleich: zuletzt gewählte Modelle links und rechts
+    public CompareSlot? CompareLeft { get; set; }
+    public CompareSlot? CompareRight { get; set; }
     public double? Temperature { get; set; }
     public double? TopP { get; set; }
     public double? TopK { get; set; }

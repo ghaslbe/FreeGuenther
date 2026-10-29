@@ -7,6 +7,9 @@ namespace LmChat;
 
 public record ChatInfo(long Id, string Title, DateTime Updated)
 {
+    // Persona dieses Chats (wirkt zusätzlich zum System-Prompt); null = keine
+    public PromptTemplate? Persona { get; init; }
+
     // Überschrift der Gruppe in der Chatliste
     public string DateGroup
     {
@@ -23,7 +26,16 @@ public record ChatMessage(string Role, string Content, byte[]? Image = null)
     public long Id { get; init; }
     public AnswerStats? Stats { get; init; }
     public string? Reasoning { get; init; }   // Gedankengang des Modells (Denkphase), nur zum Anzeigen
+    public IReadOnlyList<AttachedDocument>? Documents { get; init; }   // angehängte Dateien (als Text)
+
+    // Was das Modell von einer Nutzer-Nachricht bekommt: angehängte Dateien vor dem eigentlichen Text
+    public string TextForModel => Documents is not { Count: > 0 } docs
+        ? Content
+        : string.Concat(docs.Select(d => $"<datei name=\"{d.Name}\">\n{d.Text}\n</datei>\n\n")) + Content;
 }
+
+// Angehängte Datei, bereits in Text umgewandelt (PDF, Word, Textdateien)
+public sealed record AttachedDocument(string Name, string Text);
 
 // Angaben unter einer Antwort: wer geantwortet hat, wie schnell und mit wie vielen Tokens
 public sealed record AnswerStats(
@@ -75,6 +87,12 @@ public sealed class ChatStore
         // Ab Version 1.15: Gedankengang (Denkphase) je Antwort
         if (Scalar("SELECT COUNT(*) FROM pragma_table_info('messages') WHERE name = 'reasoning'") is 0L)
             Execute("ALTER TABLE messages ADD COLUMN reasoning TEXT");
+
+        // Ab Version 1.16: angehängte Dateien je Nachricht (JSON) und Persona je Chat (JSON)
+        if (Scalar("SELECT COUNT(*) FROM pragma_table_info('messages') WHERE name = 'documents'") is 0L)
+            Execute("ALTER TABLE messages ADD COLUMN documents TEXT");
+        if (Scalar("SELECT COUNT(*) FROM pragma_table_info('chats') WHERE name = 'persona'") is 0L)
+            Execute("ALTER TABLE chats ADD COLUMN persona TEXT");
 
         // Ab Version 1.11: Verbrauch je Antwort, unabhängig von den Chats (bleibt beim Löschen eines Chats erhalten).
         // Beim ersten Start wird er aus den Statistiken der vorhandenen Antworten übernommen.
@@ -149,21 +167,28 @@ public sealed class ChatStore
     public List<ChatInfo> ListChats()
     {
         using var conn = Open();
-        using var cmd = Command(conn, "SELECT id, title, updated FROM chats ORDER BY updated DESC");
+        using var cmd = Command(conn, "SELECT id, title, updated, persona FROM chats ORDER BY updated DESC");
         using var r = cmd.ExecuteReader();
         var list = new List<ChatInfo>();
         while (r.Read())
-            list.Add(new ChatInfo(r.GetInt64(0), r.GetString(1), ParseDate(r.GetString(2))));
+            list.Add(new ChatInfo(r.GetInt64(0), r.GetString(1), ParseDate(r.GetString(2)))
+            {
+                Persona = r.IsDBNull(3) ? null : ParseJson<PromptTemplate>(r.GetString(3))
+            });
         return list;
     }
 
-    public ChatInfo CreateChat(string title)
+    public ChatInfo CreateChat(string title, PromptTemplate? persona = null)
     {
         var now = DateTime.Now;
-        var id = (long)Scalar("INSERT INTO chats (title, updated) VALUES ($t, $u) RETURNING id",
-            ("$t", title), ("$u", FormatDate(now)))!;
-        return new ChatInfo(id, title, now);
+        var id = (long)Scalar("INSERT INTO chats (title, updated, persona) VALUES ($t, $u, $p) RETURNING id",
+            ("$t", title), ("$u", FormatDate(now)), ("$p", persona == null ? null : JsonSerializer.Serialize(persona)))!;
+        return new ChatInfo(id, title, now) { Persona = persona };
     }
+
+    public void SetPersona(long chatId, PromptTemplate? persona) =>
+        Execute("UPDATE chats SET persona = $p WHERE id = $id",
+            ("$p", persona == null ? null : JsonSerializer.Serialize(persona)), ("$id", chatId));
 
     public DateTime Touch(long chatId)
     {
@@ -181,7 +206,8 @@ public sealed class ChatStore
     public List<ChatMessage> LoadMessages(long chatId)
     {
         using var conn = Open();
-        using var cmd = Command(conn, "SELECT id, role, content, image, meta, reasoning FROM messages WHERE chat_id = $id ORDER BY id",
+        using var cmd = Command(conn,
+            "SELECT id, role, content, image, meta, reasoning, documents FROM messages WHERE chat_id = $id ORDER BY id",
             ("$id", chatId));
         using var r = cmd.ExecuteReader();
         var list = new List<ChatMessage>();
@@ -190,18 +216,32 @@ public sealed class ChatStore
             {
                 Id = r.GetInt64(0),
                 Stats = r.IsDBNull(4) ? null : ParseStats(r.GetString(4)),
-                Reasoning = r.IsDBNull(5) ? null : r.GetString(5)
+                Reasoning = r.IsDBNull(5) ? null : r.GetString(5),
+                Documents = r.IsDBNull(6) ? null : ParseJson<List<AttachedDocument>>(r.GetString(6))
             });
         return list;
     }
 
     public long AddMessage(long chatId, ChatMessage m) =>
         (long)Scalar("""
-            INSERT INTO messages (chat_id, role, content, image, created, meta, reasoning)
-            VALUES ($c, $r, $t, $i, $d, $m, $g) RETURNING id
+            INSERT INTO messages (chat_id, role, content, image, created, meta, reasoning, documents)
+            VALUES ($c, $r, $t, $i, $d, $m, $g, $f) RETURNING id
             """,
             ("$c", chatId), ("$r", m.Role), ("$t", m.Content), ("$i", m.Image), ("$d", FormatDate(DateTime.Now)),
-            ("$m", m.Stats == null ? null : JsonSerializer.Serialize(m.Stats)), ("$g", m.Reasoning))!;
+            ("$m", m.Stats == null ? null : JsonSerializer.Serialize(m.Stats)), ("$g", m.Reasoning),
+            ("$f", m.Documents is { Count: > 0 } docs ? JsonSerializer.Serialize(docs) : null))!;
+
+    private static T? ParseJson<T>(string json) where T : class
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<T>(json);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 
     // Nachricht und alles danach im selben Chat löschen (Bearbeiten bzw. neu erzeugen)
     public void DeleteMessagesFrom(long chatId, long messageId) =>

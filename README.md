@@ -85,6 +85,19 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
 - **Chat-Titel:** Nach der ersten Antwort schlägt das Modell einen kurzen Titel vor (abschaltbar in den Einstellungen unter „System-Prompt“). Bei Online-Anbietern kostet das ein paar Tokens; sie erscheinen unter „Verbrauch“.
 - **Export:** Der Knopf oben rechts im Chat speichert ihn als Markdown oder als HTML. Bilder sind eingebettet, der Gedankengang ist im HTML aufklappbar. Die HTML-Datei lässt sich im Browser drucken bzw. als PDF speichern.
 - **Scrollen:** Scrollt man während einer Antwort nach oben, springt der Chat nicht mehr ans Ende, bis man wieder ganz unten ist.
+- **Dateien anhängen (PDF, Word, Text):** Über „Datei“, Strg+V oder Hineinziehen. LM Chat wandelt die Datei in Text um und schickt ihn mit der Nachricht mit:
+  - PDF (über [PdfPig](https://github.com/UglyToad/PdfPig), Apache-2.0)
+  - Word `.docx`
+  - Text- und Code-Dateien (`.txt`, `.md`, `.csv`, `.json`, `.py`, `.cs` …)
+
+  Über dem Eingabefeld steht je Datei ein Kärtchen mit der ungefähren Größe in Tokens. Ab etwa 8.000 Tokens kommt ein Hinweis, weil lokale Modelle oft nur einen kleinen Kontext haben. Sehr große Dateien werden nach 400.000 Zeichen gekürzt. Eingescannte PDFs ohne Texterkennung enthalten keinen Text. Die Dateien werden mit dem Chat gespeichert und bei weiteren Fragen im Verlauf mitgeschickt.
+- **Vorlagen und Personas:** „/“ ins Eingabefeld tippen oder den Knopf „Vorlagen“ drücken, dann mit ↑↓ und Enter auswählen. Weitere Wörter nach dem „/“ filtern die Liste.
+  - Eine **Vorlage** setzt ihren Text ins Eingabefeld, z. B. „Übersetze den folgenden Text ins Englische: …“.
+  - Eine **Persona** gilt für den ganzen Chat als zusätzliche Anweisung zum System-Prompt, z. B. „Kurz und knapp“ oder „Einfach erklärt“. Sie steht als Kärtchen über dem Eingabefeld, wird mit dem Chat gespeichert und lässt sich dort wieder entfernen.
+
+  Beispiele sind dabei; anlegen, ändern und löschen geht in den Einstellungen unter „Vorlagen und Personas“.
+- **Modelle vergleichen (eigene Seite):** Dieselbe Frage geht gleichzeitig an zwei Modelle, auch an verschiedene Anbieter (z. B. lokal gegen online). Die Antworten stehen nebeneinander, darunter Dauer, Token/s, Tokens und Kosten (gemeldet, sonst nach Listenpreis geschätzt). Die Auswahl bleibt gespeichert; die Fragen landen nicht in der Chatliste, der Verbrauch wird aber mitgezählt.
+- **Kostenbremse (auf der Seite „Verbrauch“):** Ein eigenes Tages- und/oder Monatsbudget in US-Dollar für alle Online-Anbieter zusammen. Ab 80 % kommt ein Hinweis. Ist das Limit erreicht, fragt LM Chat vor jeder Anfrage an einen Online-Anbieter nach; mit „Hart sperren“ wird ohne Nachfrage nichts mehr gesendet. Lokale Modelle sind nie betroffen. Grundlage ist dieselbe Schätzung wie auf der Verbrauchsseite – das ersetzt nicht das Ausgabenlimit beim Anbieter.
 - **Angaben unter jeder Antwort** (klein, wird mit dem Chat gespeichert):
   - Anbieter und tatsächlich antwortendes Modell, bei OpenRouter auch der Hoster, z. B. `OpenRouter · openai/gpt-6-luna (über OpenAI)`
   - Token pro Sekunde (gemessen ab dem ersten Text- bzw. Denk-Token)
@@ -151,7 +164,8 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
 |---|---|
 | Enter | Senden |
 | Umschalt+Enter | Neue Zeile |
-| Strg+V | Bild aus der Zwischenablage anhängen |
+| Strg+V | Bild oder kopierte Dateien aus der Zwischenablage anhängen |
+| / | Vorlagen und Personas auswählen (↑↓, Enter, Esc) |
 
 ## ⚠ Wichtig: Kosten absichern
 
@@ -249,6 +263,12 @@ $env:LMCHAT_DB = "$env:TEMP\lmchat-test.db"; .\LmChat\publish\LmChat.exe
 | `LmChat/MainWindow.xaml` | Oberfläche: Chat, Einstellungen, Hilfe |
 | `LmChat/MainWindow.xaml.cs` | Logik: Chat, Bilder, Chatliste, Einstellungsseite |
 | `LmChat/MainWindow.Plugins.cs` | Plugin-Seite: Liste, Einstellungen je Plugin, Katalog, Import |
+| `LmChat/MainWindow.Compare.cs` | Seite „Modelle vergleichen“ |
+| `LmChat/MainWindow.Budget.cs` | Kostenbremse und Kostenberechnung (auch für die Verbrauchsseite) |
+| `LmChat/MainWindow.Templates.cs` | Vorlagen und Personas: Auswahl mit „/“, Verwaltung in den Einstellungen |
+| `LmChat/MainWindow.Documents.cs` | Dateien anhängen (Kärtchen, Hineinziehen, Zwischenablage) |
+| `LmChat/DocumentReader.cs` | PDF, Word und Textdateien → Text |
+| `LmChat/CodeHighlighter.cs` | Farbige Hervorhebung in Code-Blöcken |
 | `LmChat/Plugins.cs` | Plugin-Manifest, Laden/Installieren, Ausführen (Web, eingebaut, MCP) |
 | `plugins/` | Plugin-Katalog (`index.json`) und Plugin-Dateien, Anleitung für eigene Plugins |
 | `LmChat/Providers.cs` | Anbieter (Standardwerte, Links) und `LlmClient`: Modelllisten und Streaming je Anbieter |
@@ -258,7 +278,7 @@ $env:LMCHAT_DB = "$env:TEMP\lmchat-test.db"; .\LmChat\publish\LmChat.exe
 | `LmChat/LlmSettings.cs` | Einstellungen je Anbieter (als JSON in der Datenbank, Schlüssel per DPAPI verschlüsselt) |
 | `LmChat/app.ico` | App-Icon |
 
-Technik: C# / WPF auf .NET 10, `Microsoft.Data.Sqlite`, `Markdig`, `Anthropic`, `System.Security.Cryptography.ProtectedData`.
+Technik: C# / WPF auf .NET 10, `Microsoft.Data.Sqlite`, `Markdig`, `Anthropic`, `ModelContextProtocol`, `PdfPig`, `System.Security.Cryptography.ProtectedData`.
 
 ## Lizenz und Haftungsausschluss
 

@@ -1,10 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
-using System.Net.Http;
 using System.Text;
-using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -15,15 +12,8 @@ using Microsoft.Win32;
 
 namespace LmChat;
 
-// Vision = null heißt: unbekannt (z. B. Server nicht erreichbar)
-public record ModelInfo(string Id, bool? Vision, bool Loaded)
-{
-    public string Label => Id + (Vision == true ? "    🖼 Bilder" : "") + (Loaded ? "    ● geladen" : "");
-}
-
 public partial class MainWindow : Window
 {
-    private static readonly HttpClient Http = new() { Timeout = Timeout.InfiniteTimeSpan };
     private static readonly string[] ImageExtensions = [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tif", ".tiff"];
     private const int MaxImageSide = 2048;
 
@@ -32,7 +22,13 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<ChatInfo> _chats = new();
     private readonly ObservableCollection<ModelInfo> _models = new();
     private readonly List<ChatMessage> _messages = new();
-    private readonly LlmSettings _settings;
+
+    // _settings = gespeicherter, aktiver Stand; _draft = was gerade auf der Einstellungsseite bearbeitet wird
+    private LlmSettings _settings;
+    private LlmSettings _draft;
+    private ProviderKind? _shownProvider;
+    private int _modelLoadId;
+
     private ChatInfo? _currentChat;
     private byte[]? _pendingImage;
     private CancellationTokenSource? _cts;
@@ -44,16 +40,26 @@ public partial class MainWindow : Window
         Title = $"LM Chat {AppVersion}";
         VersionRun.Text = $"Version {AppVersion}.";
         _settings = LlmSettings.Load(_store);
+        _draft = _settings.Clone();
         foreach (var chat in _store.ListChats())
             _chats.Add(chat);
         ChatList.ItemsSource = _chats;
+        ProviderCombo.ItemsSource = ProviderInfo.All;
         ModelCombo.ItemsSource = _models;
+        foreach (var row in ParamRows)
+            ParamsPanel.Children.Add(row.Element);
         ShowSettings();
-        InputBox.Focus();
-        Loaded += async (_, _) => await LoadModelsAsync();
+        // Beim Befüllen der Einstellungen kann ein Element dort den Fokus bekommen – immer im Chat starten
+        Loaded += (_, _) =>
+        {
+            MainTabs.SelectedIndex = 0;
+            SettingsScroll.ScrollToTop();
+            InputBox.Focus();
+        };
     }
 
-    private bool? CurrentVision => _models.FirstOrDefault(m => m.Id == _settings.Model)?.Vision;
+    private ProviderInfo ActiveProvider => ProviderInfo.Get(_settings.Provider);
+    private bool? CurrentVision => _settings.Current.ModelVision;
 
     // ---------- Chat senden ----------
 
@@ -75,6 +81,19 @@ public partial class MainWindow : Window
         var text = InputBox.Text.Trim();
         var image = _pendingImage;
         if ((text.Length == 0 && image == null) || _cts != null) return;
+
+        var provider = ActiveProvider;
+        var config = _settings.Current;
+        if (config.Model.Length == 0)
+        {
+            StatusText.Text = "Bitte zuerst unter „Einstellungen“ ein Modell auswählen und speichern.";
+            return;
+        }
+        if (provider.NeedsKey && config.ApiKey.Length == 0)
+        {
+            StatusText.Text = $"Für {provider.Name} fehlt der API-Schlüssel – bitte unter „Einstellungen“ eintragen.";
+            return;
+        }
         if (image != null && CurrentVision == false)
         {
             StatusText.Text = "Das gewählte Modell kann keine Bilder verarbeiten – Bild entfernen oder Modell wechseln.";
@@ -95,34 +114,45 @@ public partial class MainWindow : Window
         InputBox.Clear();
         ClearImage();
         AddMessageBlock(userMsg);
-        var answerRun = AddMessageBlock(new ChatMessage("assistant", ""));
+        var answerView = AddMessageBlock(new ChatMessage("assistant", ""), streaming: true);
 
         List<ChatMessage> toSend = HistoryCheck.IsChecked == true ? _messages.ToList() : [userMsg];
+        var request = new ChatRequest(provider, config.Server, config.ApiKey, config.Model, _settings.SystemPrompt, _settings, toSend);
 
         _cts = new CancellationTokenSource();
         SetBusy(true);
         var answer = new StringBuilder();
+        string? note = null;
         try
         {
-            await StreamAnswerAsync(toSend, chunk =>
+            await LlmClient.StreamAsync(request, chunk =>
             {
                 answer.Append(chunk);
-                AppendToRun(answerRun, chunk);
+                answerView.Stream!.Text += chunk;
+                ChatBox.ScrollToEnd();
             }, _cts.Token);
             StatusText.Text = "Fertig.";
         }
         catch (OperationCanceledException)
         {
-            AppendToRun(answerRun, " [abgebrochen]");
+            note = "[abgebrochen]";
             StatusText.Text = "Abgebrochen.";
         }
         catch (Exception ex)
         {
-            AppendToRun(answerRun, $"[Fehler: {ex.Message}]");
-            StatusText.Text = "Fehler – Server und Modell in den Einstellungen prüfen.";
+            note = $"[Fehler: {ex.Message}]";
+            StatusText.Text = "Fehler – Anbieter, Schlüssel und Modell in den Einstellungen prüfen.";
         }
         finally
         {
+            // Fertige Antwort als Markdown darstellen (während des Streamings war es reiner Text)
+            answerView.Body.Blocks.Clear();
+            if (answer.Length > 0)
+                MarkdownRenderer.Render(answer.ToString(), answerView.Body.Blocks);
+            if (note != null)
+                answerView.Body.Blocks.Add(new Paragraph(new Italic(new Run(note))) { Margin = new Thickness(0) });
+            ChatBox.ScrollToEnd();
+
             if (answer.Length > 0)
             {
                 var reply = new ChatMessage("assistant", answer.ToString());
@@ -159,70 +189,11 @@ public partial class MainWindow : Window
         }
     }
 
-    // Sendet die Nachrichten an die OpenAI-kompatible API von LM Studio und liefert die Antwort stückweise
-    private async Task StreamAnswerAsync(List<ChatMessage> messages, Action<string> onChunk, CancellationToken ct)
-    {
-        var apiMessages = new JsonArray();
-        if (!string.IsNullOrWhiteSpace(_settings.SystemPrompt))
-            apiMessages.Add(new JsonObject { ["role"] = "system", ["content"] = _settings.SystemPrompt });
-        foreach (var m in messages)
-            apiMessages.Add(ToApiMessage(m));
-
-        var body = new JsonObject
-        {
-            ["model"] = _settings.Model,
-            ["messages"] = apiMessages,
-            ["stream"] = true
-        };
-        if (_settings.Temperature is { } temperature) body["temperature"] = temperature;
-        if (_settings.TopP is { } topP) body["top_p"] = topP;
-        if (_settings.TopK is { } topK) body["top_k"] = (int)topK;
-        if (_settings.MaxTokens is { } maxTokens) body["max_tokens"] = (int)maxTokens;
-        if (_settings.RepeatPenalty is { } repeatPenalty) body["repeat_penalty"] = repeatPenalty;
-
-        using var request = new HttpRequestMessage(HttpMethod.Post, ServerUrl + "/v1/chat/completions")
-        {
-            Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json")
-        };
-        using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-        if (!response.IsSuccessStatusCode)
-            throw new HttpRequestException($"HTTP {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(ct)}");
-
-        using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(ct));
-        while (await reader.ReadLineAsync(ct) is { } line)
-        {
-            if (!line.StartsWith("data:")) continue;
-            var data = line[5..].Trim();
-            if (data == "[DONE]") break;
-
-            if (JsonNode.Parse(data)?["choices"] is not JsonArray { Count: > 0 } choices) continue;
-            var chunk = choices[0]?["delta"]?["content"]?.GetValue<string>();
-            if (!string.IsNullOrEmpty(chunk))
-                onChunk(chunk);
-        }
-    }
-
-    private static JsonObject ToApiMessage(ChatMessage m)
-    {
-        if (m.Image == null)
-            return new JsonObject { ["role"] = m.Role, ["content"] = m.Content };
-
-        var parts = new JsonArray();
-        if (m.Content.Length > 0)
-            parts.Add(new JsonObject { ["type"] = "text", ["text"] = m.Content });
-        parts.Add(new JsonObject
-        {
-            ["type"] = "image_url",
-            ["image_url"] = new JsonObject { ["url"] = "data:image/png;base64," + Convert.ToBase64String(m.Image) }
-        });
-        return new JsonObject { ["role"] = m.Role, ["content"] = parts };
-    }
-
     private void Stop_Click(object sender, RoutedEventArgs e) => _cts?.Cancel();
 
     private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e) => _cts?.Cancel();
 
-    // ---------- Chatliste ----------
+    // ---------- Chatliste und Anzeige ----------
 
     private void ChatList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -277,27 +248,37 @@ public partial class MainWindow : Window
             AddMessageBlock(m);
     }
 
-    // Fügt eine Nachricht (Überschrift, ggf. Bildvorschau, Text) an und liefert den Text-Run zum Weiterschreiben
-    private Run AddMessageBlock(ChatMessage m)
+    // Body = Inhalt der Nachricht; Stream = Text, in den während des Empfangs geschrieben wird
+    private sealed record MessageView(Section Body, Run? Stream);
+
+    private MessageView AddMessageBlock(ChatMessage m, bool streaming = false)
     {
         var blocks = ChatBox.Document.Blocks;
         blocks.Add(new Paragraph(new Run(m.Role == "user" ? "Du" : "LLM") { FontWeight = FontWeights.Bold })
         {
-            Margin = new Thickness(0, blocks.Count == 0 ? 0 : 14, 0, 4)
+            Margin = new Thickness(0, blocks.Count == 0 ? 0 : 16, 0, 4)
         });
         if (m.Image != null)
             blocks.Add(new BlockUIContainer(MakeThumbnail(m.Image)) { Margin = new Thickness(0, 0, 0, 6) });
 
-        var run = new Run(m.Content);
-        blocks.Add(new Paragraph(run) { Margin = new Thickness(0) });
+        var body = new Section();
+        blocks.Add(body);
+        Run? stream = null;
+        if (streaming)
+        {
+            stream = new Run();
+            body.Blocks.Add(new Paragraph(stream) { Margin = new Thickness(0) });
+        }
+        else if (m.Role == "assistant")
+        {
+            MarkdownRenderer.Render(m.Content, body.Blocks);
+        }
+        else
+        {
+            body.Blocks.Add(new Paragraph(new Run(m.Content)) { Margin = new Thickness(0) });
+        }
         ChatBox.ScrollToEnd();
-        return run;
-    }
-
-    private void AppendToRun(Run run, string text)
-    {
-        run.Text += text;
-        ChatBox.ScrollToEnd();
+        return new MessageView(body, stream);
     }
 
     private static Image MakeThumbnail(byte[] png)
@@ -462,8 +443,6 @@ public partial class MainWindow : Window
 
     // ---------- Einstellungen ----------
 
-    private string ServerUrl => _settings.Server.Trim().TrimEnd('/');
-
     private readonly ParamRow _temperatureRow = new("Temperatur",
         "Wie frei bzw. zufällig das Modell formuliert. Niedrig (0 bis 0,3): sachlich und bei gleicher Frage fast " +
         "immer gleiche Antwort – gut für Fakten, Code und Bilder auslesen. Mittel (0,7): ausgewogen. " +
@@ -482,7 +461,7 @@ public partial class MainWindow : Window
 
     private readonly ParamRow _maxTokensRow = new("Maximale Antwortlänge (Tokens)",
         "Begrenzt, wie lang eine Antwort höchstens wird. Ein Token ist ungefähr ein halbes bis ganzes Wort; " +
-        "1000 Tokens sind etwa ein bis zwei Seiten Text. Ohne Haken: keine Begrenzung.",
+        "1000 Tokens sind etwa ein bis zwei Seiten Text. Ohne Haken: keine Begrenzung (bei Anthropic: 64000).",
         64, 32768, 64, 2048, "0");
 
     private readonly ParamRow _repeatPenaltyRow = new("Wiederholungsstrafe",
@@ -492,22 +471,78 @@ public partial class MainWindow : Window
 
     private IEnumerable<ParamRow> ParamRows => [_temperatureRow, _topPRow, _topKRow, _maxTokensRow, _repeatPenaltyRow];
 
+    private ProviderInfo ShownProvider => ProviderInfo.Get(_shownProvider ?? _draft.Provider);
+
     private void ShowSettings()
     {
-        foreach (var row in ParamRows)
-            ParamsPanel.Children.Add(row.Element);
-
-        ServerBox.Text = _settings.Server;
-        SystemPromptBox.Text = _settings.SystemPrompt;
-        _temperatureRow.Value = _settings.Temperature;
-        _topPRow.Value = _settings.TopP;
-        _topKRow.Value = _settings.TopK;
-        _maxTokensRow.Value = _settings.MaxTokens;
-        _repeatPenaltyRow.Value = _settings.RepeatPenalty;
-        EnsureModelItem(_settings.Model);
-        ModelCombo.SelectedValue = _settings.Model;
+        SystemPromptBox.Text = _draft.SystemPrompt;
+        _temperatureRow.Value = _draft.Temperature;
+        _topPRow.Value = _draft.TopP;
+        _topKRow.Value = _draft.TopK;
+        _maxTokensRow.Value = _draft.MaxTokens;
+        _repeatPenaltyRow.Value = _draft.RepeatPenalty;
+        _shownProvider = null;
+        ProviderCombo.SelectedItem = ProviderInfo.Get(_draft.Provider);
         UpdateModelUi();
     }
+
+    private void ProviderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ProviderCombo.SelectedItem is not ProviderInfo info) return;
+        // Eingaben des bisher gezeigten Anbieters im Entwurf merken, bevor gewechselt wird
+        if (_shownProvider is { } previous)
+            StoreProviderFields(previous);
+        ShowProvider(info);
+    }
+
+    private void StoreProviderFields(ProviderKind kind)
+    {
+        var config = _draft.Config(kind);
+        config.Server = ServerBox.Text.Trim().TrimEnd('/');
+        config.ApiKey = ApiKeyBox.Password.Trim();
+        if (ModelCombo.SelectedItem is ModelInfo model)
+        {
+            config.Model = model.Id;
+            config.ModelVision = model.Vision;
+        }
+    }
+
+    private void ShowProvider(ProviderInfo info)
+    {
+        _shownProvider = info.Kind;
+        var config = _draft.Config(info.Kind);
+        ProviderHint.Text = info.Description;
+        ProviderLinks.Inlines.Clear();
+        ProviderLinks.Inlines.Add(new Run("Links:  ") { FontWeight = FontWeights.SemiBold });
+        foreach (var (text, url) in info.Links)
+        {
+            if (ProviderLinks.Inlines.Count > 1)
+                ProviderLinks.Inlines.Add(new Run("   ·   ") { Foreground = Brushes.Gray });
+            var link = new Hyperlink(new Run(text)) { NavigateUri = new Uri(url), ToolTip = url };
+            link.RequestNavigate += Link_RequestNavigate;
+            ProviderLinks.Inlines.Add(link);
+        }
+        ServerBox.Text = config.Server;
+        ApiKeyPanel.Visibility = info.NeedsKey ? Visibility.Visible : Visibility.Collapsed;
+        if (info.KeyUrl != null)
+        {
+            KeyLink.NavigateUri = new Uri(info.KeyUrl);
+            KeyLinkText.Text = info.KeyUrl.Replace("https://", "");
+        }
+        ApiKeyBox.Password = config.ApiKey;
+
+        _temperatureRow.SetSupported(info.SupportsSampling, info.Name);
+        _topPRow.SetSupported(info.SupportsSampling, info.Name);
+        _topKRow.SetSupported(info.SupportsTopK, info.Name);
+        _repeatPenaltyRow.SetSupported(info.SupportsRepeatPenalty, info.Name);
+
+        _models.Clear();
+        EnsureModelItem(config.Model, config.ModelVision);
+        ModelCombo.SelectedValue = config.Model;
+        _ = LoadModelsAsync();
+    }
+
+    private void DefaultServer_Click(object sender, RoutedEventArgs e) => ServerBox.Text = ShownProvider.DefaultServer;
 
     private void ResetParams_Click(object sender, RoutedEventArgs e)
     {
@@ -518,75 +553,91 @@ public partial class MainWindow : Window
 
     private void SaveSettings_Click(object sender, RoutedEventArgs e)
     {
+        var info = ShownProvider;
         var server = ServerBox.Text.Trim().TrimEnd('/');
         if (!server.Contains("://"))
-            server = "http://" + server;
+            server = (info.IsLocal ? "http://" : "https://") + server;
         if (!Uri.TryCreate(server, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
         {
-            SettingsStatus.Text = "Die Server-Adresse ist ungültig. Beispiel: http://192.168.178.191:1234";
+            SettingsStatus.Text = $"Die Server-Adresse ist ungültig. Standard für {info.Name}: {info.DefaultServer}";
             return;
         }
-        if (ModelCombo.SelectedValue is not string model)
+        if (info.NeedsKey && ApiKeyBox.Password.Trim().Length == 0)
         {
-            SettingsStatus.Text = "Bitte ein Modell auswählen.";
+            SettingsStatus.Text = $"Für {info.Name} wird ein API-Schlüssel benötigt.";
+            return;
+        }
+        if (ModelCombo.SelectedItem is not ModelInfo)
+        {
+            SettingsStatus.Text = "Bitte ein Modell auswählen (ggf. erst „Liste aktualisieren“).";
             return;
         }
 
         ServerBox.Text = server;
-        var serverChanged = _settings.Server != server;
-        _settings.Server = server;
-        _settings.Model = model;
-        _settings.SystemPrompt = SystemPromptBox.Text.Trim();
-        _settings.Temperature = _temperatureRow.Value;
-        _settings.TopP = _topPRow.Value;
-        _settings.TopK = _topKRow.Value;
-        _settings.MaxTokens = _maxTokensRow.Value;
-        _settings.RepeatPenalty = _repeatPenaltyRow.Value;
-        _settings.Save(_store);
+        StoreProviderFields(info.Kind);
+        _draft.Provider = info.Kind;
+        _draft.SystemPrompt = SystemPromptBox.Text.Trim();
+        _draft.Temperature = _temperatureRow.Value;
+        _draft.TopP = _topPRow.Value;
+        _draft.TopK = _topKRow.Value;
+        _draft.MaxTokens = _maxTokensRow.Value;
+        _draft.RepeatPenalty = _repeatPenaltyRow.Value;
+        _draft.Save(_store);
+        _settings = _draft.Clone();
         UpdateModelUi();
-        SettingsStatus.Text = $"Gespeichert ({DateTime.Now:HH:mm:ss}).";
-
-        if (serverChanged)
-            _ = LoadModelsAsync();
+        SettingsStatus.Text = $"Gespeichert – aktiv: {info.Name}, {_settings.Current.Model} ({DateTime.Now:HH:mm:ss}).";
     }
 
-    private async void ReloadModels_Click(object sender, RoutedEventArgs e) => await LoadModelsAsync(ServerBox.Text);
+    private async void ReloadModels_Click(object sender, RoutedEventArgs e) => await LoadModelsAsync();
 
-    // Holt die Modellliste aus der LM-Studio-REST-API; "vlm" = Modell versteht Bilder
-    private async Task LoadModelsAsync(string? server = null)
+    // Holt die Modellliste des gerade gezeigten Anbieters (mit Adresse und Schlüssel aus den Eingabefeldern)
+    private async Task LoadModelsAsync()
     {
-        server = (server ?? _settings.Server).Trim().TrimEnd('/');
-        var selected = ModelCombo.SelectedValue as string ?? _settings.Model;
-        SettingsStatus.Text = "Lade Modelle …";
+        var info = ShownProvider;
+        var key = ApiKeyBox.Password.Trim();
+        if (info.NeedsKey && key.Length == 0)
+        {
+            SettingsStatus.Text = $"Für die Modellliste von {info.Name} bitte zuerst den API-Schlüssel eintragen.";
+            return;
+        }
+
+        var selected = ModelCombo.SelectedValue as string ?? _draft.Config(info.Kind).Model;
+        var loadId = ++_modelLoadId;
+        SettingsStatus.Text = $"Lade Modelle von {info.Name} …";
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            var json = JsonNode.Parse(await Http.GetStringAsync(server + "/api/v0/models", cts.Token));
-            var models = (json?["data"] as JsonArray ?? [])
-                .Select(n => (Id: (string?)n?["id"], Type: (string?)n?["type"], State: (string?)n?["state"]))
-                .Where(m => m.Id != null && m.Type is "llm" or "vlm")
-                .Select(m => new ModelInfo(m.Id!, m.Type == "vlm", m.State == "loaded"))
-                .OrderByDescending(m => m.Loaded).ThenBy(m => m.Id)
-                .ToList();
-
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            var models = await LlmClient.ListModelsAsync(info, ServerBox.Text, key, cts.Token);
+            if (loadId != _modelLoadId) return; // inzwischen anderer Anbieter gewählt
             _models.Clear();
             foreach (var m in models)
                 _models.Add(m);
-            SettingsStatus.Text = $"{models.Count} Modelle gefunden.";
+            SettingsStatus.Text = $"{models.Count} Modelle von {info.Name} gefunden.";
         }
         catch (Exception ex)
         {
+            if (loadId != _modelLoadId) return;
             SettingsStatus.Text = $"Modelle konnten nicht geladen werden: {ex.Message}";
         }
-        EnsureModelItem(selected);
+        EnsureModelItem(selected, null);
         ModelCombo.SelectedValue = selected;
-        UpdateModelUi();
+
+        // Bildfähigkeit des aktiven Modells aktualisieren (z. B. nach dem Programmstart)
+        if (info.Kind == _settings.Provider &&
+            _models.FirstOrDefault(m => m.Id == _settings.Current.Model) is { Vision: not null } active &&
+            active.Vision != _settings.Current.ModelVision)
+        {
+            _settings.Current.ModelVision = active.Vision;
+            _draft.Config(info.Kind).ModelVision = active.Vision;
+            _settings.Save(_store);
+            UpdateModelUi();
+        }
     }
 
-    private void EnsureModelItem(string id)
+    private void EnsureModelItem(string id, bool? vision)
     {
         if (id.Length > 0 && _models.All(m => m.Id != id))
-            _models.Add(new ModelInfo(id, null, false));
+            _models.Add(new ModelInfo(id, vision, false));
     }
 
     private void ModelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -595,14 +646,15 @@ public partial class MainWindow : Window
         {
             true => "🖼 Dieses Modell versteht Bilder.",
             false => "Dieses Modell versteht nur Text.",
-            _ => "Bildfähigkeit unbekannt (Server nicht erreichbar?)."
+            _ => ModelCombo.SelectedItem == null ? "" : "Ob das Modell Bilder versteht, meldet dieser Anbieter nicht – einfach ausprobieren."
         };
     }
 
     private void UpdateModelUi()
     {
         var vision = CurrentVision;
-        ModelInfoText.Text = $"Modell: {_settings.Model}" + vision switch
+        var model = _settings.Current.Model;
+        ModelInfoText.Text = $"{ActiveProvider.Name}   ·   {(model.Length > 0 ? model : "kein Modell gewählt")}" + vision switch
         {
             true => "   ·   🖼 versteht Bilder",
             false => "   ·   nur Text",

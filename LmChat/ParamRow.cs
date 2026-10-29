@@ -33,7 +33,7 @@ internal sealed class ParamRow
         };
         _valueText = new TextBlock
         {
-            Width = 90,
+            Width = 120,
             TextAlignment = TextAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center,
             FontWeight = FontWeights.SemiBold
@@ -92,11 +92,23 @@ internal sealed class ParamRow
         }
     }
 
+    // Manche Anbieter kennen nicht jede Einstellung – dann ausgegraut mit Hinweis statt Fehler beim Senden
+    public void SetSupported(bool supported, string providerName)
+    {
+        _supported = supported;
+        _enabled.IsEnabled = supported;
+        Element.Opacity = supported ? 1 : 0.45;
+        Element.ToolTip = supported ? null : $"Wird von {providerName} nicht unterstützt und deshalb nicht gesendet.";
+        Update();
+    }
+
+    private bool _supported = true;
+
     private void Update()
     {
-        var on = _enabled.IsChecked == true;
+        var on = _enabled.IsChecked == true && _supported;
         _slider.IsEnabled = on;
-        _valueText.Text = on ? _slider.Value.ToString(_format, CultureInfo.CurrentCulture) : "Standard";
+        _valueText.Text = !_supported ? "nicht unterstützt" : on ? _slider.Value.ToString(_format, CultureInfo.CurrentCulture) : "Standard";
         _valueText.Opacity = on ? 1 : 0.5;
     }
 }

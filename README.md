@@ -1,12 +1,23 @@
 # lmstudioChatWindows
 
-Ein einfacher Windows-Chat-Client für [LM Studio](https://lmstudio.ai). Er läuft als **eine einzige .exe** und braucht keine Installation und kein .NET auf dem Zielrechner.
+Ein einfacher Windows-Chat-Client für lokale und Online-Sprachmodelle: [LM Studio](https://lmstudio.ai), [Ollama](https://ollama.com), [OpenAI](https://platform.openai.com), [Anthropic (Claude)](https://platform.claude.com) und [OpenRouter](https://openrouter.ai). Er läuft als **eine einzige .exe** und braucht keine Installation und kein .NET auf dem Zielrechner.
 
 **Download:** [LmChat.exe (neueste Version)](https://github.com/ghaslbe/lmstudioChatWindows/releases/latest/download/LmChat.exe). Alle Versionen findest du unter [Releases](https://github.com/ghaslbe/lmstudioChatWindows/releases).
 
 ## Funktionen
 
-- **Chat mit Live-Antwort:** Die Antwort erscheint Wort für Wort (Streaming).
+- **Mehrere Anbieter:** Jeder Anbieter merkt sich eigene Adresse, Schlüssel und Modell. In den Einstellungen gibt es zu jedem Anbieter Links zu Website, API-Schlüsseln, Modellen und Preisen.
+
+  | Anbieter | Art | Standard-Adresse | Schlüssel |
+  |---|---|---|---|
+  | LM Studio | lokal | `http://localhost:1234` | – |
+  | Ollama | lokal | `http://localhost:11434` | – |
+  | OpenAI | online | `https://api.openai.com` | ja |
+  | Anthropic (Claude) | online | `https://api.anthropic.com` | ja |
+  | OpenRouter | online | `https://openrouter.ai/api` | ja |
+
+  API-Schlüssel werden mit Windows DPAPI verschlüsselt gespeichert, nur für das eigene Windows-Konto lesbar.
+- **Chat mit Live-Antwort:** Die Antwort erscheint Wort für Wort (Streaming). Danach wird sie als **Markdown** dargestellt, mit Überschriften, Fettdruck, Listen, Tabellen, Codeblöcken und Links.
 - **Gespeicherte Chats:** Jeder Chat wird in einer SQLite-Datenbank gespeichert und lässt sich links in der Liste wieder aufrufen oder löschen.
 - **„Bisherigen Chatverlauf mitsenden“:** Das Häkchen ist standardmäßig an, so kann man ein Gespräch führen. Ohne Häkchen wird nur die aktuelle Nachricht gesendet.
 - **Bilder senden:** Bei Modellen, die Bilder verstehen (in LM Studio Typ `vlm`), lässt sich ein Bild anhängen, z. B. mit der Frage „Lies mal das Bild aus“. Dafür gibt es drei Wege:
@@ -33,16 +44,25 @@ Ein einfacher Windows-Chat-Client für [LM Studio](https://lmstudio.ai). Er läu
 | Umschalt+Enter | Neue Zeile |
 | Strg+V | Bild aus der Zwischenablage anhängen |
 
-## Voraussetzungen in LM Studio
+## Einrichtung der Anbieter
 
-1. Unter **Developer** den Server starten (Standard-Port `1234`).
-2. **„Serve on Local Network“** einschalten, damit andere Rechner im Netzwerk zugreifen können.
-3. Gegebenenfalls Port 1234 in der Firewall freigeben.
+**LM Studio:** Unter **Developer** den Server starten (Standard-Port `1234`). Für Zugriff von anderen Rechnern **„Serve on Local Network“** einschalten und gegebenenfalls den Port in der Firewall freigeben.
 
-Die App nutzt zwei Schnittstellen von LM Studio:
+**Ollama:** Modelle mit `ollama pull <name>` laden. Für Zugriff von anderen Rechnern Ollama mit `OLLAMA_HOST=0.0.0.0` starten.
 
-- `/v1/chat/completions`: OpenAI-kompatible Schnittstelle für den Chat
-- `/api/v0/models`: Modellliste inkl. Typ (`llm`/`vlm`) und Ladezustand
+**OpenAI, Anthropic, OpenRouter:** API-Schlüssel im Konto des Anbieters erzeugen und in den Einstellungen eintragen. Die Nutzung kostet je nach Modell Geld. Nachrichten und Bilder werden an den Dienst gesendet.
+
+## Technische Details
+
+| Anbieter | Chat | Modellliste | Bilderkennung |
+|---|---|---|---|
+| LM Studio | `/v1/chat/completions` (OpenAI-kompatibel) | `/api/v0/models` | Typ `vlm` |
+| Ollama | `/v1/chat/completions` (OpenAI-kompatibel) | `/api/tags` und `/api/show` | Fähigkeit `vision` |
+| OpenAI | `/v1/chat/completions` | `/v1/models` | wird nicht gemeldet |
+| OpenRouter | `/api/v1/chat/completions` | `/api/v1/models` | `input_modalities` enthält `image` |
+| Anthropic | offizielles [Anthropic-SDK für C#](https://www.nuget.org/packages/Anthropic) (Messages API, Streaming) | Models API | alle Claude-Modelle |
+
+Welche Feineinstellungen gesendet werden, hängt vom Anbieter ab. Nicht unterstützte Einstellungen sind ausgegraut und werden nicht gesendet; bei Anthropic sind das z. B. Temperatur, Top-P und Top-K. Bei aktuellen Claude-Modellen (Opus 5.5, Opus 5, Fable 5.1, Sonnet 5.5) ist der serverseitige Fallback aktiv: Lehnt das Modell eine Anfrage ab, antwortet automatisch ein passendes Ersatzmodell.
 
 ## Daten
 
@@ -93,13 +113,15 @@ Das Icon erzeugt `tools\make-icon.ps1` neu.
 | Datei | Inhalt |
 |---|---|
 | `LmChat/MainWindow.xaml` | Oberfläche: Chat, Einstellungen, Hilfe |
-| `LmChat/MainWindow.xaml.cs` | Logik: Senden/Streaming, Bilder, Chatliste, Modellliste, Einstellungen |
+| `LmChat/MainWindow.xaml.cs` | Logik: Chat, Bilder, Chatliste, Einstellungsseite |
+| `LmChat/Providers.cs` | Anbieter (Standardwerte, Links) und `LlmClient`: Modelllisten und Streaming je Anbieter |
+| `LmChat/MarkdownRenderer.cs` | Markdown → WPF-FlowDocument (über Markdig) |
 | `LmChat/ParamRow.cs` | Einstellungszeile mit Haken, Erklärung und Schieberegler |
 | `LmChat/ChatStore.cs` | SQLite-Speicher für Chats, Nachrichten, Einstellungen |
-| `LmChat/LlmSettings.cs` | LM-Studio-Einstellungen (als JSON in der Datenbank) |
+| `LmChat/LlmSettings.cs` | Einstellungen je Anbieter (als JSON in der Datenbank, Schlüssel per DPAPI verschlüsselt) |
 | `LmChat/app.ico` | App-Icon |
 
-Technik: C# / WPF auf .NET 10, `Microsoft.Data.Sqlite`.
+Technik: C# / WPF auf .NET 10, `Microsoft.Data.Sqlite`, `Markdig`, `Anthropic`, `System.Security.Cryptography.ProtectedData`.
 
 ## Lizenz und Haftungsausschluss
 

@@ -23,7 +23,7 @@
         </Style>
     </Window.Resources>
 
-    <TabControl Margin="8">
+    <TabControl x:Name="MainTabs" Margin="8">
 
         <!-- ========== Chat ========== -->
         <TabItem Header="Chat">
@@ -117,28 +117,54 @@
 
         <!-- ========== Einstellungen ========== -->
         <TabItem Header="Einstellungen">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="12,4,16,16" MaxWidth="780" HorizontalAlignment="Left">
 
-                    <TextBlock Style="{StaticResource Heading}" Text="Verbindung"/>
+                    <TextBlock Style="{StaticResource Heading}" Text="Anbieter"/>
                     <TextBlock Style="{StaticResource Hint}">
-                        Adresse des LM-Studio-Servers, z. B. <Run FontFamily="Consolas" Text="http://192.168.178.191:1234"/>.
-                        Den Port findest du in LM Studio unter „Developer“. Dort muss der Server laufen und
-                        „Serve on Local Network“ eingeschaltet sein.
+                        Wo das Sprachmodell läuft: lokal auf deinem Rechner bzw. im Netzwerk (LM Studio, Ollama) oder bei
+                        einem Online-Dienst (OpenAI, Anthropic, OpenRouter). Jeder Anbieter merkt sich seine eigene Adresse,
+                        seinen Schlüssel und sein Modell.
                     </TextBlock>
-                    <TextBox x:Name="ServerBox"/>
+                    <ComboBox x:Name="ProviderCombo" DisplayMemberPath="Label"
+                              SelectionChanged="ProviderCombo_SelectionChanged"/>
+                    <TextBlock x:Name="ProviderHint" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
+                    <TextBlock x:Name="ProviderLinks" TextWrapping="Wrap" Margin="0,0,0,4"/>
+
+                    <TextBlock Style="{StaticResource Heading}" Text="Server-Adresse"/>
+                    <TextBlock Style="{StaticResource Hint}">
+                        Normalerweise passt der Standard. Für einen anderen Rechner im Netzwerk dessen Adresse eintragen,
+                        z. B. <Run FontFamily="Consolas" Text="http://192.168.178.191:1234"/>.
+                    </TextBlock>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Standard" Margin="8,0,0,0" Click="DefaultServer_Click"/>
+                        <TextBox x:Name="ServerBox"/>
+                    </DockPanel>
+
+                    <StackPanel x:Name="ApiKeyPanel">
+                        <TextBlock Style="{StaticResource Heading}" Text="API-Schlüssel"/>
+                        <TextBlock Style="{StaticResource Hint}">
+                            Den Schlüssel bekommst du in deinem Konto beim Anbieter:
+                            <Hyperlink x:Name="KeyLink" RequestNavigate="Link_RequestNavigate"><Run x:Name="KeyLinkText"/></Hyperlink>.
+                            Er wird verschlüsselt gespeichert und ist nur mit deinem Windows-Konto lesbar.
+                            Achtung: Bei Online-Diensten werden deine Nachrichten und Bilder an den Anbieter gesendet,
+                            und die Nutzung kostet in der Regel Geld.
+                        </TextBlock>
+                        <PasswordBox x:Name="ApiKeyBox"/>
+                    </StackPanel>
 
                     <TextBlock Style="{StaticResource Heading}" Text="Modell"/>
                     <TextBlock Style="{StaticResource Hint}">
-                        Die Liste kommt direkt von LM Studio.
+                        Die Liste kommt direkt vom Anbieter („Liste aktualisieren“, nachdem Adresse und ggf. Schlüssel stimmen).
                         <Run FontWeight="SemiBold" Text="🖼"/> = versteht Bilder,
                         <Run FontWeight="SemiBold" Text="●"/> = ist gerade geladen und antwortet sofort.
-                        Andere Modelle lädt LM Studio beim ersten Senden; das kann je nach Größe eine Weile dauern.
+                        Im aufgeklappten Feld kannst du die Anfangsbuchstaben tippen, um schnell zu springen.
                     </TextBlock>
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Content="Liste aktualisieren" Margin="8,0,0,0"
                                 Click="ReloadModels_Click"/>
                         <ComboBox x:Name="ModelCombo" DisplayMemberPath="Label" SelectedValuePath="Id"
+                                  TextSearch.TextPath="Id" MaxDropDownHeight="420"
                                   HorizontalAlignment="Stretch" SelectionChanged="ModelCombo_SelectionChanged"/>
                     </DockPanel>
                     <TextBlock x:Name="ModelHint" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
@@ -153,8 +179,9 @@
 
                     <TextBlock Style="{StaticResource Heading}" Text="Feineinstellungen"/>
                     <TextBlock Style="{StaticResource Hint}">
-                        Setze einen Haken, um einen eigenen Wert zu verwenden. Ohne Haken nimmt LM Studio den
-                        Standardwert des Modells. Das ist meistens die beste Wahl.
+                        Setze einen Haken, um einen eigenen Wert zu verwenden. Ohne Haken gilt der Standardwert
+                        des Modells. Das ist meistens die beste Wahl. Ausgegraute Einstellungen kennt der gewählte
+                        Anbieter nicht; sie werden dann nicht gesendet.
                     </TextBlock>
                     <StackPanel x:Name="ParamsPanel"/>
 
@@ -176,7 +203,7 @@
 
                     <TextBlock Style="{StaticResource Heading}" Text="LM Chat"/>
                     <TextBlock Style="{StaticResource Body}">
-                        Ein einfacher Chat-Client für LM Studio. <Run x:Name="VersionRun"/>
+                        Ein einfacher Chat-Client für lokale und Online-Sprachmodelle. <Run x:Name="VersionRun"/>
                         <LineBreak/>
                         Projekt auf GitHub:
                         <Hyperlink NavigateUri="https://github.com/ghaslbe/lmstudioChatWindows"
@@ -189,9 +216,22 @@
 
                     <TextBlock Style="{StaticResource Heading}" Text="Erste Schritte"/>
                     <TextBlock Style="{StaticResource Body}">
-                        1. In LM Studio unter „Developer“ den Server starten und „Serve on Local Network“ einschalten.<LineBreak/>
-                        2. Hier unter „Einstellungen“ die Server-Adresse eintragen, ein Modell wählen und „Speichern“ klicken.<LineBreak/>
-                        3. Unter „Chat“ eine Frage eintippen und Enter drücken. Die Antwort erscheint Wort für Wort.
+                        1. Unter „Einstellungen“ den Anbieter wählen. Die Links darunter führen zur Website, zu den Schlüsseln und Preisen.<LineBreak/>
+                        2. Bei lokalen Anbietern ggf. die Server-Adresse anpassen, bei Online-Diensten den API-Schlüssel eintragen.<LineBreak/>
+                        3. „Liste aktualisieren“, ein Modell wählen und „Speichern“ klicken.<LineBreak/>
+                        4. Unter „Chat“ eine Frage eintippen und Enter drücken. Die Antwort erscheint Wort für Wort.
+                    </TextBlock>
+
+                    <TextBlock Style="{StaticResource Heading}" Text="Anbieter"/>
+                    <TextBlock Style="{StaticResource Body}">
+                        <Run FontWeight="SemiBold" Text="LM Studio"/> (lokal, Standard http://localhost:1234): Server unter „Developer“ starten;
+                        für andere Rechner „Serve on Local Network“ einschalten.<LineBreak/>
+                        <Run FontWeight="SemiBold" Text="Ollama"/> (lokal, Standard http://localhost:11434): Modelle mit „ollama pull“ laden;
+                        für andere Rechner OLLAMA_HOST=0.0.0.0 setzen.<LineBreak/>
+                        <Run FontWeight="SemiBold" Text="OpenAI"/>, <Run FontWeight="SemiBold" Text="Anthropic (Claude)"/>,
+                        <Run FontWeight="SemiBold" Text="OpenRouter"/> (online): brauchen einen API-Schlüssel und kosten pro Nutzung.
+                        Nachrichten und Bilder werden dabei an den jeweiligen Dienst gesendet.<LineBreak/>
+                        Die API-Schlüssel werden verschlüsselt gespeichert und sind nur mit deinem Windows-Konto lesbar.
                     </TextBlock>
 
                     <TextBlock Style="{StaticResource Heading}" Text="Bedienung"/>
@@ -221,7 +261,10 @@
                     <TextBlock Style="{StaticResource Heading}" Text="Wenn es nicht klappt"/>
                     <TextBlock Style="{StaticResource Body}">
                         <Run FontWeight="SemiBold" Text="„Fehler“ / keine Verbindung:"/>
-                        Läuft der Server in LM Studio? Ist „Serve on Local Network“ an? Stimmt die Adresse? Lässt die Firewall den Port durch?<LineBreak/>
+                        Lokal: Läuft LM Studio bzw. Ollama? Ist der Zugriff aus dem Netzwerk erlaubt? Stimmt die Adresse? Lässt die Firewall den Port durch?
+                        Online: Stimmt der API-Schlüssel, und ist beim Anbieter Guthaben vorhanden?<LineBreak/>
+                        <Run FontWeight="SemiBold" Text="Fehler wegen Temperatur o. Ä.:"/>
+                        Manche Modelle (z. B. Reasoning-Modelle) lehnen einzelne Feineinstellungen ab – dort den Haken entfernen.<LineBreak/>
                         <Run FontWeight="SemiBold" Text="Modellliste ist leer:"/>
                         In den Einstellungen „Liste aktualisieren“ klicken, nachdem die Adresse stimmt.<LineBreak/>
                         <Run FontWeight="SemiBold" Text="Erste Antwort dauert lange:"/>
@@ -234,7 +277,7 @@
                     <TextBlock Style="{StaticResource Body}">
                         Chats, Bilder und Einstellungen liegen nur auf diesem Rechner in
                         <Run FontFamily="Consolas" Text="%LOCALAPPDATA%\LmChat\chats.db"/>.
-                        Gesendet wird ausschließlich an den eingestellten LM-Studio-Server.
+                        Gesendet wird ausschließlich an den eingestellten Anbieter.
                     </TextBlock>
 
                     <TextBlock Style="{StaticResource Heading}" Text="Lizenz und Haftungsausschluss"/>

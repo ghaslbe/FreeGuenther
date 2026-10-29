@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using Markdig;
@@ -85,15 +86,25 @@ internal static class MarkdownRenderer
             }
 
             case CodeBlock code:
-                target.Add(new Paragraph(new Run(code.Lines.ToString().TrimEnd('\r', '\n')))
+            {
+                // Kopfzeile mit Sprache und Knopf „Kopieren“, darunter der Code mit Hervorhebung
+                var text = code.Lines.ToString().TrimEnd('\r', '\n');
+                var language = (code as FencedCodeBlock)?.Info;
+                var section = new Section { Background = CodeBackground, Margin = new Thickness(0, 2, 0, 10) };
+                section.Blocks.Add(new BlockUIContainer(CodeHeader(language, text)) { Margin = new Thickness(0) });
+                var p = new Paragraph
                 {
                     FontFamily = Mono,
                     FontSize = 13,
-                    Background = CodeBackground,
-                    Padding = new Thickness(10, 8, 10, 8),
-                    Margin = new Thickness(0, 2, 0, 10)
-                });
+                    LineHeight = 19,
+                    Padding = new Thickness(10, 0, 10, 8),
+                    Margin = new Thickness(0)
+                };
+                CodeHighlighter.Highlight(text, language, p.Inlines);
+                section.Blocks.Add(p);
+                target.Add(section);
                 break;
+            }
 
             case QuoteBlock quote:
             {
@@ -135,6 +146,60 @@ internal static class MarkdownRenderer
                 break;
         }
     }
+
+    // Kopiert Text in die Zwischenablage (setzt das Hauptfenster, mit Wiederholung bei belegter Zwischenablage)
+    public static Func<string, bool>? CopyText { get; set; }
+
+    private static FrameworkElement CodeHeader(string? language, string code)
+    {
+        var label = new TextBlock { Text = "Kopieren", Margin = new Thickness(5, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        var button = new Button
+        {
+            Padding = new Thickness(6, 2, 8, 2),
+            FontSize = 11.5,
+            ToolTip = "Code in die Zwischenablage kopieren",
+            Content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Children =
+                {
+                    new TextBlock { Text = "", FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"), FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
+                    label
+                }
+            }
+        };
+        if (Application.Current.MainWindow?.TryFindResource("IconButton") is Style style)
+            button.Style = style;
+        System.Windows.Automation.AutomationProperties.SetName(button, "Code kopieren");
+        button.Click += async (_, _) =>
+        {
+            if (CopyText?.Invoke(code) != true) return;
+            label.Text = "Kopiert ✓";
+            await Task.Delay(1800);
+            label.Text = "Kopieren";
+        };
+        DockPanel.SetDock(button, Dock.Right);
+
+        var name = new TextBlock
+        {
+            Text = string.IsNullOrWhiteSpace(language) ? "Code" : language.Trim(),
+            FontSize = 11.5,
+            VerticalAlignment = VerticalAlignment.Center,
+            Opacity = 0.7
+        };
+        return new DockPanel { Margin = new Thickness(10, 2, 4, 0), Children = { button, name } };
+    }
+
+    // Für den Export als HTML: rohes HTML aus Modellantworten nicht übernehmen
+    private static readonly MarkdownPipeline HtmlPipeline = new MarkdownPipelineBuilder()
+        .UsePipeTables()
+        .UseEmphasisExtras()
+        .UseAutoLinks()
+        .UseTaskLists()
+        .DisableHtml()
+        .Build();
+
+    public static string ToHtml(string markdown) => Markdown.ToHtml(markdown, HtmlPipeline);
 
     private static System.Windows.Documents.Table BuildTable(MdTable source)
     {

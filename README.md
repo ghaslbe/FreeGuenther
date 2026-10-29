@@ -78,7 +78,13 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
   - Ist ein Bildmodell aktiv, ist die Nachricht die Bildbeschreibung. Angefragt wird über die Bild-Schnittstelle des Anbieters: `POST /api/v1/images` bzw. `/v1/images/generations`.
   - **Bearbeiten:** Ein angehängtes Bild dient als Vorlage, ohne Anhang (mit „Verlauf mitsenden“) das zuletzt erzeugte. So geht z. B. „mach daraus eine Nachtszene“. Technisch läuft das über `input_references` bzw. `/v1/images/edits`.
   - Das Bild erscheint im Chat, mit „Bild kopieren“, „Speichern“ (PNG) und den Kosten, sofern gemeldet. Erzeugte Bilder werden mit dem Chat gespeichert.
-- **Kopieren:** Der Knopf „Kopieren“ unter jeder Antwort legt sie mit Markdown-Formatierung in die Zwischenablage.
+- **Kopieren:** Der Knopf „Kopieren“ unter jeder Antwort legt sie mit Markdown-Formatierung in die Zwischenablage. Code-Blöcke haben einen eigenen Knopf „Kopieren“, der nur den Code kopiert, und werden farbig hervorgehoben (Python, C#/Java/JS/Rust/Go u. a., Shell/PowerShell, SQL, JSON, HTML/XML).
+- **Neu erzeugen:** Unter jeder Antwort stellt „Neu erzeugen“ dieselbe Frage nochmal, mit dem gerade eingestellten Modell. So lassen sich z. B. Modelle vergleichen. Die alte Antwort wird ersetzt.
+- **Bearbeiten:** Unter jeder eigenen Nachricht holt „Bearbeiten“ sie zurück ins Eingabefeld. Die Nachricht und alles danach wird aus dem Chat entfernt; folgen noch weitere Nachrichten, fragt LM Chat vorher nach.
+- **Gedankengang:** Schickt das Modell seine Denkphase mit (`reasoning`/`reasoning_content`, Claude-Thinking oder `<think>…</think>` im Text), läuft deren Ende während des Wartens in der Statuszeile mit. Danach steht sie eingeklappt über der Antwort und wird mit dem Chat gespeichert. An das Modell zurückgeschickt wird sie nicht.
+- **Chat-Titel:** Nach der ersten Antwort schlägt das Modell einen kurzen Titel vor (abschaltbar in den Einstellungen unter „System-Prompt“). Bei Online-Anbietern kostet das ein paar Tokens; sie erscheinen unter „Verbrauch“.
+- **Export:** Der Knopf oben rechts im Chat speichert ihn als Markdown oder als HTML. Bilder sind eingebettet, der Gedankengang ist im HTML aufklappbar. Die HTML-Datei lässt sich im Browser drucken bzw. als PDF speichern.
+- **Scrollen:** Scrollt man während einer Antwort nach oben, springt der Chat nicht mehr ans Ende, bis man wieder ganz unten ist.
 - **Angaben unter jeder Antwort** (klein, wird mit dem Chat gespeichert):
   - Anbieter und tatsächlich antwortendes Modell, bei OpenRouter auch der Hoster, z. B. `OpenRouter · openai/gpt-6-luna (über OpenAI)`
   - Token pro Sekunde (gemessen ab dem ersten Text- bzw. Denk-Token)

@@ -324,6 +324,11 @@
                                     ToolTip="Diesen Chat löschen" Click="DeleteChat_Click">
                                 <TextBlock Text="&#xE74D;" FontFamily="{StaticResource IconFont}" FontSize="15"/>
                             </Button>
+                            <Button x:Name="ExportChatButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}"
+                                    ToolTip="Chat exportieren – als Markdown oder HTML (HTML im Browser drucken = PDF)" Click="ExportChat_Click"
+                                    AutomationProperties.Name="Chat exportieren">
+                                <TextBlock Text="&#xEDE1;" FontFamily="{StaticResource IconFont}" FontSize="15"/>
+                            </Button>
                             <TextBlock x:Name="ChatTitleText" Text="Neuer Chat" FontSize="16" FontWeight="SemiBold"
                                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         </DockPanel>
@@ -632,6 +637,9 @@
                                     </TextBlock>
                                     <TextBox x:Name="SystemPromptBox" Height="100"
                                              AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+                                    <CheckBox x:Name="AutoTitleCheck" Margin="0,12,0,0"
+                                              Content="Chat-Titel nach der ersten Antwort vom Modell vorschlagen lassen"
+                                              ToolTip="Eine kurze Zusatzanfrage an dasselbe Modell. Bei Online-Anbietern kostet das ein paar Tokens."/>
                                 </StackPanel>
                             </Border>
 
@@ -948,6 +956,11 @@
                                         <Run FontWeight="SemiBold" Text="Stopp-Knopf"/> – laufende Antwort abbrechen<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Suchfeld links"/> – Chats nach Titel filtern<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Kopieren unter einer Antwort"/> – Antwort (mit Markdown) in die Zwischenablage<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Neu erzeugen unter einer Antwort"/> – dieselbe Frage nochmal stellen (z. B. nach einem Modellwechsel)<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Bearbeiten unter deiner Nachricht"/> – Nachricht ändern und neu senden; die Antworten ab dort werden ersetzt<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Kopieren über einem Code-Block"/> – nur den Code in die Zwischenablage<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Export-Knopf oben rechts"/> – Chat als Markdown oder HTML speichern (HTML im Browser drucken = PDF)<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Hochscrollen während einer Antwort"/> – der Chat springt nicht mehr ans Ende, bis du wieder ganz unten bist<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Zeile unter jeder Antwort"/> – Anbieter, Modell, Geschwindigkeit
                                         (Token/s), Token-Verbrauch (in/out) und Dauer, soweit der Anbieter das meldet
                                     </TextBlock>

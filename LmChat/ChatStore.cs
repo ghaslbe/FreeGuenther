@@ -22,6 +22,7 @@ public record ChatMessage(string Role, string Content, byte[]? Image = null)
 {
     public long Id { get; init; }
     public AnswerStats? Stats { get; init; }
+    public string? Reasoning { get; init; }   // Gedankengang des Modells (Denkphase), nur zum Anzeigen
 }
 
 // Angaben unter einer Antwort: wer geantwortet hat, wie schnell und mit wie vielen Tokens
@@ -70,6 +71,10 @@ public sealed class ChatStore
         // Ab Version 1.8: Statistik je Antwort (JSON); ältere Datenbanken bekommen die Spalte nachträglich
         if (Scalar("SELECT COUNT(*) FROM pragma_table_info('messages') WHERE name = 'meta'") is 0L)
             Execute("ALTER TABLE messages ADD COLUMN meta TEXT");
+
+        // Ab Version 1.15: Gedankengang (Denkphase) je Antwort
+        if (Scalar("SELECT COUNT(*) FROM pragma_table_info('messages') WHERE name = 'reasoning'") is 0L)
+            Execute("ALTER TABLE messages ADD COLUMN reasoning TEXT");
 
         // Ab Version 1.11: Verbrauch je Antwort, unabhängig von den Chats (bleibt beim Löschen eines Chats erhalten).
         // Beim ersten Start wird er aus den Statistiken der vorhandenen Antworten übernommen.
@@ -170,10 +175,13 @@ public sealed class ChatStore
     public void DeleteChat(long chatId) =>
         Execute("DELETE FROM messages WHERE chat_id = $id; DELETE FROM chats WHERE id = $id", ("$id", chatId));
 
+    public void RenameChat(long chatId, string title) =>
+        Execute("UPDATE chats SET title = $t WHERE id = $id", ("$t", title), ("$id", chatId));
+
     public List<ChatMessage> LoadMessages(long chatId)
     {
         using var conn = Open();
-        using var cmd = Command(conn, "SELECT id, role, content, image, meta FROM messages WHERE chat_id = $id ORDER BY id",
+        using var cmd = Command(conn, "SELECT id, role, content, image, meta, reasoning FROM messages WHERE chat_id = $id ORDER BY id",
             ("$id", chatId));
         using var r = cmd.ExecuteReader();
         var list = new List<ChatMessage>();
@@ -181,18 +189,23 @@ public sealed class ChatStore
             list.Add(new ChatMessage(r.GetString(1), r.GetString(2), r.IsDBNull(3) ? null : (byte[])r[3])
             {
                 Id = r.GetInt64(0),
-                Stats = r.IsDBNull(4) ? null : ParseStats(r.GetString(4))
+                Stats = r.IsDBNull(4) ? null : ParseStats(r.GetString(4)),
+                Reasoning = r.IsDBNull(5) ? null : r.GetString(5)
             });
         return list;
     }
 
     public long AddMessage(long chatId, ChatMessage m) =>
         (long)Scalar("""
-            INSERT INTO messages (chat_id, role, content, image, created, meta)
-            VALUES ($c, $r, $t, $i, $d, $m) RETURNING id
+            INSERT INTO messages (chat_id, role, content, image, created, meta, reasoning)
+            VALUES ($c, $r, $t, $i, $d, $m, $g) RETURNING id
             """,
             ("$c", chatId), ("$r", m.Role), ("$t", m.Content), ("$i", m.Image), ("$d", FormatDate(DateTime.Now)),
-            ("$m", m.Stats == null ? null : JsonSerializer.Serialize(m.Stats)))!;
+            ("$m", m.Stats == null ? null : JsonSerializer.Serialize(m.Stats)), ("$g", m.Reasoning))!;
+
+    // Nachricht und alles danach im selben Chat löschen (Bearbeiten bzw. neu erzeugen)
+    public void DeleteMessagesFrom(long chatId, long messageId) =>
+        Execute("DELETE FROM messages WHERE chat_id = $c AND id >= $id", ("$c", chatId), ("$id", messageId));
 
     private static AnswerStats? ParseStats(string json)
     {

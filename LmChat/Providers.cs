@@ -531,13 +531,15 @@ public static class LlmClient
 
     // tools = Werkzeuge der aktiven Plugins (null = keine). Ruft das Modell eins auf, wird es ausgeführt, das Ergebnis
     // zurückgeschickt und weiter gestreamt – bis das Modell eine normale Antwort gibt.
+    // onReasoning bekommt den Gedankengang (Denkphase) stückweise, sofern der Anbieter ihn mitschickt
     public static async Task StreamAsync(ChatRequest r, Action<string> onChunk, Action<Phase> onPhase, StreamResult result,
-        ToolBox? tools, CancellationToken ct)
+        ToolBox? tools, CancellationToken ct, Action<string>? onReasoning = null)
     {
+        onReasoning ??= _ => { };
         if (r.Provider.Kind == ProviderKind.Anthropic)
-            await StreamAnthropicAsync(r, onChunk, onPhase, result, tools, ct);
+            await StreamAnthropicAsync(r, onChunk, onPhase, onReasoning, result, tools, ct);
         else
-            await StreamOpenAICompatibleAsync(r, onChunk, onPhase, result, tools, ct);
+            await StreamOpenAICompatibleAsync(r, onChunk, onPhase, onReasoning, result, tools, ct);
     }
 
     private static void AddUsage(StreamResult result, long? input, long? output, double? cost)
@@ -548,7 +550,7 @@ public static class LlmClient
     }
 
     private static async Task StreamOpenAICompatibleAsync(ChatRequest r, Action<string> onChunk, Action<Phase> onPhase,
-        StreamResult result, ToolBox? tools, CancellationToken ct)
+        Action<string> onReasoning, StreamResult result, ToolBox? tools, CancellationToken ct)
     {
         var p = r.Provider;
         var s = r.Settings;
@@ -657,11 +659,12 @@ public static class LlmClient
                 if (json?["choices"] is not JsonArray { Count: > 0 } choices) continue;
                 var delta = choices[0]?["delta"];
                 // Denkphase: OpenRouter/Ollama melden sie als "reasoning", LM Studio als "reasoning_content"
-                if (!thinking && (delta?["reasoning"] ?? delta?["reasoning_content"]) is JsonValue reasoning
+                if ((delta?["reasoning"] ?? delta?["reasoning_content"]) is JsonValue reasoning
                     && reasoning.TryGetValue<string>(out var reasoningText) && reasoningText.Length > 0)
                 {
+                    if (!thinking) onPhase(Phase.Thinking);
                     thinking = true;
-                    onPhase(Phase.Thinking);
+                    onReasoning(reasoningText);
                 }
                 // Werkzeugaufrufe kommen stückweise: je Index Kennung, Name und Argumente (JSON) zusammensetzen
                 foreach (var call in delta?["tool_calls"] as JsonArray ?? [])
@@ -731,7 +734,7 @@ public static class LlmClient
     }
 
     private static async Task StreamAnthropicAsync(ChatRequest r, Action<string> onChunk, Action<Phase> onPhase,
-        StreamResult result, ToolBox? tools, CancellationToken ct)
+        Action<string> onReasoning, StreamResult result, ToolBox? tools, CancellationToken ct)
     {
         var client = CreateAnthropicClient(r.Server, r.ApiKey);
         var useFallback = FallbackModels.Contains(r.Model);
@@ -778,6 +781,11 @@ public static class LlmClient
                     }
                     else if (delta.Delta.TryPickInputJson(out var json) && uses.Count > 0)
                         uses[^1].Json.Append(json.PartialJson);
+                    else if (delta.Delta.TryPickThinking(out var thought))
+                    {
+                        onPhase(Phase.Thinking);
+                        onReasoning(thought.Thinking);
+                    }
                 }
                 else if (ev.TryPickContentBlockStart(out var blockStart))
                 {

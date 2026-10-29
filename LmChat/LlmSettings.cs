@@ -56,6 +56,7 @@ public sealed class LlmSettings
     public ProviderKind Provider { get; set; } = ProviderKind.LmStudio;
     public Dictionary<ProviderKind, ProviderConfig> Providers { get; set; } = new();
     public string SystemPrompt { get; set; } = "";
+    public bool AutoTitle { get; set; } = true;   // nach der ersten Antwort einen Chat-Titel vom Modell vorschlagen lassen
     public double? Temperature { get; set; }
     public double? TopP { get; set; }
     public double? TopK { get; set; }

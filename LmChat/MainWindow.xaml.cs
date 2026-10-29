@@ -37,6 +37,7 @@ public partial class MainWindow : Window
     private byte[]? _pendingImage;
     private CancellationTokenSource? _cts;
     private bool _suppressSelection;
+    private bool _followStream = true;   // false, sobald man während einer Antwort hochscrollt
 
     public MainWindow()
     {
@@ -67,6 +68,8 @@ public partial class MainWindow : Window
         System.Windows.Data.CollectionViewSource.GetDefaultView(_models).Filter = ModelMatchesFilter;
         foreach (var row in ParamRows)
             ParamsPanel.Children.Add(row.Element);
+        MarkdownRenderer.CopyText = text => CopyToClipboard(() => Clipboard.SetText(text));
+        ChatBox.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler(ChatBox_ScrollChanged));
         ShowSettings();
         // Beim Befüllen der Einstellungen kann ein Element dort den Fokus bekommen – immer im Chat starten
         Loaded += (_, _) =>
@@ -204,6 +207,7 @@ public partial class MainWindow : Window
         EmptyState.Visibility = IsReady && ChatBox.Document.Blocks.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         ChatTitleText.Text = _currentChat?.Title ?? "Neuer Chat";
         DeleteChatButton.Visibility = _currentChat == null ? Visibility.Hidden : Visibility.Visible;
+        ExportChatButton.Visibility = _currentChat == null || _messages.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
     // ---------- Einrichtung (erster Start) ----------
@@ -374,6 +378,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        var newChat = _currentChat == null;
         if (_currentChat == null)
         {
             _currentChat = _store.CreateChat(MakeTitle(text));
@@ -387,6 +392,7 @@ public partial class MainWindow : Window
         _messages.Add(userMsg);
         InputBox.Clear();
         ClearImage();
+        _followStream = true;
         AddMessageBlock(userMsg);
         var answerView = AddMessageBlock(new ChatMessage("assistant", ""), streaming: true);
 
@@ -397,6 +403,7 @@ public partial class MainWindow : Window
         _cts = new CancellationTokenSource();
         SetBusy(true);
         var answer = new StringBuilder();
+        var reasoning = new StringBuilder();
         string? note = null;
         var result = new LlmClient.StreamResult();
         var clock = Stopwatch.StartNew();
@@ -420,6 +427,13 @@ public partial class MainWindow : Window
                 : provider.IsLocal && !imageMode ? " – dauert länger, evtl. wird das Modell erst geladen"
                 : " – dauert länger als üblich, abbrechen geht jederzeit mit ■";
             phaseRun.Text = $"⏳ {phase} … {seconds} s{hint}";
+            // Während der Denkphase das Ende des Gedankengangs mitlaufen lassen
+            if (reasoning.Length > 0)
+            {
+                var tail = reasoning.ToString(Math.Max(0, reasoning.Length - 160), Math.Min(160, reasoning.Length))
+                    .ReplaceLineEndings(" ").Trim();
+                phaseRun.Text += $"\n💭 … {tail}";
+            }
             StatusText.Text = phase + " …";
         }
         void SetPhase(string text)
@@ -470,7 +484,7 @@ public partial class MainWindow : Window
                     firstChunkAt ??= clock.Elapsed.TotalSeconds;
                     answer.Append(chunk);
                     answerView.Stream!.Text += chunk;
-                    ChatBox.ScrollToEnd();
+                    if (_followStream) ChatBox.ScrollToEnd();
                 }, p =>
                 {
                     // Denk-Tokens zählen zur Ausgabe – ab hier wird für Token/s gemessen
@@ -483,7 +497,11 @@ public partial class MainWindow : Window
                         LlmClient.Phase.Connected => $"{provider.Name} hat die Anfrage angenommen, warte auf die ersten Wörter",
                         _ => "💭 Das Modell denkt nach"
                     });
-                }, result, toolBox, _cts.Token);
+                }, result, toolBox, _cts.Token, piece =>
+                {
+                    reasoning.Append(piece);
+                    if (ticker.IsEnabled) ShowPhase();
+                });
 
                 // Modell hat die Werkzeuge abgelehnt: merken, damit es beim nächsten Mal gar nicht erst versucht wird
                 if (result.ToolsRejected)
@@ -511,6 +529,13 @@ public partial class MainWindow : Window
             ticker.Stop();
             // Manche lokalen Modelle (z. B. Gemma in LM Studio) reichen leere Denk-Markierungen durch – entfernen
             var cleaned = System.Text.RegularExpressions.Regex.Replace(answer.ToString(), @"<\|channel\|?>[\s\S]*?<\|?channel\|>", "").TrimStart();
+            // Manche Modelle schreiben die Denkphase als <think>…</think> in den Text – als Gedankengang abtrennen
+            var think = System.Text.RegularExpressions.Regex.Match(cleaned, @"^<think>([\s\S]*?)(?:</think>|$)");
+            if (think.Success)
+            {
+                reasoning.Append(think.Groups[1].Value);
+                cleaned = cleaned[think.Length..].TrimStart();
+            }
             answer.Clear().Append(cleaned);
             var stats = MakeStats(result, config.Model, clock.Elapsed.TotalSeconds, firstChunkAt, cost ?? result.Cost) with
             {
@@ -519,7 +544,10 @@ public partial class MainWindow : Window
             var success = answer.Length > 0 || generated != null;
 
             // Fertige Antwort als Markdown darstellen (während des Streamings war es reiner Text)
+            var thoughts = reasoning.ToString().Trim();
             answerView.Body.Blocks.Clear();
+            if (thoughts.Length > 0)
+                answerView.Body.Blocks.Add(MakeReasoningBlock(thoughts));
             if (generated != null)
                 answerView.Body.Blocks.Add(new BlockUIContainer(MakeImageView(generated, 420, 560)));
             if (answer.Length > 0)
@@ -529,15 +557,18 @@ public partial class MainWindow : Window
             foreach (var pluginNote in pluginNotes)
                 answerView.Body.Blocks.Add(new Paragraph(new Italic(new Run(pluginNote)))
                     { Margin = new Thickness(0, 4, 0, 0), FontSize = 12.5, Foreground = Brushes.DarkOrange });
-            var reply = new ChatMessage("assistant", answer.ToString(), generated) { Stats = stats };
-            if (success)
-                AddAnswerFooter(answerView.Body, reply);
-            ChatBox.ScrollToEnd();
+            var reply = new ChatMessage("assistant", answer.ToString(), generated)
+            {
+                Stats = stats,
+                Reasoning = thoughts.Length > 0 ? thoughts : null
+            };
 
             if (success)
             {
-                _messages.Add(reply with { Id = _store.AddMessage(chat.Id, reply) });
+                reply = reply with { Id = _store.AddMessage(chat.Id, reply) };
+                _messages.Add(reply);
                 _store.AddUsage(provider.Kind, stats);
+                AddAnswerFooter(answerView.Body, reply);
             }
             else
             {
@@ -547,8 +578,10 @@ public partial class MainWindow : Window
                 InputBox.Text = text;
                 if (image != null) SetImage(image);
             }
+            if (_followStream) ChatBox.ScrollToEnd();
 
-            if (_messages.Count == 0)
+            // Gerade erst angelegter Chat ohne Antwort: wieder entfernen (ein bestehender Chat bleibt, z. B. nach „Neu erzeugen“)
+            if (_messages.Count == 0 && newChat)
             {
                 _store.DeleteChat(chat.Id);
                 _chats.Remove(chat);
@@ -568,6 +601,53 @@ public partial class MainWindow : Window
             SetBusy(false);
             UpdateEmptyState();
             InputBox.Focus();
+
+            // Erste Antwort in einem neuen Chat: Titel vom Modell vorschlagen lassen (läuft im Hintergrund)
+            if (success && answer.Length > 0 && !imageMode && _settings.AutoTitle && _messages.Count == 2 && _currentChat is { } titled)
+                _ = SuggestTitleAsync(titled.Id, request, text, answer.ToString());
+        }
+    }
+
+    // Fragt dasselbe Modell nach einem kurzen Titel und benennt den Chat um (Fehler werden ignoriert, der alte Titel bleibt)
+    private async Task SuggestTitleAsync(long chatId, ChatRequest original, string question, string answer)
+    {
+        static string Cut(string s, int max) => s.Length > max ? s[..max] + " …" : s;
+        var prompt = "Gib diesem Gespräch einen kurzen, treffenden Titel (höchstens 6 Wörter, in der Sprache des Gesprächs). " +
+                     "Antworte nur mit dem Titel – ohne Anführungszeichen, ohne Erklärung, ohne Satzzeichen am Ende.\n\n" +
+                     $"Frage: {Cut(question, 1000)}\n\nAntwort: {Cut(answer, 1500)}";
+        var request = original with { SystemPrompt = "", Messages = [new ChatMessage("user", prompt)] };
+        var text = new StringBuilder();
+        var result = new LlmClient.StreamResult();
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+            await LlmClient.StreamAsync(request, chunk => text.Append(chunk), _ => { }, result, null, cts.Token);
+        }
+        catch (Exception)
+        {
+            return;   // Nur ein Komfort-Extra: bei jedem Fehler (auch aus dem Anthropic-SDK) bleibt einfach der alte Titel
+        }
+        if (result.InputTokens != null || result.OutputTokens != null || result.Cost != null)
+            _store.AddUsage(original.Provider.Kind, new AnswerStats(original.Provider.Name, result.Model ?? original.Model, result.Hoster,
+                result.InputTokens, result.OutputTokens, null, 0, result.Cost));
+
+        var raw = System.Text.RegularExpressions.Regex.Replace(text.ToString(), @"<think>[\s\S]*?(</think>|$)|<\|channel\|?>[\s\S]*?<\|?channel\|>", "");
+        var title = raw.Split('\n').Select(l => l.Trim().Trim('"', '„', '“', '\'', '*', '#', ' ').TrimEnd('.', ':'))
+            .FirstOrDefault(l => l.Length > 0);
+        if (title == null) return;
+        if (title.Length > 60) title = title[..60] + "…";
+
+        var index = _chats.ToList().FindIndex(c => c.Id == chatId);
+        if (index < 0) return;   // inzwischen gelöscht
+        _store.RenameChat(chatId, title);
+        var renamed = _chats[index] with { Title = title };
+        var wasSelected = _currentChat?.Id == chatId;
+        _chats[index] = renamed;
+        if (wasSelected)
+        {
+            _currentChat = renamed;
+            SelectChatSilently(renamed);
+            UpdateEmptyState();
         }
     }
 
@@ -736,6 +816,181 @@ public partial class MainWindow : Window
             AddMessageBlock(m);
     }
 
+    // Autoscroll nur, solange man unten ist: Wer während einer Antwort hochscrollt, wird nicht mehr nach unten gezogen
+    private void ChatBox_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (e.ExtentHeightChange == 0 && e.ViewportHeightChange == 0)
+            _followStream = e.VerticalOffset + e.ViewportHeight >= e.ExtentHeight - 40;
+    }
+
+    // Gedankengang (Denkphase) als eingeklappter Bereich über der Antwort
+    private BlockUIContainer MakeReasoningBlock(string reasoning)
+    {
+        var text = new TextBox
+        {
+            Text = reasoning,
+            IsReadOnly = true,
+            TextWrapping = TextWrapping.Wrap,
+            BorderThickness = new Thickness(0),
+            Background = Brushes.Transparent,
+            Padding = new Thickness(0),
+            FontSize = 13,
+            MaxHeight = 360,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+        };
+        text.SetResourceReference(ForegroundProperty, "TextFillColorSecondaryBrush");
+        var words = reasoning.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+        var expander = new Expander
+        {
+            Header = $"💭 Gedankengang ({words:N0} Wörter)",
+            Content = text,
+            IsExpanded = false,
+            FontSize = 13,
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+        expander.SetResourceReference(ForegroundProperty, "TextFillColorSecondaryBrush");
+        return new BlockUIContainer(expander) { Margin = new Thickness(0, 0, 0, 8) };
+    }
+
+    // ---------- Bearbeiten und neu erzeugen ----------
+
+    // Eigene Nachricht zurück ins Eingabefeld; sie und alles danach wird aus dem Chat entfernt
+    private void EditMessage(ChatMessage message)
+    {
+        if (_cts != null) return;
+        var index = _messages.FindIndex(m => m.Id == message.Id);
+        if (index < 0 || _currentChat == null) return;
+        if (_messages.Count - index > 2 && !ConfirmTruncate(_messages.Count - index - 1)) return;
+
+        TruncateFrom(index);
+        InputBox.Text = message.Content;
+        InputBox.CaretIndex = InputBox.Text.Length;
+        ClearImage();
+        if (message.Image != null) SetImage(message.Image);
+        StatusText.Text = "Nachricht bearbeiten und mit Enter neu senden.";
+        InputBox.Focus();
+    }
+
+    // Die Frage zu dieser Antwort nochmal senden (mit dem aktuell eingestellten Modell); die alte Antwort wird ersetzt
+    private void RegenerateAnswer(ChatMessage answer)
+    {
+        if (_cts != null) return;
+        var index = _messages.FindIndex(m => m.Id == answer.Id);
+        if (index < 1 || _messages[index - 1].Role != "user" || _currentChat == null)
+        {
+            StatusText.Text = "Zu dieser Antwort gibt es keine Frage zum erneuten Senden.";
+            return;
+        }
+        if (index < _messages.Count - 1 && !ConfirmTruncate(_messages.Count - index - 1)) return;
+
+        var question = _messages[index - 1];
+        TruncateFrom(index - 1);
+        InputBox.Text = question.Content;
+        ClearImage();
+        if (question.Image != null) SetImage(question.Image);
+        Send_Click(this, new RoutedEventArgs());
+    }
+
+    private bool ConfirmTruncate(int later) =>
+        MessageBox.Show(this, $"Danach folgen noch {later} weitere Nachricht(en). Sie werden dabei aus dem Chat entfernt. Fortfahren?",
+            "Nachrichten ersetzen", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
+
+    private void TruncateFrom(int index)
+    {
+        _store.DeleteMessagesFrom(_currentChat!.Id, _messages[index].Id);
+        _messages.RemoveRange(index, _messages.Count - index);
+        RenderChat();
+        UpdateEmptyState();
+    }
+
+    // ---------- Export ----------
+
+    private void ExportChat_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentChat is not { } chat || _messages.Count == 0) return;
+        var safeTitle = string.Concat(chat.Title.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)).Trim().TrimEnd('…');
+        var dialog = new SaveFileDialog
+        {
+            Title = "Chat exportieren",
+            Filter = "Markdown|*.md|HTML – im Browser lesen, drucken oder als PDF speichern|*.html",
+            FileName = $"{(safeTitle.Length > 0 ? safeTitle : "Chat")}.md"
+        };
+        if (dialog.ShowDialog(this) != true) return;
+
+        var html = Path.GetExtension(dialog.FileName).Equals(".html", StringComparison.OrdinalIgnoreCase)
+                   || Path.GetExtension(dialog.FileName).Equals(".htm", StringComparison.OrdinalIgnoreCase);
+        try
+        {
+            File.WriteAllText(dialog.FileName, html ? ChatToHtml(chat) : ChatToMarkdown(chat), new UTF8Encoding(false));
+            StatusText.Text = $"Chat exportiert: {dialog.FileName}";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            StatusText.Text = $"Export fehlgeschlagen: {ex.Message}";
+        }
+    }
+
+    private string ChatToMarkdown(ChatInfo chat)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"# {chat.Title}").AppendLine();
+        sb.AppendLine($"*Exportiert aus LM Chat {AppVersion} am {DateTime.Now:dd.MM.yyyy HH:mm}*").AppendLine();
+        foreach (var m in _messages)
+        {
+            sb.AppendLine("---").AppendLine();
+            sb.AppendLine(m.Role == "user" ? "### Du" : $"### {m.Stats?.Model ?? "Antwort"}").AppendLine();
+            if (m.Image != null)
+                sb.AppendLine($"![Bild](data:image/png;base64,{Convert.ToBase64String(m.Image)})").AppendLine();
+            if (m.Content.Length > 0)
+                sb.AppendLine(m.Content.TrimEnd()).AppendLine();
+            if (m.Stats != null)
+                sb.AppendLine($"<sub>{FormatStats(m.Stats)}</sub>").AppendLine();
+        }
+        return sb.ToString();
+    }
+
+    private string ChatToHtml(ChatInfo chat)
+    {
+        static string Enc(string s) => System.Net.WebUtility.HtmlEncode(s);
+        var sb = new StringBuilder();
+        sb.Append($$"""
+            <!doctype html>
+            <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>{{Enc(chat.Title)}}</title>
+            <style>
+            body { font: 15px/1.6 "Segoe UI", system-ui, sans-serif; max-width: 820px; margin: 32px auto; padding: 0 16px; color: #1f1f1f; background: #fff; }
+            h1 { font-size: 24px; margin-bottom: 4px; } .meta { color: #777; font-size: 12px; }
+            .user { background: #f0f0f3; border-radius: 16px; padding: 10px 16px; margin: 24px 0 8px 15%; white-space: pre-wrap; }
+            .answer { margin: 8px 0 24px; } .stats { color: #888; font-size: 11.5px; }
+            pre { background: #f4f4f6; padding: 10px 12px; border-radius: 8px; overflow-x: auto; } code { font-family: "Cascadia Mono", Consolas, monospace; font-size: 13px; }
+            table { border-collapse: collapse; } th, td { border: 1px solid #ccc; padding: 3px 8px; } img { max-width: 100%; border-radius: 8px; }
+            details { color: #666; font-size: 13px; margin-bottom: 8px; } details div { white-space: pre-wrap; }
+            @media print { body { margin: 0; } .user { break-inside: avoid; } }
+            </style></head><body>
+            <h1>{{Enc(chat.Title)}}</h1>
+            <div class="meta">Exportiert aus LM Chat {{AppVersion}} am {{DateTime.Now:dd.MM.yyyy HH:mm}}</div>
+
+            """);
+        foreach (var m in _messages)
+        {
+            var img = m.Image != null ? $"<p><img src=\"data:image/png;base64,{Convert.ToBase64String(m.Image)}\" alt=\"Bild\"></p>" : "";
+            if (m.Role == "user")
+                sb.AppendLine($"<div class=\"user\">{img}{Enc(m.Content)}</div>");
+            else
+            {
+                sb.AppendLine("<div class=\"answer\">");
+                if (m.Reasoning is { Length: > 0 } r)
+                    sb.AppendLine($"<details><summary>Gedankengang</summary><div>{Enc(r)}</div></details>");
+                sb.AppendLine(img).AppendLine(MarkdownRenderer.ToHtml(m.Content));
+                if (m.Stats != null)
+                    sb.AppendLine($"<div class=\"stats\">{Enc(FormatStats(m.Stats))}</div>");
+                sb.AppendLine("</div>");
+            }
+        }
+        sb.AppendLine("</body></html>");
+        return sb.ToString();
+    }
+
     // Body = Inhalt der Nachricht; Stream = Text, in den während des Empfangs geschrieben wird
     private sealed record MessageView(Section Body, Run? Stream);
 
@@ -772,7 +1027,12 @@ public partial class MainWindow : Window
                 HorizontalAlignment = HorizontalAlignment.Right
             };
             bubble.SetResourceReference(Border.BackgroundProperty, "SubtleFillColorSecondaryBrush");
-            blocks.Add(new BlockUIContainer(bubble) { Margin = new Thickness(80, top, 0, 0) });
+            // Darunter klein: „Bearbeiten“ – Nachricht zurück ins Eingabefeld, Antworten ab hier werden ersetzt
+            var (edit, _) = SmallButton("", "Bearbeiten", "Nachricht bearbeiten und neu senden");
+            edit.HorizontalAlignment = HorizontalAlignment.Right;
+            edit.Opacity = 0.75;
+            edit.Click += (_, _) => EditMessage(m);
+            blocks.Add(new BlockUIContainer(new StackPanel { Children = { bubble, edit } }) { Margin = new Thickness(80, top, 0, 0) });
             ChatBox.ScrollToEnd();
             UpdateEmptyState();
             return new MessageView(new Section(), null);
@@ -789,6 +1049,8 @@ public partial class MainWindow : Window
         }
         else
         {
+            if (m.Reasoning is { Length: > 0 } thoughts)
+                body.Blocks.Add(MakeReasoningBlock(thoughts));
             if (m.Image != null)
                 body.Blocks.Add(new BlockUIContainer(MakeImageView(m.Image, 420, 560)));
             MarkdownRenderer.Render(m.Content, body.Blocks);
@@ -851,6 +1113,12 @@ public partial class MainWindow : Window
             line.Inlines.Add(FooterButton("", "Speichern", "Bild speichern", "Bild als PNG-Datei speichern",
                 () => SaveImage(image)));
         }
+        if (answer.Id != 0)
+        {
+            var (regenerate, _) = SmallButton("", "Neu erzeugen", "Dieselbe Frage nochmal stellen – mit dem aktuell eingestellten Modell");
+            regenerate.Click += (_, _) => RegenerateAnswer(answer);
+            line.Inlines.Add(new InlineUIContainer(regenerate) { BaselineAlignment = BaselineAlignment.Center });
+        }
         if (_plugins.ActiveWebhook != null)
             line.Inlines.Add(WebhookButton(answer));
         if (stats != null)
@@ -858,8 +1126,8 @@ public partial class MainWindow : Window
         body.Blocks.Add(line);
     }
 
-    // Kleiner Knopf in der Zeile unter einer Antwort; zeigt nach dem Klick kurz eine Bestätigung
-    private InlineUIContainer FooterButton(string glyph, string text, string automationName, string tooltip, Func<bool> action)
+    // Kleiner Knopf mit Symbol und Text (unter Nachrichten)
+    private (Button Button, TextBlock Label) SmallButton(string glyph, string text, string tooltip, string? automationName = null)
     {
         var label = new TextBlock { Text = text, Margin = new Thickness(5, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         var button = new Button
@@ -867,6 +1135,7 @@ public partial class MainWindow : Window
             Style = (Style)FindResource("IconButton"),
             Padding = new Thickness(6, 2, 8, 2),
             ToolTip = tooltip,
+            FontSize = 11.5,
             Content = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -883,7 +1152,14 @@ public partial class MainWindow : Window
                 }
             }
         };
-        System.Windows.Automation.AutomationProperties.SetName(button, automationName);
+        System.Windows.Automation.AutomationProperties.SetName(button, automationName ?? text);
+        return (button, label);
+    }
+
+    // Kleiner Knopf in der Zeile unter einer Antwort; zeigt nach dem Klick kurz eine Bestätigung
+    private InlineUIContainer FooterButton(string glyph, string text, string automationName, string tooltip, Func<bool> action)
+    {
+        var (button, label) = SmallButton(glyph, text, tooltip, automationName);
         button.Click += async (_, _) =>
         {
             if (!action()) return;
@@ -1040,6 +1316,7 @@ public partial class MainWindow : Window
         StopButton.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
         NewChatButton.IsEnabled = !busy;
         DeleteChatButton.IsEnabled = !busy;
+        ExportChatButton.IsEnabled = !busy;
         ChatList.IsEnabled = !busy;
         UpdateModelUi();
     }
@@ -1195,6 +1472,7 @@ public partial class MainWindow : Window
     private void ShowSettings()
     {
         SystemPromptBox.Text = _draft.SystemPrompt;
+        AutoTitleCheck.IsChecked = _draft.AutoTitle;
         _temperatureRow.Value = _draft.Temperature;
         _topPRow.Value = _draft.TopP;
         _topKRow.Value = _draft.TopK;
@@ -1314,6 +1592,7 @@ public partial class MainWindow : Window
         StoreProviderFields(info.Kind);
         _draft.Provider = info.Kind;
         _draft.SystemPrompt = SystemPromptBox.Text.Trim();
+        _draft.AutoTitle = AutoTitleCheck.IsChecked == true;
         _draft.Temperature = _temperatureRow.Value;
         _draft.TopP = _topPRow.Value;
         _draft.TopK = _topKRow.Value;

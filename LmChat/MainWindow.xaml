@@ -156,13 +156,17 @@
                     <StackPanel x:Name="RegionPanel">
                         <TextBlock Style="{StaticResource Heading}" Text="Standort der Rechenzentren"/>
                         <TextBlock Style="{StaticResource Hint}">
-                            Legt fest, wo deine Anfragen verarbeitet werden. Mit „Nur Europa“ bzw. „Nur USA“ leitet OpenRouter
-                            ausschließlich an Rechenzentren in dieser Region weiter. Ist ein Modell dort nicht verfügbar, gibt es
-                            einen Fehler statt einer Weiterleitung ins Ausland. Die Modellliste zeigt dann nur Modelle, die in der
-                            Region laufen. Einzelne Länder wie Deutschland lassen sich bei OpenRouter nicht wählen.
-                            Laut OpenRouter ist die Regionen-Bindung Teil des Business-Tarifs
+                            Legt fest, wo deine Anfragen verarbeitet werden. Die Modellliste zeigt dann nur Modelle, die in der
+                            gewählten Region laufen.<LineBreak/>
+                            <Run FontWeight="SemiBold" Text="Über Hoster-Auswahl (jeder Tarif):"/> Die App lässt nur Hoster-Endpunkte
+                            zu, deren Standort bekannt ist und in der Region liegt (z. B. „mistral/eu“, „amazon-bedrock/eu-central-1“).
+                            Andere Hoster sind gesperrt, es gibt keine Ausweichhoster. Die Standortangaben stammen von OpenRouter und
+                            den Hostern selbst und sind nicht garantiert. Beim ersten Laden werden alle Modelle geprüft, das dauert
+                            etwas.<LineBreak/>
+                            <Run FontWeight="SemiBold" Text="Garantiert (In-Region-Routing):"/> OpenRouter selbst stellt sicher, dass die
+                            Anfrage die Region nicht verlässt. Das gibt es nur im Business-Tarif
                             (<Hyperlink NavigateUri="https://openrouter.ai/docs/guides/features/sovereign-ai"
-                                        RequestNavigate="Link_RequestNavigate">Details</Hyperlink>).
+                                        RequestNavigate="Link_RequestNavigate">Details</Hyperlink>), sonst kommt der Fehler HTTP 403.
                         </TextBlock>
                         <ComboBox x:Name="RegionCombo" DisplayMemberPath="Label" SelectedValuePath="Code"
                                   SelectionChanged="RegionCombo_SelectionChanged"/>
@@ -246,8 +250,10 @@
                         <Run FontWeight="SemiBold" Text="OpenAI"/>, <Run FontWeight="SemiBold" Text="Anthropic (Claude)"/>,
                         <Run FontWeight="SemiBold" Text="OpenRouter"/> (online): brauchen einen API-Schlüssel und kosten pro Nutzung.
                         Nachrichten und Bilder werden dabei an den jeweiligen Dienst gesendet.<LineBreak/>
-                        Bei OpenRouter kannst du den <Run FontWeight="SemiBold" Text="Standort der Rechenzentren"/> festlegen:
-                        weltweit, nur Europa oder nur USA. Die Modellliste zeigt dann nur Modelle, die dort laufen.<LineBreak/>
+                        Bei OpenRouter kannst du den <Run FontWeight="SemiBold" Text="Standort der Rechenzentren"/> festlegen.
+                        Über die Hoster-Auswahl (Europa, Deutschland oder USA) geht das mit jedem Tarif, beruht aber auf den
+                        Standortangaben der Hoster. Garantiert (Europa oder USA) gibt es nur im Business-Tarif. Die Modellliste
+                        zeigt jeweils nur Modelle, die in der Region laufen.<LineBreak/>
                         Die API-Schlüssel werden verschlüsselt gespeichert und sind nur mit deinem Windows-Konto lesbar.
                     </TextBlock>
 

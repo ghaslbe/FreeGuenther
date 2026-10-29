@@ -623,8 +623,10 @@ public partial class MainWindow : Window
         SettingsStatus.Text = $"Lade Modelle von {info.Name} …";
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-            var models = await LlmClient.ListModelsAsync(info, ServerBox.Text, region, key, cts.Token);
+            // Der Hoster-Filter prüft jedes Modell einzeln – das dauert beim ersten Mal etwas länger
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(RegionOption.IsHosterFilter(region) ? 180 : 20));
+            var models = await LlmClient.ListModelsAsync(info, ServerBox.Text, region, key, cts.Token,
+                status => { if (loadId == _modelLoadId) SettingsStatus.Text = status; });
             if (loadId != _modelLoadId) return; // inzwischen anderer Anbieter gewählt
             _models.Clear();
             foreach (var m in models)

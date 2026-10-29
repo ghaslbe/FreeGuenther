@@ -101,17 +101,120 @@ public sealed record ProviderInfo(
     public static ProviderInfo Get(ProviderKind kind) => All.First(p => p.Kind == kind);
 }
 
-// Regionen-Bindung bei OpenRouter (In-Region-Routing)
+// Standortwahl bei OpenRouter:
+//  "hoster-…" = nur Hoster-Endpunkte mit bekanntem Standort in der Region (geht mit jedem Tarif, Annäherung)
+//  "eu" / "us" = In-Region-Routing von OpenRouter über eu./us.openrouter.ai (garantiert, nur Business-Tarif)
 public sealed record RegionOption(string Code, string Label)
 {
     public static readonly RegionOption[] All =
     [
         new("", "Weltweit – alle Hoster"),
-        new("eu", "Nur Europa (EU/EWR, Großbritannien, Schweiz)"),
-        new("us", "Nur USA"),
+        new("hoster-eu", "Europa – über Hoster-Auswahl (jeder Tarif)"),
+        new("hoster-de", "Deutschland – über Hoster-Auswahl (jeder Tarif)"),
+        new("hoster-us", "USA – über Hoster-Auswahl (jeder Tarif)"),
+        new("eu", "Europa – garantiert (In-Region-Routing, nur Business-Tarif)"),
+        new("us", "USA – garantiert (In-Region-Routing, nur Business-Tarif)"),
     ];
 
-    public static string Name(string code) => code switch { "eu" => "EU", "us" => "USA", _ => "" };
+    public static string Name(string code) => code switch
+    {
+        "eu" => "EU, garantiert",
+        "us" => "USA, garantiert",
+        "hoster-eu" => "EU-Hoster",
+        "hoster-de" => "DE-Hoster",
+        "hoster-us" => "US-Hoster",
+        _ => ""
+    };
+
+    public static bool IsHosterFilter(string code) => code.StartsWith("hoster-");
+}
+
+// Ermittelt bei OpenRouter, wo die einzelnen Hoster-Endpunkte eines Modells stehen.
+// Quellen: Regionsangabe in der Endpunkt-Kennung (z. B. "mistral/eu", "amazon-bedrock/eu-central-1",
+// "google-vertex/us") und – falls dort nichts steht – die Rechenzentrums-Länder aus /api/v1/providers.
+// Endpunkte ohne erkennbaren Standort (z. B. "…/global") gelten als unbekannt und werden ausgeschlossen.
+public static class OpenRouterHosting
+{
+    private static readonly HashSet<string> EuropeCountries =
+    [
+        "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU",
+        "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "IS", "LI", "NO", "GB", "UK", "CH"
+    ];
+
+    // Rechenzentren in Deutschland (Frankfurt/Berlin) bei den großen Clouds
+    private static readonly string[] GermanRegionNames =
+        ["eu-central-1", "europe-west3", "europe-west10", "germanywestcentral", "germanynorth", "germany", "frankfurt", "de"];
+
+    private static Dictionary<string, string[]>? _providerCountries;
+    private static readonly Dictionary<string, List<string>> EndpointCache = new();
+    private static readonly SemaphoreSlim Throttle = new(12);
+
+    // Welche Standort-Kürzel ein Endpunkt erfüllt: "EU", "DE" (zählt auch als EU), "US"
+    public static HashSet<string> Locations(string tag)
+    {
+        var result = new HashSet<string>();
+        var parts = tag.ToLowerInvariant().Split('/');
+        foreach (var part in parts.Skip(1))
+        {
+            if (GermanRegionNames.Contains(part)) { result.Add("DE"); result.Add("EU"); }
+            else if (part == "eu" || part.StartsWith("eu-") || part.Contains("europe")) result.Add("EU");
+            else if (part == "us" || part.StartsWith("us-") || System.Text.RegularExpressions.Regex.IsMatch(part, @"^(east|west|central|north|south)us\d*$"))
+                result.Add("US");
+        }
+        if (result.Count > 0 || parts.Skip(1).Contains("global")) return result;
+
+        // Keine Region in der Kennung: Rechenzentrums-Länder des Hosters (nur wenn alle in derselben Region liegen)
+        if (_providerCountries != null && _providerCountries.TryGetValue(parts[0], out var countries) && countries.Length > 0)
+        {
+            if (countries.All(EuropeCountries.Contains)) result.Add("EU");
+            if (countries.All(c => c == "DE")) result.Add("DE");
+            if (countries.All(c => c == "US")) result.Add("US");
+        }
+        return result;
+    }
+
+    public static string LocationCode(string region) => region switch { "hoster-de" => "DE", "hoster-us" => "US", _ => "EU" };
+
+    public static async Task EnsureProvidersAsync(HttpClient http, string server, CancellationToken ct)
+    {
+        if (_providerCountries != null) return;
+        var json = JsonNode.Parse(await http.GetStringAsync(server + "/v1/providers", ct));
+        _providerCountries = (json?["data"] as JsonArray ?? [])
+            .Where(n => (string?)n?["slug"] != null)
+            .ToDictionary(
+                n => ((string?)n!["slug"])!,
+                n => (n!["datacenters"] as JsonArray ?? []).Select(c => (string?)c).OfType<string>().ToArray());
+    }
+
+    public static async Task<List<string>> EndpointTagsAsync(HttpClient http, string server, string modelId, CancellationToken ct)
+    {
+        lock (EndpointCache)
+            if (EndpointCache.TryGetValue(modelId, out var cached)) return cached;
+
+        await Throttle.WaitAsync(ct);
+        try
+        {
+            var json = JsonNode.Parse(await http.GetStringAsync($"{server}/v1/models/{modelId}/endpoints", ct));
+            var tags = (json?["data"]?["endpoints"] as JsonArray ?? [])
+                .Select(e => (string?)e?["tag"]).OfType<string>().ToList();
+            lock (EndpointCache)
+                EndpointCache[modelId] = tags;
+            return tags;
+        }
+        finally
+        {
+            Throttle.Release();
+        }
+    }
+
+    // Die Endpunkte des Modells, die in der gewünschten Region stehen
+    public static async Task<List<string>> TagsInRegionAsync(HttpClient http, string server, string modelId, string region,
+        CancellationToken ct)
+    {
+        await EnsureProvidersAsync(http, server, ct);
+        var code = LocationCode(region);
+        return (await EndpointTagsAsync(http, server, modelId, ct)).Where(t => Locations(t).Contains(code)).ToList();
+    }
 }
 
 public sealed record ChatRequest(
@@ -140,13 +243,13 @@ public static class LlmClient
     public static string EffectiveServer(ProviderInfo p, string server, string region)
     {
         server = server.Trim().TrimEnd('/');
-        if (p.Kind == ProviderKind.OpenRouter && region.Length > 0 && server == p.DefaultServer)
+        if (p.Kind == ProviderKind.OpenRouter && region is "eu" or "us" && server == p.DefaultServer)
             return $"https://{region}.openrouter.ai/api";
         return server;
     }
 
     public static async Task<List<ModelInfo>> ListModelsAsync(ProviderInfo p, string server, string region, string apiKey,
-        CancellationToken ct)
+        CancellationToken ct, Action<string>? progress = null)
     {
         server = EffectiveServer(p, server, region);
         switch (p.Kind)
@@ -217,6 +320,26 @@ public static class LlmClient
                     .Where(m => m.Id.Length > 0)
                     .OrderBy(m => m.Id)
                     .ToList();
+                if (RegionOption.IsHosterFilter(region))
+                {
+                    // Für jedes Modell die Endpunkte prüfen: bleibt nur, wer mindestens einen Hoster in der Region hat
+                    await OpenRouterHosting.EnsureProvidersAsync(Http, server, ct);
+                    var done = 0;
+                    var checks = await Task.WhenAll(models.Select(async m =>
+                    {
+                        var ok = false;
+                        try
+                        {
+                            ok = !m.Id.Contains(':') &&
+                                 (await OpenRouterHosting.TagsInRegionAsync(Http, server, m.Id, region, ct)).Count > 0;
+                        }
+                        catch (HttpRequestException) { }
+                        if (++done % 25 == 0)
+                            progress?.Invoke($"Prüfe Hoster-Standorte … {done} von {models.Count} Modellen");
+                        return ok ? m : null;
+                    }));
+                    return checks.OfType<ModelInfo>().ToList();
+                }
                 if (region.Length == 0)
                     models.Insert(0, new ModelInfo("openrouter/auto", true, false));
                 return models;
@@ -261,6 +384,20 @@ public static class LlmClient
             body[p.Kind == ProviderKind.OpenRouter ? "repetition_penalty" : "repeat_penalty"] = repeat;
         if (s.MaxTokens is { } maxTokens)
             body[p.Kind == ProviderKind.OpenAI ? "max_completion_tokens" : "max_tokens"] = (int)maxTokens;
+
+        // OpenRouter mit Hoster-Filter: nur Endpunkte mit Standort in der Region zulassen, keine Ausweichhoster
+        if (p.Kind == ProviderKind.OpenRouter && RegionOption.IsHosterFilter(r.Region))
+        {
+            var tags = await OpenRouterHosting.TagsInRegionAsync(Http, EffectiveServer(p, r.Server, r.Region), r.Model, r.Region, ct);
+            if (tags.Count == 0)
+                throw new HttpRequestException(
+                    $"Für {r.Model} ist kein Hoster mit Standort {RegionOption.Name(r.Region)} bekannt – bitte ein anderes Modell wählen.");
+            body["provider"] = new JsonObject
+            {
+                ["only"] = new JsonArray(tags.Select(t => (JsonNode)JsonValue.Create(t)).ToArray()),
+                ["allow_fallbacks"] = false
+            };
+        }
 
         using var request = new HttpRequestMessage(HttpMethod.Post, EffectiveServer(p, r.Server, r.Region) + "/v1/chat/completions")
         {

@@ -1,8 +1,10 @@
+using System.Globalization;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Anthropic;
 using Anthropic.Models.Beta.Messages;
 using Anthropic.Models.Models;
@@ -222,6 +224,49 @@ public static class OpenRouterHosting
     }
 }
 
+// Schätzt Kosten, wenn der Anbieter keine meldet (OpenAI, Anthropic, ältere OpenRouter-Antworten).
+// Grundlage ist die öffentliche Preisliste von OpenRouter (US-Dollar pro Token), die auch die Modelle von
+// OpenAI und Anthropic unter "openai/…" bzw. "anthropic/…" führt. Nur eine Annäherung: Rabatte, Caching, Batch usw. fehlen.
+public static class PriceEstimate
+{
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(20) };
+    private static Dictionary<string, (double Input, double Output)>? _prices;
+
+    public static async Task LoadAsync(CancellationToken ct)
+    {
+        if (_prices != null) return;
+        var json = JsonNode.Parse(await Http.GetStringAsync("https://openrouter.ai/api/v1/models", ct));
+        var prices = new Dictionary<string, (double, double)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var n in json?["data"] as JsonArray ?? [])
+        {
+            if ((string?)n?["id"] is not { } id) continue;
+            if (double.TryParse((string?)n?["pricing"]?["prompt"], NumberStyles.Float, CultureInfo.InvariantCulture, out var input)
+                && double.TryParse((string?)n?["pricing"]?["completion"], NumberStyles.Float, CultureInfo.InvariantCulture, out var output))
+                prices[id] = (input, output);
+        }
+        _prices = prices;
+    }
+
+    // null = kein Preis bekannt (Preisliste nicht geladen oder Modell nicht gefunden)
+    public static double? Estimate(ProviderKind provider, string model, long inputTokens, long outputTokens)
+    {
+        if (_prices == null) return null;
+        if (provider == ProviderKind.OpenRouter)
+            return _prices.TryGetValue(model, out var listed) ? inputTokens * listed.Input + outputTokens * listed.Output : null;
+        var vendor = provider switch { ProviderKind.OpenAI => "openai", ProviderKind.Anthropic => "anthropic", _ => null };
+        if (vendor == null) return null;
+
+        // Schreibweisen angleichen: Datum am Ende weg ("…-20250929", "…-2025-04-14"),
+        // Claude-Versionen mit Punkt ("claude-opus-5-5" → "claude-opus-5.5")
+        var name = Regex.Replace(model, @"-(\d{8}|\d{4}-\d{2}-\d{2})$", "");
+        string[] candidates = [model, name, Regex.Replace(name, @"(\d+)-(\d+)$", "$1.$2")];
+        foreach (var candidate in candidates)
+            if (_prices.TryGetValue($"{vendor}/{candidate}", out var price))
+                return inputTokens * price.Input + outputTokens * price.Output;
+        return null;
+    }
+}
+
 public sealed record ChatRequest(
     ProviderInfo Provider,
     string Server,
@@ -401,7 +446,11 @@ public static class LlmClient
         public string? Hoster { get; set; }     // OpenRouter: Hoster, der die Anfrage bedient hat
         public long? InputTokens { get; set; }
         public long? OutputTokens { get; set; }
+        public double? Cost { get; set; }       // OpenRouter: Kosten in US-Dollar laut Anbieter
     }
+
+    // Was gerade passiert, solange noch kein Antworttext da ist (für die Statusanzeige im Chat)
+    public enum Phase { FindingHosters, Sending, Connected, Thinking }
 
     // ---------- Bilder erzeugen ----------
 
@@ -468,16 +517,17 @@ public static class LlmClient
 
     // ---------- Text-Chat ----------
 
-    public static async Task StreamAsync(ChatRequest r, Action<string> onChunk, StreamResult result, CancellationToken ct)
+    public static async Task StreamAsync(ChatRequest r, Action<string> onChunk, Action<Phase> onPhase, StreamResult result,
+        CancellationToken ct)
     {
         if (r.Provider.Kind == ProviderKind.Anthropic)
-            await StreamAnthropicAsync(r, onChunk, result, ct);
+            await StreamAnthropicAsync(r, onChunk, onPhase, result, ct);
         else
-            await StreamOpenAICompatibleAsync(r, onChunk, result, ct);
+            await StreamOpenAICompatibleAsync(r, onChunk, onPhase, result, ct);
     }
 
-    private static async Task StreamOpenAICompatibleAsync(ChatRequest r, Action<string> onChunk, StreamResult result,
-        CancellationToken ct)
+    private static async Task StreamOpenAICompatibleAsync(ChatRequest r, Action<string> onChunk, Action<Phase> onPhase,
+        StreamResult result, CancellationToken ct)
     {
         var p = r.Provider;
         var s = r.Settings;
@@ -506,6 +556,7 @@ public static class LlmClient
         // OpenRouter mit Hoster-Filter: nur Endpunkte mit Standort in der Region zulassen, keine Ausweichhoster
         if (p.Kind == ProviderKind.OpenRouter && RegionOption.IsHosterFilter(r.Region))
         {
+            onPhase(Phase.FindingHosters);
             var tags = await OpenRouterHosting.TagsInRegionAsync(Http, EffectiveServer(p, r.Server, r.Region), r.Model, r.Region, ct);
             if (tags.Count == 0)
                 throw new HttpRequestException(
@@ -522,10 +573,13 @@ public static class LlmClient
             Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json")
         };
         AddHeaders(request, p, r.ApiKey);
+        onPhase(Phase.Sending);
         using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
         if (!response.IsSuccessStatusCode)
             throw new HttpRequestException($"HTTP {(int)response.StatusCode}: {ErrorText(await response.Content.ReadAsStringAsync(ct))}");
+        onPhase(Phase.Connected);
 
+        var thinking = false;
         using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(ct));
         while (await reader.ReadLineAsync(ct) is { } line)
         {
@@ -544,9 +598,19 @@ public static class LlmClient
             {
                 result.InputTokens = (long?)usage["prompt_tokens"] ?? result.InputTokens;
                 result.OutputTokens = (long?)usage["completion_tokens"] ?? result.OutputTokens;
+                if (usage["cost"] is JsonValue cost && cost.TryGetValue<double>(out var dollars))
+                    result.Cost = dollars;
             }
             if (json?["choices"] is not JsonArray { Count: > 0 } choices) continue;
-            var chunk = choices[0]?["delta"]?["content"]?.GetValue<string>();
+            var delta = choices[0]?["delta"];
+            // Denkphase: OpenRouter/Ollama melden sie als "reasoning", LM Studio als "reasoning_content"
+            if (!thinking && (delta?["reasoning"] ?? delta?["reasoning_content"]) is JsonValue reasoning
+                && reasoning.TryGetValue<string>(out var reasoningText) && reasoningText.Length > 0)
+            {
+                thinking = true;
+                onPhase(Phase.Thinking);
+            }
+            var chunk = delta?["content"]?.GetValue<string>();
             if (!string.IsNullOrEmpty(chunk))
                 onChunk(chunk);
         }
@@ -574,8 +638,8 @@ public static class LlmClient
         return new JsonObject { ["role"] = m.Role, ["content"] = parts };
     }
 
-    private static async Task StreamAnthropicAsync(ChatRequest r, Action<string> onChunk, StreamResult result,
-        CancellationToken ct)
+    private static async Task StreamAnthropicAsync(ChatRequest r, Action<string> onChunk, Action<Phase> onPhase,
+        StreamResult result, CancellationToken ct)
     {
         var client = CreateAnthropicClient(r.Server, r.ApiKey);
         var useFallback = FallbackModels.Contains(r.Model);
@@ -590,6 +654,7 @@ public static class LlmClient
             Fallbacks = useFallback ? new Default() : (BetaFallbacksParam?)null,
         };
 
+        onPhase(Phase.Sending);
         await foreach (var ev in client.Beta.Messages.CreateStreaming(parameters, ct))
         {
             if (ev.TryPickContentBlockDelta(out var delta))
@@ -599,6 +664,7 @@ public static class LlmClient
             }
             else if (ev.TryPickStart(out var start))
             {
+                onPhase(Phase.Connected);
                 result.Model = start.Message.Model.ToString();
                 result.InputTokens = start.Message.Usage.InputTokens;
             }

@@ -35,6 +35,10 @@ public sealed record AnswerStats(
     double Seconds,
     double? Cost = null);
 
+// Verbrauch eines Modells im gewählten Zeitraum. CostCount = Antworten mit vom Anbieter gemeldeten Kosten.
+public sealed record UsageRow(ProviderKind Provider, string Model, long Requests, long InputTokens, long OutputTokens,
+    double Cost, long CostCount);
+
 // Speichert Chats, Nachrichten (inkl. Bilder) und Einstellungen in einer SQLite-Datei
 public sealed class ChatStore
 {
@@ -65,6 +69,75 @@ public sealed class ChatStore
         // Ab Version 1.8: Statistik je Antwort (JSON); ältere Datenbanken bekommen die Spalte nachträglich
         if (Scalar("SELECT COUNT(*) FROM pragma_table_info('messages') WHERE name = 'meta'") is 0L)
             Execute("ALTER TABLE messages ADD COLUMN meta TEXT");
+
+        // Ab Version 1.11: Verbrauch je Antwort, unabhängig von den Chats (bleibt beim Löschen eines Chats erhalten).
+        // Beim ersten Start wird er aus den Statistiken der vorhandenen Antworten übernommen.
+        if (Scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'usage'") is 0L)
+        {
+            Execute("""
+                CREATE TABLE usage (
+                    id            INTEGER PRIMARY KEY,
+                    created       TEXT NOT NULL,
+                    provider      TEXT NOT NULL,
+                    model         TEXT NOT NULL,
+                    input_tokens  INTEGER,
+                    output_tokens INTEGER,
+                    cost          REAL);
+                """);
+            ImportUsageFromMessages();
+        }
+    }
+
+    // ---------- Verbrauch ----------
+
+    public void AddUsage(ProviderKind provider, AnswerStats s, DateTime? created = null) =>
+        Execute("""
+            INSERT INTO usage (created, provider, model, input_tokens, output_tokens, cost)
+            VALUES ($d, $p, $m, $i, $o, $c)
+            """,
+            ("$d", FormatDate(created ?? DateTime.Now)), ("$p", provider.ToString()), ("$m", s.Model),
+            ("$i", s.InputTokens), ("$o", s.OutputTokens), ("$c", s.Cost));
+
+    // Summen je Anbieter und Modell ab einem Zeitpunkt (null = alles)
+    public List<UsageRow> UsageByModel(DateTime? since)
+    {
+        using var conn = Open();
+        using var cmd = Command(conn, """
+            SELECT provider, model, COUNT(*), SUM(input_tokens), SUM(output_tokens), SUM(cost), COUNT(cost)
+            FROM usage WHERE created >= $since
+            GROUP BY provider, model ORDER BY COUNT(*) DESC
+            """, ("$since", since == null ? "" : FormatDate(since.Value)));
+        using var r = cmd.ExecuteReader();
+        var list = new List<UsageRow>();
+        while (r.Read())
+        {
+            if (!Enum.TryParse<ProviderKind>(r.GetString(0), out var kind)) continue;
+            list.Add(new UsageRow(kind, r.GetString(1), r.GetInt64(2),
+                r.IsDBNull(3) ? 0 : r.GetInt64(3), r.IsDBNull(4) ? 0 : r.GetInt64(4),
+                r.IsDBNull(5) ? 0 : r.GetDouble(5), r.GetInt64(6)));
+        }
+        return list;
+    }
+
+    public void ClearUsage() => Execute("DELETE FROM usage");
+
+    private void ImportUsageFromMessages()
+    {
+        var rows = new List<(string Created, string Meta)>();
+        using (var conn = Open())
+        using (var cmd = Command(conn, "SELECT created, meta FROM messages WHERE role = 'assistant' AND meta IS NOT NULL"))
+        using (var r = cmd.ExecuteReader())
+            while (r.Read())
+                rows.Add((r.GetString(0), r.GetString(1)));
+
+        foreach (var (created, meta) in rows)
+        {
+            // In der Statistik steht der Anzeigename, ggf. mit Region: "OpenRouter (EU-Hoster)"
+            if (ParseStats(meta) is not { } s) continue;
+            var info = ProviderInfo.All.FirstOrDefault(p => s.Provider == p.Name || s.Provider.StartsWith(p.Name + " ("));
+            if (info != null)
+                AddUsage(info.Kind, s, ParseDate(created));
+        }
     }
 
     public List<ChatInfo> ListChats()

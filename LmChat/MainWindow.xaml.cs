@@ -8,6 +8,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace LmChat;
@@ -76,8 +77,105 @@ public partial class MainWindow : Window
     private void Nav_Checked(object sender, RoutedEventArgs e)
     {
         if (MainTabs == null) return;
-        MainTabs.SelectedIndex = sender == NavSettings ? 1 : sender == NavHelp ? 2 : 0;
+        MainTabs.SelectedIndex = sender == NavSettings ? 1 : sender == NavUsage ? 2 : sender == NavHelp ? 3 : 0;
         if (sender == NavChat) InputBox.Focus();
+        if (sender == NavUsage) _ = ShowUsageAsync();
+    }
+
+    // ---------- Verbrauch ----------
+
+    private sealed record UsageLine(string Provider, string Model, string Requests, string InputTokens, string OutputTokens, string Cost);
+
+    private void UsagePeriod_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (IsLoaded) _ = ShowUsageAsync();
+    }
+
+    private async Task ShowUsageAsync()
+    {
+        var now = DateTime.Now;
+        DateTime? since = UsagePeriodCombo.SelectedIndex switch
+        {
+            0 => now.Date,
+            1 => now.Date.AddDays(-6),
+            2 => new DateTime(now.Year, now.Month, 1),
+            3 => now.Date.AddDays(-29),
+            _ => null
+        };
+        var rows = _store.UsageByModel(since);
+
+        // Listenpreise für OpenAI/Anthropic nur laden, wenn sie gebraucht werden
+        var priceNote = "";
+        if (rows.Any(r => !ProviderInfo.Get(r.Provider).IsLocal && r.CostCount < r.Requests))
+        {
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                await PriceEstimate.LoadAsync(cts.Token);
+            }
+            catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or OperationCanceledException or System.Text.Json.JsonException)
+            {
+                priceNote = "Preisliste nicht erreichbar – Kosten ohne Angabe des Anbieters sind unbekannt.";
+            }
+        }
+
+        double total = 0;
+        var anyEstimate = false;
+        var anyUnknown = false;
+        var lines = rows.Select(r =>
+        {
+            var info = ProviderInfo.Get(r.Provider);
+            string cost;
+            if (info.IsLocal)
+                cost = "0 $ (lokal)";
+            else if (r.CostCount == r.Requests)
+            {
+                total += r.Cost;
+                cost = FormatDollar(r.Cost) + " gemeldet";
+            }
+            // Ganz oder teilweise ohne gemeldete Kosten: alles nach Listenpreis schätzen
+            else if (PriceEstimate.Estimate(r.Provider, r.Model, r.InputTokens, r.OutputTokens) is { } estimate)
+            {
+                total += estimate;
+                anyEstimate = true;
+                cost = "≈ " + FormatDollar(estimate) + " geschätzt";
+            }
+            else if (r.CostCount > 0)
+            {
+                total += r.Cost;
+                anyUnknown = true;
+                cost = "mind. " + FormatDollar(r.Cost);
+            }
+            else
+            {
+                anyUnknown = true;
+                cost = "unbekannt";
+            }
+            return new UsageLine(info.Name, r.Model, r.Requests.ToString("N0"), r.InputTokens.ToString("N0"),
+                r.OutputTokens.ToString("N0"), cost);
+        }).ToList();
+
+        UsageList.ItemsSource = lines;
+        UsageList.Visibility = lines.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        UsageEmpty.Visibility = lines.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
+        UsageRequestsTile.Text = rows.Sum(r => r.Requests).ToString("N0");
+        UsageTokensTile.Text = $"{rows.Sum(r => r.InputTokens):N0} / {rows.Sum(r => r.OutputTokens):N0}";
+        UsageCostTile.Text = "≈ " + FormatDollar(total) + (anyUnknown ? " +" : "");
+        UsageStatus.Text = priceNote.Length > 0 ? priceNote
+            : anyUnknown ? "„+“: Für manche Antworten ist kein Preis bekannt, die Summe ist also eher höher."
+            : anyEstimate ? "Enthält geschätzte Beträge." : "";
+    }
+
+    private static string FormatDollar(double d) =>
+        d == 0 ? "0 $" : d < 0.0001 ? $"< {0.0001:0.0000} $" : d < 0.01 ? $"{d:0.0000} $" : $"{d:0.00} $";
+
+    private void ClearUsage_Click(object sender, RoutedEventArgs e)
+    {
+        if (MessageBox.Show(this, "Alle mitgezählten Tokens und Kosten löschen? Die Chats bleiben erhalten.",
+                "Zähler zurücksetzen", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+            return;
+        _store.ClearUsage();
+        _ = ShowUsageAsync();
     }
 
     private void ModelCard_Click(object sender, MouseButtonEventArgs e) => NavSettings.IsChecked = true;
@@ -177,6 +275,35 @@ public partial class MainWindow : Window
         double? firstChunkAt = null;
         byte[]? generated = null;
         double? cost = null;
+
+        // Statuszeile über der Antwort: was gerade passiert und seit wann – verschwindet, sobald Text kommt
+        var phase = $"Anfrage an {provider.Name} wird vorbereitet";
+        var phaseRun = new Run();
+        var phaseLine = new Paragraph(phaseRun) { Margin = new Thickness(0), FontSize = 13 };
+        phaseLine.SetResourceReference(TextElement.ForegroundProperty, "TextFillColorSecondaryBrush");
+        answerView.Body.Blocks.InsertBefore(answerView.Body.Blocks.FirstBlock, phaseLine);
+        var ticker = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        void ShowPhase()
+        {
+            var seconds = (int)clock.Elapsed.TotalSeconds;
+            var hint = seconds < 30 ? ""
+                : provider.IsLocal && !imageMode ? " – dauert länger, evtl. wird das Modell erst geladen"
+                : " – dauert länger als üblich, abbrechen geht jederzeit mit ■";
+            phaseRun.Text = $"⏳ {phase} … {seconds} s{hint}";
+            StatusText.Text = phase + " …";
+        }
+        void SetPhase(string text) { phase = text; ShowPhase(); }
+        void HidePhase()
+        {
+            if (!ticker.IsEnabled) return;
+            ticker.Stop();
+            answerView.Body.Blocks.Remove(phaseLine);
+            StatusText.Text = "Antwort wird empfangen …";
+        }
+        ticker.Tick += (_, _) => ShowPhase();
+        ticker.Start();
+        ShowPhase();
+
         try
         {
             if (imageMode)
@@ -185,8 +312,9 @@ public partial class MainWindow : Window
                 var reference = image ?? (HistoryCheck.IsChecked == true
                     ? _messages.LastOrDefault(m => m.Role == "assistant" && m.Image != null)?.Image
                     : null);
-                answerView.Stream!.Text = reference != null ? "🎨 Bild wird bearbeitet …" : "🎨 Bild wird erzeugt …";
-                StatusText.Text = "Bild wird erzeugt – das kann je nach Modell eine Weile dauern …";
+                SetPhase(reference != null
+                    ? $"🎨 {provider.Name} bearbeitet das Bild – das kann eine Weile dauern"
+                    : $"🎨 {provider.Name} erzeugt das Bild – das kann eine Weile dauern");
                 var img = await LlmClient.GenerateImageAsync(request, text, reference, _cts.Token);
                 generated = ToPng(img.Image);
                 result.InputTokens = img.InputTokens;
@@ -197,12 +325,26 @@ public partial class MainWindow : Window
             {
                 await LlmClient.StreamAsync(request, chunk =>
                 {
+                    HidePhase();
                     firstChunkAt ??= clock.Elapsed.TotalSeconds;
                     answer.Append(chunk);
                     answerView.Stream!.Text += chunk;
                     ChatBox.ScrollToEnd();
+                }, p =>
+                {
+                    // Denk-Tokens zählen zur Ausgabe – ab hier wird für Token/s gemessen
+                    if (p == LlmClient.Phase.Thinking) firstChunkAt ??= clock.Elapsed.TotalSeconds;
+                    if (!ticker.IsEnabled) return;
+                    SetPhase(p switch
+                    {
+                        LlmClient.Phase.FindingHosters => $"Suche Hoster mit Standort {RegionOption.Name(config.Region)}",
+                        LlmClient.Phase.Sending => $"Anfrage an {provider.Name} gesendet, warte auf Antwort",
+                        LlmClient.Phase.Connected => $"{provider.Name} hat die Anfrage angenommen, warte auf die ersten Wörter",
+                        _ => "💭 Das Modell denkt nach"
+                    });
                 }, result, _cts.Token);
             }
+            ticker.Stop();
             StatusText.Text = "Fertig.";
         }
         catch (OperationCanceledException)
@@ -217,7 +359,8 @@ public partial class MainWindow : Window
         }
         finally
         {
-            var stats = MakeStats(result, config.Model, clock.Elapsed.TotalSeconds, firstChunkAt, cost);
+            ticker.Stop();
+            var stats = MakeStats(result, config.Model, clock.Elapsed.TotalSeconds, firstChunkAt, cost ?? result.Cost);
             var success = answer.Length > 0 || generated != null;
 
             // Fertige Antwort als Markdown darstellen (während des Streamings war es reiner Text)
@@ -236,6 +379,7 @@ public partial class MainWindow : Window
             {
                 var reply = new ChatMessage("assistant", answer.ToString(), generated) { Stats = stats };
                 _messages.Add(reply with { Id = _store.AddMessage(chat.Id, reply) });
+                _store.AddUsage(provider.Kind, stats);
             }
             else
             {
@@ -606,7 +750,6 @@ public partial class MainWindow : Window
         DeleteChatButton.IsEnabled = !busy;
         ChatList.IsEnabled = !busy;
         UpdateModelUi();
-        if (busy) StatusText.Text = "Antwort wird empfangen …";
     }
 
     // ---------- Bilder ----------

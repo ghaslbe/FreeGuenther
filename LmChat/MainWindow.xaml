@@ -239,6 +239,8 @@
                              Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Tag="&#xE713;" Content="Einstellungen"
                              Checked="Nav_Checked"/>
+                <RadioButton x:Name="NavUsage" Style="{StaticResource NavItem}" Tag="&#xE9D2;" Content="Verbrauch"
+                             Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavHelp" Style="{StaticResource NavItem}" Tag="&#xE897;" Content="Hilfe"
                              Checked="Nav_Checked"/>
             </StackPanel>
@@ -588,6 +590,99 @@
                     </ScrollViewer>
                 </TabItem>
 
+                <!-- ========== Verbrauch ========== -->
+                <TabItem Header="Verbrauch">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="32,24,32,24" MaxWidth="860" HorizontalAlignment="Left">
+                            <TextBlock Style="{StaticResource PageTitle}" Text="Verbrauch"/>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,18"
+                                       Text="Wie viele Anfragen und Tokens je Modell angefallen sind und was das ungefähr gekostet hat."/>
+
+                            <!-- Deutlicher Hinweis: nur eine Schätzung -->
+                            <Border Style="{StaticResource Card}" Background="#1FF59E0B" BorderBrush="#66F59E0B">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Heading}" Text="⚠ Nur eine Schätzung – keine Abrechnung"/>
+                                    <TextBlock Style="{StaticResource Body}">
+                                        Die Zahlen zählt LM Chat selbst mit. Sie können von deiner Rechnung abweichen: Manche Anbieter
+                                        melden keine Kosten, Preise ändern sich, Rabatte, Caching oder Mindestbeträge fehlen, und Anfragen
+                                        aus anderen Programmen oder von anderen Rechnern sind nicht enthalten.<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Die exakten Kosten siehst du nur im Konto des jeweiligen Anbieters:"/>
+                                        <Hyperlink NavigateUri="https://openrouter.ai/activity" RequestNavigate="Link_RequestNavigate">OpenRouter</Hyperlink> ·
+                                        <Hyperlink NavigateUri="https://platform.openai.com/usage" RequestNavigate="Link_RequestNavigate">OpenAI</Hyperlink> ·
+                                        <Hyperlink NavigateUri="https://platform.claude.com/usage" RequestNavigate="Link_RequestNavigate">Anthropic</Hyperlink>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,14">
+                                <TextBlock Style="{StaticResource Body}" Text="Zeitraum:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <ComboBox x:Name="UsagePeriodCombo" Width="200" SelectionChanged="UsagePeriod_SelectionChanged">
+                                    <ComboBoxItem Content="Heute"/>
+                                    <ComboBoxItem Content="Letzte 7 Tage"/>
+                                    <ComboBoxItem Content="Dieser Monat" IsSelected="True"/>
+                                    <ComboBoxItem Content="Letzte 30 Tage"/>
+                                    <ComboBoxItem Content="Gesamt"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- Kacheln -->
+                            <UniformGrid Columns="3" Margin="0,0,-12,20">
+                                <Border Style="{StaticResource Tile}" Background="#1F3B82F6">
+                                    <StackPanel>
+                                        <TextBlock x:Name="UsageRequestsTile" FontSize="20" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Antworten" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource Tile}" Background="#1F8B5CF6">
+                                    <StackPanel>
+                                        <TextBlock x:Name="UsageTokensTile" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="Tokens gesendet / erhalten" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource Tile}" Background="#1FF97316">
+                                    <StackPanel>
+                                        <TextBlock x:Name="UsageCostTile" FontSize="20" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Kosten – ungefähr" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                </Border>
+                            </UniformGrid>
+
+                            <!-- Tabelle je Modell -->
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Heading}" Text="Je Modell"/>
+                                    <ListView x:Name="UsageList" BorderThickness="0" Background="Transparent" Margin="0,4,0,0">
+                                        <ListView.View>
+                                            <GridView>
+                                                <GridViewColumn Header="Anbieter" Width="130" DisplayMemberBinding="{Binding Provider}"/>
+                                                <GridViewColumn Header="Modell" Width="230" DisplayMemberBinding="{Binding Model}"/>
+                                                <GridViewColumn Header="Antworten" Width="80" DisplayMemberBinding="{Binding Requests}"/>
+                                                <GridViewColumn Header="Tokens ein" Width="95" DisplayMemberBinding="{Binding InputTokens}"/>
+                                                <GridViewColumn Header="Tokens aus" Width="95" DisplayMemberBinding="{Binding OutputTokens}"/>
+                                                <GridViewColumn Header="Kosten" Width="170" DisplayMemberBinding="{Binding Cost}"/>
+                                            </GridView>
+                                        </ListView.View>
+                                    </ListView>
+                                    <TextBlock x:Name="UsageEmpty" Style="{StaticResource Hint}" Margin="0,8,0,0" Visibility="Collapsed"
+                                               Text="In diesem Zeitraum gab es noch keine Antworten."/>
+                                    <TextBlock Style="{StaticResource Hint}" Margin="0,12,0,0">
+                                        <Run FontWeight="SemiBold" Text="So entstehen die Kosten:"/>
+                                        „gemeldet“ = Betrag, den der Anbieter mit der Antwort geschickt hat (OpenRouter).
+                                        „≈ geschätzt“ = Tokens × Listenpreis aus der öffentlichen Preisliste von OpenRouter (OpenAI, Anthropic
+                                        und Antworten ohne gemeldeten Betrag). „unbekannt“ = kein Preis gefunden. Lokale Anbieter (LM Studio, Ollama) kosten nichts.
+                                        Gezählt wird ab Version 1.11; ältere Antworten wurden aus den gespeicherten Chats übernommen.
+                                        Das Löschen eines Chats ändert den Verbrauch nicht.
+                                    </TextBlock>
+                                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                        <Button Content="Zähler zurücksetzen" Click="ClearUsage_Click"/>
+                                        <TextBlock x:Name="UsageStatus" Style="{StaticResource Hint}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
                 <!-- ========== Hilfe ========== -->
                 <TabItem Header="Hilfe">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -628,8 +723,26 @@
                                         <Run FontWeight="SemiBold" Text="Außerdem:"/>
                                         Für LM Chat einen eigenen Schlüssel anlegen (nicht denselben wie für andere Programme) – dann lässt er sich
                                         gezielt sperren. Bei Verdacht auf Missbrauch den Schlüssel sofort beim Anbieter löschen und einen neuen
-                                        erstellen. Die Kosten jeder Antwort zeigt LM Chat unter der Antwort, sofern der Anbieter sie meldet.<LineBreak/>
+                                        erstellen. Die Kosten jeder Antwort zeigt LM Chat unter der Antwort, sofern der Anbieter sie meldet;
+                                        eine Übersicht je Modell gibt es unter „Verbrauch“ – beides nur als Schätzung, verbindlich ist
+                                        allein die Abrechnung im Konto des Anbieters.<LineBreak/>
                                         Lokale Anbieter (LM Studio, Ollama) brauchen keinen Schlüssel und kosten nichts.
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Heading}" Text="Was passiert gerade? / Verbrauch"/>
+                                    <TextBlock Style="{StaticResource Body}">
+                                        Solange noch kein Antworttext da ist, zeigt eine graue Zeile im Chat, was gerade passiert – z. B.
+                                        „Anfrage gesendet, warte auf Antwort“, „hat die Anfrage angenommen“ oder „Das Modell denkt nach“ –
+                                        mit den Sekunden seit dem Senden. Sobald Text kommt, verschwindet sie. Dauert es ungewöhnlich lange,
+                                        steht dort ein Hinweis; abbrechen geht jederzeit mit dem Stopp-Knopf.<LineBreak/>
+                                        Unter <Run FontWeight="SemiBold" Text="Verbrauch"/> zählt LM Chat Antworten, Tokens und ungefähre Kosten
+                                        je Modell mit (Heute, 7 Tage, Monat, 30 Tage, Gesamt).
+                                        <Run FontWeight="SemiBold" Text="Das ist nur eine Schätzung"/> – die exakten Kosten stehen nur im Konto
+                                        des jeweiligen Anbieters.
                                     </TextBlock>
                                 </StackPanel>
                             </Border>

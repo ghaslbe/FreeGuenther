@@ -17,6 +17,9 @@ public partial class MainWindow
         public required ComboBox Models { get; init; }
         public required RichTextBox Box { get; init; }
         public required TextBlock Stats { get; init; }
+        public required Border KeyPanel { get; init; }        // erscheint, wenn für den Anbieter kein Schlüssel hinterlegt ist
+        public required TextBlock KeyHint { get; init; }
+        public required PasswordBox KeyBox { get; init; }
         public ObservableCollection<ModelInfo> ModelList { get; } = new();
         public int LoadId { get; set; }
     }
@@ -28,8 +31,16 @@ public partial class MainWindow
     {
         if (_left == null)
         {
-            _left = new CompareSide { Providers = CompareProviderLeft, Models = CompareModelLeft, Box = CompareBoxLeft, Stats = CompareStatsLeft };
-            _right = new CompareSide { Providers = CompareProviderRight, Models = CompareModelRight, Box = CompareBoxRight, Stats = CompareStatsRight };
+            _left = new CompareSide
+            {
+                Providers = CompareProviderLeft, Models = CompareModelLeft, Box = CompareBoxLeft, Stats = CompareStatsLeft,
+                KeyPanel = CompareKeyLeft, KeyHint = CompareKeyHintLeft, KeyBox = CompareKeyBoxLeft
+            };
+            _right = new CompareSide
+            {
+                Providers = CompareProviderRight, Models = CompareModelRight, Box = CompareBoxRight, Stats = CompareStatsRight,
+                KeyPanel = CompareKeyRight, KeyHint = CompareKeyHintRight, KeyBox = CompareKeyBoxRight
+            };
             var current = new CompareSlot(_settings.Provider, _settings.Current.Model);
             foreach (var (side, slot) in new[] { (_left, _settings.CompareLeft ?? current), (_right!, _settings.CompareRight ?? current) })
             {
@@ -47,12 +58,61 @@ public partial class MainWindow
     private async void CompareProvider_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (SideOf(sender) is not { } side || side.Providers.SelectedItem is not ProviderInfo info) return;
-        var config = _settings.Config(info.Kind);
-        var wanted = side.Models.Tag as string is { Length: > 0 } tagged && e.RemovedItems.Count == 0 ? tagged : config.Model;
-        side.ModelList.Clear();
-        if (info.NeedsKey && config.ApiKey.Length == 0 && info.Kind != ProviderKind.OpenRouter)
+        var wanted = side.Models.Tag as string is { Length: > 0 } tagged && e.RemovedItems.Count == 0 ? tagged : _settings.Config(info.Kind).Model;
+        await LoadCompareModelsAsync(side, info, wanted);
+    }
+
+    private bool HasKey(ProviderInfo info) => !info.NeedsKey || _settings.Config(info.Kind).ApiKey.Length > 0;
+
+    // Fehlt der Schlüssel, steht über der Antwort ein Feld zum Eintragen (statt erst beim Senden einen Fehler zu bekommen)
+    private void UpdateCompareKeyPanel(CompareSide side, ProviderInfo info)
+    {
+        side.KeyPanel.Visibility = HasKey(info) ? Visibility.Collapsed : Visibility.Visible;
+        side.KeyHint.Inlines.Clear();
+        if (HasKey(info)) return;
+        side.KeyHint.Inlines.Add(new Run($"Für {info.Name} ist noch kein API-Schlüssel hinterlegt. ") { FontWeight = FontWeights.SemiBold });
+        side.KeyHint.Inlines.Add(new Run("Hier eintragen – er wird verschlüsselt gespeichert, der aktive Anbieter im Chat bleibt gleich. "));
+        if (info.KeyUrl != null)
+            side.KeyHint.Inlines.Add(MakeLink("Schlüssel anlegen", info.KeyUrl));
+        if (info.Links.FirstOrDefault(l => l.Item1.Contains("Limit")).Item2 is { } limitUrl)
         {
-            side.Stats.Text = $"Für {info.Name} ist noch kein API-Schlüssel eingetragen (Einstellungen).";
+            side.KeyHint.Inlines.Add(new Run(" · "));
+            side.KeyHint.Inlines.Add(MakeLink("⚠ Ausgabenlimit setzen", limitUrl));
+        }
+    }
+
+    private async void SaveCompareKey_Click(object sender, RoutedEventArgs e)
+    {
+        var side = (sender as FrameworkElement)?.Tag as string == "left" ? _left : _right;
+        if (side?.Providers.SelectedItem is not ProviderInfo info) return;
+        var key = side.KeyBox.Password.Trim();
+        if (key.Length == 0)
+        {
+            CompareStatus.Text = "Bitte zuerst den API-Schlüssel einfügen.";
+            return;
+        }
+        // Nur den Schlüssel speichern – auch im Entwurf und im Feld der Einstellungsseite, damit „Speichern“ dort ihn nicht löscht
+        _settings.Config(info.Kind).ApiKey = key;
+        _draft.Config(info.Kind).ApiKey = key;
+        if (_shownProvider == info.Kind)
+            ApiKeyBox.Password = key;
+        _settings.Save(_store);
+        side.KeyBox.Clear();
+        CompareStatus.Text = $"API-Schlüssel für {info.Name} gespeichert.";
+        foreach (var other in new[] { _left, _right })
+            if (other?.Providers.SelectedItem is ProviderInfo shown && shown.Kind == info.Kind)
+                await LoadCompareModelsAsync(other, shown, other.Models.SelectedValue as string ?? _settings.Config(info.Kind).Model);
+    }
+
+    private async Task LoadCompareModelsAsync(CompareSide side, ProviderInfo info, string wanted)
+    {
+        var config = _settings.Config(info.Kind);
+        side.ModelList.Clear();
+        UpdateCompareKeyPanel(side, info);
+        // Die OpenRouter-Modellliste ist öffentlich, die anderen Online-Dienste brauchen dafür den Schlüssel
+        if (!HasKey(info) && info.Kind != ProviderKind.OpenRouter)
+        {
+            side.Stats.Text = "";
             return;
         }
 
@@ -94,6 +154,12 @@ public partial class MainWindow
             if (side.Providers.SelectedItem is not ProviderInfo info || side.Models.SelectedValue is not string { Length: > 0 } model)
             {
                 CompareStatus.Text = "Bitte links und rechts jeweils Anbieter und Modell wählen.";
+                return;
+            }
+            if (!HasKey(info))
+            {
+                CompareStatus.Text = $"Für {info.Name} fehlt der API-Schlüssel – bitte im gelben Feld eintragen.";
+                side.KeyBox.Focus();
                 return;
             }
             picks.Add((side, info, model));

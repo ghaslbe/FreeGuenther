@@ -1234,6 +1234,17 @@
                                                   SelectionChanged="CompareProvider_SelectionChanged"/>
                                         <ComboBox x:Name="CompareModelLeft" DisplayMemberPath="Label" SelectedValuePath="Id" Margin="0,6,0,8"
                                                   TextSearch.TextPath="Id" MaxDropDownHeight="420" AutomationProperties.Name="Modell links"/>
+                                        <Border x:Name="CompareKeyLeft" Visibility="Collapsed" CornerRadius="10" Padding="10,8" Margin="0,0,0,8"
+                                                Background="#1FF59E0B" BorderBrush="#66F59E0B" BorderThickness="1">
+                                            <StackPanel>
+                                                <TextBlock x:Name="CompareKeyHintLeft" TextWrapping="Wrap" FontSize="12.5"/>
+                                                <DockPanel Margin="0,6,0,0">
+                                                    <Button DockPanel.Dock="Right" Content="Speichern" Margin="6,0,0,0" Tag="left"
+                                                            Click="SaveCompareKey_Click"/>
+                                                    <PasswordBox x:Name="CompareKeyBoxLeft" AutomationProperties.Name="API-Schlüssel links"/>
+                                                </DockPanel>
+                                            </StackPanel>
+                                        </Border>
                                     </StackPanel>
                                     <TextBlock x:Name="CompareStatsLeft" DockPanel.Dock="Bottom" FontSize="11.5" TextWrapping="Wrap" Margin="0,6,0,0"
                                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
@@ -1250,6 +1261,17 @@
                                                   SelectionChanged="CompareProvider_SelectionChanged"/>
                                         <ComboBox x:Name="CompareModelRight" DisplayMemberPath="Label" SelectedValuePath="Id" Margin="0,6,0,8"
                                                   TextSearch.TextPath="Id" MaxDropDownHeight="420" AutomationProperties.Name="Modell rechts"/>
+                                        <Border x:Name="CompareKeyRight" Visibility="Collapsed" CornerRadius="10" Padding="10,8" Margin="0,0,0,8"
+                                                Background="#1FF59E0B" BorderBrush="#66F59E0B" BorderThickness="1">
+                                            <StackPanel>
+                                                <TextBlock x:Name="CompareKeyHintRight" TextWrapping="Wrap" FontSize="12.5"/>
+                                                <DockPanel Margin="0,6,0,0">
+                                                    <Button DockPanel.Dock="Right" Content="Speichern" Margin="6,0,0,0" Tag="right"
+                                                            Click="SaveCompareKey_Click"/>
+                                                    <PasswordBox x:Name="CompareKeyBoxRight" AutomationProperties.Name="API-Schlüssel rechts"/>
+                                                </DockPanel>
+                                            </StackPanel>
+                                        </Border>
                                     </StackPanel>
                                     <TextBlock x:Name="CompareStatsRight" DockPanel.Dock="Bottom" FontSize="11.5" TextWrapping="Wrap" Margin="0,6,0,0"
                                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>

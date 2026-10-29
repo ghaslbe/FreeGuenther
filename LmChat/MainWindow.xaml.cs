@@ -162,14 +162,18 @@ public partial class MainWindow : Window
         SetBusy(true);
         var answer = new StringBuilder();
         string? note = null;
+        var result = new LlmClient.StreamResult();
+        var clock = Stopwatch.StartNew();
+        double? firstChunkAt = null;
         try
         {
             await LlmClient.StreamAsync(request, chunk =>
             {
+                firstChunkAt ??= clock.Elapsed.TotalSeconds;
                 answer.Append(chunk);
                 answerView.Stream!.Text += chunk;
                 ChatBox.ScrollToEnd();
-            }, _cts.Token);
+            }, result, _cts.Token);
             StatusText.Text = "Fertig.";
         }
         catch (OperationCanceledException)
@@ -184,17 +188,21 @@ public partial class MainWindow : Window
         }
         finally
         {
+            var stats = MakeStats(result, config.Model, clock.Elapsed.TotalSeconds, firstChunkAt);
+
             // Fertige Antwort als Markdown darstellen (während des Streamings war es reiner Text)
             answerView.Body.Blocks.Clear();
             if (answer.Length > 0)
                 MarkdownRenderer.Render(answer.ToString(), answerView.Body.Blocks);
             if (note != null)
                 answerView.Body.Blocks.Add(new Paragraph(new Italic(new Run(note))) { Margin = new Thickness(0) });
+            if (answer.Length > 0)
+                AddStatsLine(answerView.Body, stats);
             ChatBox.ScrollToEnd();
 
             if (answer.Length > 0)
             {
-                var reply = new ChatMessage("assistant", answer.ToString());
+                var reply = new ChatMessage("assistant", answer.ToString()) { Stats = stats };
                 _messages.Add(reply with { Id = _store.AddMessage(chat.Id, reply) });
             }
             else
@@ -346,10 +354,48 @@ public partial class MainWindow : Window
         else
         {
             MarkdownRenderer.Render(m.Content, body.Blocks);
+            if (m.Stats != null)
+                AddStatsLine(body, m.Stats);
         }
         ChatBox.ScrollToEnd();
         UpdateEmptyState();
         return new MessageView(body, stream);
+    }
+
+    // ---------- Statistik unter Antworten ----------
+
+    private AnswerStats MakeStats(LlmClient.StreamResult result, string configuredModel, double seconds, double? firstChunkAt)
+    {
+        var region = RegionOption.Name(_settings.Current.Region);
+        var provider = ActiveProvider.Name + (region.Length > 0 ? $" ({region})" : "");
+
+        // Token/s nur für die Schreibphase (ab dem ersten Textstück), sonst verfälscht die Wartezeit den Wert
+        double? tokensPerSecond = null;
+        if (result.OutputTokens is > 0 && firstChunkAt is { } start)
+        {
+            var writing = seconds - start;
+            tokensPerSecond = result.OutputTokens.Value / (writing > 0.2 ? writing : seconds);
+        }
+        return new AnswerStats(provider, result.Model ?? configuredModel, result.Hoster,
+            result.InputTokens, result.OutputTokens, tokensPerSecond, seconds);
+    }
+
+    private static string FormatStats(AnswerStats s)
+    {
+        var parts = new List<string> { $"{s.Provider} · {s.Model}" + (s.Hoster != null ? $" (über {s.Hoster})" : "") };
+        if (s.TokensPerSecond is { } tps)
+            parts.Add($"{tps:0.0} Token/s");
+        if (s.InputTokens != null || s.OutputTokens != null)
+            parts.Add($"{s.InputTokens?.ToString("N0") ?? "–"} in / {s.OutputTokens?.ToString("N0") ?? "–"} out");
+        parts.Add($"{s.Seconds:0.0} s");
+        return string.Join("   ·   ", parts);
+    }
+
+    private static void AddStatsLine(Section body, AnswerStats stats)
+    {
+        var line = new Paragraph(new Run(FormatStats(stats))) { FontSize = 11.5, Margin = new Thickness(0, 6, 0, 0) };
+        line.SetResourceReference(TextElement.ForegroundProperty, "TextFillColorTertiaryBrush");
+        body.Blocks.Add(line);
     }
 
     private static Image MakeThumbnail(byte[] png)

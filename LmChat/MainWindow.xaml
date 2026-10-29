@@ -586,7 +586,9 @@
                                         <Run FontWeight="SemiBold" Text="Umschalt + Enter"/> – neue Zeile<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Strg + V"/> – Bild aus der Zwischenablage anhängen (z. B. Screenshot)<LineBreak/>
                                         <Run FontWeight="SemiBold" Text="Stopp-Knopf"/> – laufende Antwort abbrechen<LineBreak/>
-                                        <Run FontWeight="SemiBold" Text="Suchfeld links"/> – Chats nach Titel filtern
+                                        <Run FontWeight="SemiBold" Text="Suchfeld links"/> – Chats nach Titel filtern<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Zeile unter jeder Antwort"/> – Anbieter, Modell, Geschwindigkeit
+                                        (Token/s), Token-Verbrauch (in/out) und Dauer, soweit der Anbieter das meldet
                                     </TextBlock>
                                 </StackPanel>
                             </Border>

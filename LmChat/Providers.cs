@@ -363,10 +363,25 @@ public static class LlmClient
 
     // ---------- Chat ----------
 
-    public static Task StreamAsync(ChatRequest r, Action<string> onChunk, CancellationToken ct) =>
-        r.Provider.Kind == ProviderKind.Anthropic ? StreamAnthropicAsync(r, onChunk, ct) : StreamOpenAICompatibleAsync(r, onChunk, ct);
+    // Was der Anbieter über die Antwort meldet (wird während des Streamings befüllt, Werte sind optional)
+    public sealed class StreamResult
+    {
+        public string? Model { get; set; }      // tatsächlich antwortendes Modell (z. B. bei openrouter/auto)
+        public string? Hoster { get; set; }     // OpenRouter: Hoster, der die Anfrage bedient hat
+        public long? InputTokens { get; set; }
+        public long? OutputTokens { get; set; }
+    }
 
-    private static async Task StreamOpenAICompatibleAsync(ChatRequest r, Action<string> onChunk, CancellationToken ct)
+    public static async Task StreamAsync(ChatRequest r, Action<string> onChunk, StreamResult result, CancellationToken ct)
+    {
+        if (r.Provider.Kind == ProviderKind.Anthropic)
+            await StreamAnthropicAsync(r, onChunk, result, ct);
+        else
+            await StreamOpenAICompatibleAsync(r, onChunk, result, ct);
+    }
+
+    private static async Task StreamOpenAICompatibleAsync(ChatRequest r, Action<string> onChunk, StreamResult result,
+        CancellationToken ct)
     {
         var p = r.Provider;
         var s = r.Settings;
@@ -376,7 +391,14 @@ public static class LlmClient
         foreach (var m in r.Messages)
             messages.Add(ToOpenAIMessage(m));
 
-        var body = new JsonObject { ["model"] = r.Model, ["messages"] = messages, ["stream"] = true };
+        var body = new JsonObject
+        {
+            ["model"] = r.Model,
+            ["messages"] = messages,
+            ["stream"] = true,
+            // Token-Verbrauch im letzten Datenpaket mitschicken lassen
+            ["stream_options"] = new JsonObject { ["include_usage"] = true }
+        };
         if (p.SupportsSampling && s.Temperature is { } temperature) body["temperature"] = temperature;
         if (p.SupportsSampling && s.TopP is { } topP) body["top_p"] = topP;
         if (p.SupportsTopK && s.TopK is { } topK) body["top_k"] = (int)topK;
@@ -418,6 +440,15 @@ public static class LlmClient
             var json = JsonNode.Parse(data);
             if (json?["error"] is { } error)
                 throw new HttpRequestException(ErrorText(error.ToJsonString()));
+            if (json?["model"] is JsonValue model && (string?)model is { Length: > 0 } modelId)
+                result.Model = modelId;
+            if (json?["provider"] is JsonValue hoster && (string?)hoster is { Length: > 0 } hosterName)
+                result.Hoster = hosterName;
+            if (json?["usage"] is JsonObject usage)
+            {
+                result.InputTokens = (long?)usage["prompt_tokens"] ?? result.InputTokens;
+                result.OutputTokens = (long?)usage["completion_tokens"] ?? result.OutputTokens;
+            }
             if (json?["choices"] is not JsonArray { Count: > 0 } choices) continue;
             var chunk = choices[0]?["delta"]?["content"]?.GetValue<string>();
             if (!string.IsNullOrEmpty(chunk))
@@ -441,7 +472,8 @@ public static class LlmClient
         return new JsonObject { ["role"] = m.Role, ["content"] = parts };
     }
 
-    private static async Task StreamAnthropicAsync(ChatRequest r, Action<string> onChunk, CancellationToken ct)
+    private static async Task StreamAnthropicAsync(ChatRequest r, Action<string> onChunk, StreamResult result,
+        CancellationToken ct)
     {
         var client = CreateAnthropicClient(r.Server, r.ApiKey);
         var useFallback = FallbackModels.Contains(r.Model);
@@ -458,10 +490,22 @@ public static class LlmClient
 
         await foreach (var ev in client.Beta.Messages.CreateStreaming(parameters, ct))
         {
-            if (ev.TryPickContentBlockDelta(out var delta) && delta.Delta.TryPickText(out var text))
-                onChunk(text.Text);
-            else if (ev.TryPickDelta(out var messageDelta) && messageDelta.Delta.StopReason == "refusal")
-                onChunk("\n\n*[Das Modell hat diese Anfrage abgelehnt.]*");
+            if (ev.TryPickContentBlockDelta(out var delta))
+            {
+                if (delta.Delta.TryPickText(out var text))
+                    onChunk(text.Text);
+            }
+            else if (ev.TryPickStart(out var start))
+            {
+                result.Model = start.Message.Model.ToString();
+                result.InputTokens = start.Message.Usage.InputTokens;
+            }
+            else if (ev.TryPickDelta(out var messageDelta))
+            {
+                result.OutputTokens = messageDelta.Usage.OutputTokens;
+                if (messageDelta.Delta.StopReason == "refusal")
+                    onChunk("\n\n*[Das Modell hat diese Anfrage abgelehnt.]*");
+            }
         }
     }
 

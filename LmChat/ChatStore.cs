@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO;
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 
 namespace LmChat;
@@ -20,7 +21,18 @@ public record ChatInfo(long Id, string Title, DateTime Updated)
 public record ChatMessage(string Role, string Content, byte[]? Image = null)
 {
     public long Id { get; init; }
+    public AnswerStats? Stats { get; init; }
 }
+
+// Angaben unter einer Antwort: wer geantwortet hat, wie schnell und mit wie vielen Tokens
+public sealed record AnswerStats(
+    string Provider,
+    string Model,
+    string? Hoster,
+    long? InputTokens,
+    long? OutputTokens,
+    double? TokensPerSecond,
+    double Seconds);
 
 // Speichert Chats, Nachrichten (inkl. Bilder) und Einstellungen in einer SQLite-Datei
 public sealed class ChatStore
@@ -48,6 +60,10 @@ public sealed class ChatStore
                 key   TEXT PRIMARY KEY,
                 value TEXT NOT NULL);
             """);
+
+        // Ab Version 1.8: Statistik je Antwort (JSON); ältere Datenbanken bekommen die Spalte nachträglich
+        if (Scalar("SELECT COUNT(*) FROM pragma_table_info('messages') WHERE name = 'meta'") is 0L)
+            Execute("ALTER TABLE messages ADD COLUMN meta TEXT");
     }
 
     public List<ChatInfo> ListChats()
@@ -82,21 +98,38 @@ public sealed class ChatStore
     public List<ChatMessage> LoadMessages(long chatId)
     {
         using var conn = Open();
-        using var cmd = Command(conn, "SELECT id, role, content, image FROM messages WHERE chat_id = $id ORDER BY id",
+        using var cmd = Command(conn, "SELECT id, role, content, image, meta FROM messages WHERE chat_id = $id ORDER BY id",
             ("$id", chatId));
         using var r = cmd.ExecuteReader();
         var list = new List<ChatMessage>();
         while (r.Read())
-            list.Add(new ChatMessage(r.GetString(1), r.GetString(2), r.IsDBNull(3) ? null : (byte[])r[3]) { Id = r.GetInt64(0) });
+            list.Add(new ChatMessage(r.GetString(1), r.GetString(2), r.IsDBNull(3) ? null : (byte[])r[3])
+            {
+                Id = r.GetInt64(0),
+                Stats = r.IsDBNull(4) ? null : ParseStats(r.GetString(4))
+            });
         return list;
     }
 
     public long AddMessage(long chatId, ChatMessage m) =>
         (long)Scalar("""
-            INSERT INTO messages (chat_id, role, content, image, created)
-            VALUES ($c, $r, $t, $i, $d) RETURNING id
+            INSERT INTO messages (chat_id, role, content, image, created, meta)
+            VALUES ($c, $r, $t, $i, $d, $m) RETURNING id
             """,
-            ("$c", chatId), ("$r", m.Role), ("$t", m.Content), ("$i", m.Image), ("$d", FormatDate(DateTime.Now)))!;
+            ("$c", chatId), ("$r", m.Role), ("$t", m.Content), ("$i", m.Image), ("$d", FormatDate(DateTime.Now)),
+            ("$m", m.Stats == null ? null : JsonSerializer.Serialize(m.Stats)))!;
+
+    private static AnswerStats? ParseStats(string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<AnswerStats>(json);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 
     public void DeleteMessage(long id) => Execute("DELETE FROM messages WHERE id = $id", ("$id", id));
 

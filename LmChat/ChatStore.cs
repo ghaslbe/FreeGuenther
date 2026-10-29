@@ -32,7 +32,8 @@ public sealed record AnswerStats(
     long? InputTokens,
     long? OutputTokens,
     double? TokensPerSecond,
-    double Seconds);
+    double Seconds,
+    double? Cost = null);
 
 // Speichert Chats, Nachrichten (inkl. Bilder) und Einstellungen in einer SQLite-Datei
 public sealed class ChatStore

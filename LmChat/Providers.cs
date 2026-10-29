@@ -12,9 +12,11 @@ namespace LmChat;
 public enum ProviderKind { LmStudio, Ollama, OpenAI, Anthropic, OpenRouter }
 
 // Vision = null heißt: unbekannt (Anbieter meldet es nicht oder Server nicht erreichbar)
-public record ModelInfo(string Id, bool? Vision, bool Loaded)
+// ImageGen = Modell erzeugt Bilder (wird über die Bild-Schnittstelle des Anbieters angesprochen)
+public record ModelInfo(string Id, bool? Vision, bool Loaded, bool ImageGen = false)
 {
-    public string Label => Id + (Vision == true ? "    🖼 Bilder" : "") + (Loaded ? "    ● geladen" : "");
+    public string Label => Id + (ImageGen ? "    🎨 erzeugt Bilder" : "") + (Vision == true ? "    🖼 versteht Bilder" : "") +
+                           (Loaded ? "    ● geladen" : "");
 }
 
 // Feste Eigenschaften eines Anbieters: Standard-Adresse, Schlüssel nötig?, welche Feineinstellungen er versteht
@@ -302,24 +304,48 @@ public static class LlmClient
             {
                 var json = await SendJsonAsync(HttpMethod.Get, server + "/v1/models", p, apiKey, null, ct);
                 var ids = (json?["data"] as JsonArray ?? []).Select(n => (string?)n?["id"]).OfType<string>();
-                // Bei OpenAI selbst nur Chat-Modelle zeigen (keine Audio-, Bild-, Embedding-Modelle)
+                // Bei OpenAI selbst nur Chat- und Bildmodelle zeigen (keine Audio-, Embedding-Modelle usw.)
                 if (server.Contains("api.openai.com"))
-                    ids = ids.Where(IsOpenAIChatModel);
-                return ids.OrderBy(id => id).Select(id => new ModelInfo(id, null, false)).ToList();
+                    ids = ids.Where(id => IsOpenAIChatModel(id) || IsOpenAIImageModel(id));
+                return ids.OrderBy(id => id)
+                    .Select(id => new ModelInfo(id, IsOpenAIImageModel(id) ? true : null, false, IsOpenAIImageModel(id)))
+                    .ToList();
             }
 
             case ProviderKind.OpenRouter:
             {
                 var json = await SendJsonAsync(HttpMethod.Get, server + "/v1/models", p, apiKey, null, ct);
+                bool Has(JsonNode? n, string list, string value) =>
+                    (n?["architecture"]?[list] as JsonArray)?.Any(x => (string?)x == value) ?? false;
                 var models = (json?["data"] as JsonArray ?? [])
-                    .Where(n => ((n?["architecture"]?["output_modalities"] as JsonArray)?.Any(x => (string?)x == "text")) ?? true)
+                    .Where(n => Has(n, "output_modalities", "text") || Has(n, "output_modalities", "image"))
                     .Select(n => new ModelInfo(
                         (string?)n?["id"] ?? "",
                         (n?["architecture"]?["input_modalities"] as JsonArray)?.Any(x => (string?)x == "image"),
-                        false))
+                        false,
+                        Has(n, "output_modalities", "image") && !((string?)n?["id"] ?? "").StartsWith("openrouter/")))
                     .Where(m => m.Id.Length > 0)
-                    .OrderBy(m => m.Id)
                     .ToList();
+
+                // Reine Bildmodelle (z. B. Seedream, FLUX) stehen nur in der Liste der Bild-Schnittstelle
+                if (region.Length == 0 && apiKey.Length > 0)
+                {
+                    try
+                    {
+                        var images = await SendJsonAsync(HttpMethod.Get, server + "/v1/images/models", p, apiKey, null, ct);
+                        foreach (var n in images?["data"] as JsonArray ?? [])
+                        {
+                            var id = (string?)n?["id"];
+                            if (id == null) continue;
+                            var vision = Has(n, "input_modalities", "image");
+                            var index = models.FindIndex(m => m.Id == id);
+                            if (index >= 0) models[index] = models[index] with { ImageGen = true };
+                            else models.Add(new ModelInfo(id, vision, false, true));
+                        }
+                    }
+                    catch (HttpRequestException) { }
+                }
+                models = models.OrderBy(m => m.Id).ToList();
                 if (RegionOption.IsHosterFilter(region))
                 {
                     // Für jedes Modell die Endpunkte prüfen: bleibt nur, wer mindestens einen Hoster in der Region hat
@@ -357,6 +383,8 @@ public static class LlmClient
         }
     }
 
+    public static bool IsOpenAIImageModel(string id) => id.StartsWith("gpt-image") || id.StartsWith("dall-e");
+
     private static bool IsOpenAIChatModel(string id) =>
         (id.StartsWith("gpt-") || id.StartsWith("chatgpt-") || id.StartsWith("o1") || id.StartsWith("o3") || id.StartsWith("o4")) &&
         !new[] { "audio", "realtime", "transcribe", "tts", "image", "embedding", "search", "moderation", "instruct" }.Any(id.Contains);
@@ -371,6 +399,71 @@ public static class LlmClient
         public long? InputTokens { get; set; }
         public long? OutputTokens { get; set; }
     }
+
+    // ---------- Bilder erzeugen ----------
+
+    public sealed record ImageResult(byte[] Image, long? InputTokens, long? OutputTokens, double? Cost);
+
+    // OpenRouter: POST /api/v1/images (Vorlagebild über input_references)
+    // OpenAI:     POST /v1/images/generations bzw. /v1/images/edits (mit Vorlagebild, multipart)
+    public static async Task<ImageResult> GenerateImageAsync(ChatRequest r, string prompt, byte[]? reference, CancellationToken ct)
+    {
+        var p = r.Provider;
+        var server = EffectiveServer(p, r.Server, r.Region);
+        HttpRequestMessage request;
+
+        if (p.Kind == ProviderKind.OpenAI && reference != null)
+        {
+            var form = new MultipartFormDataContent
+            {
+                { new StringContent(r.Model), "model" },
+                { new StringContent(prompt), "prompt" }
+            };
+            var file = new ByteArrayContent(reference);
+            file.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+            form.Add(file, "image", "vorlage.png");
+            request = new HttpRequestMessage(HttpMethod.Post, server + "/v1/images/edits") { Content = form };
+        }
+        else
+        {
+            var body = new JsonObject { ["model"] = r.Model, ["prompt"] = prompt, ["n"] = 1 };
+            if (p.Kind == ProviderKind.OpenAI && r.Model.StartsWith("dall-e"))
+                body["response_format"] = "b64_json"; // DALL·E liefert sonst nur eine URL
+            if (p.Kind == ProviderKind.OpenRouter && reference != null)
+                body["input_references"] = new JsonArray(new JsonObject
+                {
+                    ["type"] = "image_url",
+                    ["image_url"] = new JsonObject { ["url"] = "data:image/png;base64," + Convert.ToBase64String(reference) }
+                });
+            var path = p.Kind == ProviderKind.OpenAI ? "/v1/images/generations" : "/v1/images";
+            request = new HttpRequestMessage(HttpMethod.Post, server + path)
+            {
+                Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json")
+            };
+        }
+
+        using (request)
+        {
+            AddHeaders(request, p, r.ApiKey);
+            using var response = await Http.SendAsync(request, ct);
+            var text = await response.Content.ReadAsStringAsync(ct);
+            if (!response.IsSuccessStatusCode)
+                throw new HttpRequestException($"HTTP {(int)response.StatusCode}: {ErrorText(text)}");
+
+            var json = JsonNode.Parse(text);
+            var b64 = (string?)json?["data"]?[0]?["b64_json"];
+            if (string.IsNullOrEmpty(b64))
+                throw new HttpRequestException("Der Anbieter hat kein Bild geliefert.");
+            var usage = json?["usage"];
+            return new ImageResult(
+                Convert.FromBase64String(b64),
+                (long?)usage?["prompt_tokens"] ?? (long?)usage?["input_tokens"],
+                (long?)usage?["completion_tokens"] ?? (long?)usage?["output_tokens"],
+                usage?["cost"] is JsonValue cost ? (double?)cost : null);
+        }
+    }
+
+    // ---------- Text-Chat ----------
 
     public static async Task StreamAsync(ChatRequest r, Action<string> onChunk, StreamResult result, CancellationToken ct)
     {
@@ -456,8 +549,14 @@ public static class LlmClient
         }
     }
 
+    // Antworten dürfen bei den APIs keine Bilder enthalten – ein erzeugtes Bild wird im Verlauf als Hinweis mitgeschickt
+    private static string AssistantText(ChatMessage m) =>
+        m.Image == null ? m.Content : (m.Content.Length > 0 ? m.Content + "\n\n" : "") + "[Hier wurde ein Bild erzeugt.]";
+
     private static JsonObject ToOpenAIMessage(ChatMessage m)
     {
+        if (m.Role == "assistant")
+            return new JsonObject { ["role"] = "assistant", ["content"] = AssistantText(m) };
         if (m.Image == null)
             return new JsonObject { ["role"] = m.Role, ["content"] = m.Content };
 
@@ -512,7 +611,7 @@ public static class LlmClient
     private static BetaMessageParam ToAnthropicMessage(ChatMessage m)
     {
         if (m.Role == "assistant")
-            return new BetaAssistantMessageParam { Content = m.Content };
+            return new BetaAssistantMessageParam { Content = AssistantText(m) };
         if (m.Image == null)
             return new BetaUserMessageParam { Content = m.Content };
 

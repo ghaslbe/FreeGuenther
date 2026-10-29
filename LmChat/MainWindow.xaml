@@ -647,6 +647,20 @@
 
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
+                                    <TextBlock Style="{StaticResource Heading}" Text="Bilder erzeugen"/>
+                                    <TextBlock Style="{StaticResource Body}">
+                                        Modelle mit 🎨 in der Modellliste erzeugen Bilder (bei OpenRouter z. B. Gemini Image oder GPT Image,
+                                        bei OpenAI gpt-image und DALL·E). Ist so ein Modell aktiv, ist deine Nachricht die Bildbeschreibung.<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Bearbeiten:"/> Häng ein Bild an, oder schreib einfach eine Änderung
+                                        („mach daraus eine Nachtszene“). Mit „Verlauf mitsenden“ dient dann das zuletzt erzeugte Bild als Vorlage.<LineBreak/>
+                                        Unter dem Bild: „Bild kopieren“, „Speichern“ (als PNG) und – falls gemeldet – die Kosten. Ein Klick auf das
+                                        Bild öffnet es in voller Größe. Bilder kosten meist deutlich mehr als Text.
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
                                     <TextBlock Style="{StaticResource Heading}" Text="Wenn es nicht klappt"/>
                                     <TextBlock Style="{StaticResource Body}">
                                         <Run FontWeight="SemiBold" Text="„Fehler“ / keine Verbindung:"/>

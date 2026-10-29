@@ -98,6 +98,7 @@ public partial class MainWindow : Window
 
     private ProviderInfo ActiveProvider => ProviderInfo.Get(_settings.Provider);
     private bool? CurrentVision => _settings.Current.ModelVision;
+    private bool CurrentImageGen => _settings.Current.ModelImageGen;
 
     // ---------- Chat senden ----------
 
@@ -137,6 +138,12 @@ public partial class MainWindow : Window
             StatusText.Text = "Das gewählte Modell kann keine Bilder verarbeiten – Bild entfernen oder Modell wechseln.";
             return;
         }
+        var imageMode = CurrentImageGen;
+        if (imageMode && text.Length == 0)
+        {
+            StatusText.Text = "Beschreibe in Worten, welches Bild erzeugt bzw. wie das Bild verändert werden soll.";
+            return;
+        }
 
         if (_currentChat == null)
         {
@@ -165,15 +172,34 @@ public partial class MainWindow : Window
         var result = new LlmClient.StreamResult();
         var clock = Stopwatch.StartNew();
         double? firstChunkAt = null;
+        byte[]? generated = null;
+        double? cost = null;
         try
         {
-            await LlmClient.StreamAsync(request, chunk =>
+            if (imageMode)
             {
-                firstChunkAt ??= clock.Elapsed.TotalSeconds;
-                answer.Append(chunk);
-                answerView.Stream!.Text += chunk;
-                ChatBox.ScrollToEnd();
-            }, result, _cts.Token);
+                // Bildmodell: Nachricht = Bildbeschreibung. Vorlage = angehängtes Bild, sonst (mit Verlauf) das zuletzt erzeugte
+                var reference = image ?? (HistoryCheck.IsChecked == true
+                    ? _messages.LastOrDefault(m => m.Role == "assistant" && m.Image != null)?.Image
+                    : null);
+                answerView.Stream!.Text = reference != null ? "🎨 Bild wird bearbeitet …" : "🎨 Bild wird erzeugt …";
+                StatusText.Text = "Bild wird erzeugt – das kann je nach Modell eine Weile dauern …";
+                var img = await LlmClient.GenerateImageAsync(request, text, reference, _cts.Token);
+                generated = ToPng(img.Image);
+                result.InputTokens = img.InputTokens;
+                result.OutputTokens = img.OutputTokens;
+                cost = img.Cost;
+            }
+            else
+            {
+                await LlmClient.StreamAsync(request, chunk =>
+                {
+                    firstChunkAt ??= clock.Elapsed.TotalSeconds;
+                    answer.Append(chunk);
+                    answerView.Stream!.Text += chunk;
+                    ChatBox.ScrollToEnd();
+                }, result, _cts.Token);
+            }
             StatusText.Text = "Fertig.";
         }
         catch (OperationCanceledException)
@@ -188,21 +214,24 @@ public partial class MainWindow : Window
         }
         finally
         {
-            var stats = MakeStats(result, config.Model, clock.Elapsed.TotalSeconds, firstChunkAt);
+            var stats = MakeStats(result, config.Model, clock.Elapsed.TotalSeconds, firstChunkAt, cost);
+            var success = answer.Length > 0 || generated != null;
 
             // Fertige Antwort als Markdown darstellen (während des Streamings war es reiner Text)
             answerView.Body.Blocks.Clear();
+            if (generated != null)
+                answerView.Body.Blocks.Add(new BlockUIContainer(MakeImageView(generated, 420, 560)));
             if (answer.Length > 0)
                 MarkdownRenderer.Render(answer.ToString(), answerView.Body.Blocks);
             if (note != null)
                 answerView.Body.Blocks.Add(new Paragraph(new Italic(new Run(note))) { Margin = new Thickness(0) });
-            if (answer.Length > 0)
-                AddAnswerFooter(answerView.Body, answer.ToString(), stats);
+            if (success)
+                AddAnswerFooter(answerView.Body, answer.ToString(), stats, generated);
             ChatBox.ScrollToEnd();
 
-            if (answer.Length > 0)
+            if (success)
             {
-                var reply = new ChatMessage("assistant", answer.ToString()) { Stats = stats };
+                var reply = new ChatMessage("assistant", answer.ToString(), generated) { Stats = stats };
                 _messages.Add(reply with { Id = _store.AddMessage(chat.Id, reply) });
             }
             else
@@ -382,8 +411,10 @@ public partial class MainWindow : Window
         }
         else
         {
+            if (m.Image != null)
+                body.Blocks.Add(new BlockUIContainer(MakeImageView(m.Image, 420, 560)));
             MarkdownRenderer.Render(m.Content, body.Blocks);
-            AddAnswerFooter(body, m.Content, m.Stats);
+            AddAnswerFooter(body, m.Content, m.Stats, m.Image);
         }
         ChatBox.ScrollToEnd();
         UpdateEmptyState();
@@ -392,7 +423,8 @@ public partial class MainWindow : Window
 
     // ---------- Statistik unter Antworten ----------
 
-    private AnswerStats MakeStats(LlmClient.StreamResult result, string configuredModel, double seconds, double? firstChunkAt)
+    private AnswerStats MakeStats(LlmClient.StreamResult result, string configuredModel, double seconds, double? firstChunkAt,
+        double? cost = null)
     {
         var region = RegionOption.Name(_settings.Current.Region);
         var provider = ActiveProvider.Name + (region.Length > 0 ? $" ({region})" : "");
@@ -405,7 +437,7 @@ public partial class MainWindow : Window
             tokensPerSecond = result.OutputTokens.Value / (writing > 0.2 ? writing : seconds);
         }
         return new AnswerStats(provider, result.Model ?? configuredModel, result.Hoster,
-            result.InputTokens, result.OutputTokens, tokensPerSecond, seconds);
+            result.InputTokens, result.OutputTokens, tokensPerSecond, seconds, cost);
     }
 
     private static string FormatStats(AnswerStats s)
@@ -416,21 +448,42 @@ public partial class MainWindow : Window
         if (s.InputTokens != null || s.OutputTokens != null)
             parts.Add($"{s.InputTokens?.ToString("N0") ?? "–"} in / {s.OutputTokens?.ToString("N0") ?? "–"} out");
         parts.Add($"{s.Seconds:0.0} s");
+        if (s.Cost is > 0)
+            parts.Add($"{s.Cost:0.####} $");
         return string.Join("   ·   ", parts);
     }
 
-    // Zeile unter einer Antwort: Kopieren-Knopf und (falls vorhanden) Anbieter, Modell, Token/s, Tokens
-    private void AddAnswerFooter(Section body, string content, AnswerStats? stats)
+    // Zeile unter einer Antwort: Knöpfe (Kopieren bzw. Bild kopieren/speichern) und Anbieter, Modell, Token/s, Tokens
+    private void AddAnswerFooter(Section body, string content, AnswerStats? stats, byte[]? image = null)
     {
         var line = new Paragraph { FontSize = 11.5, Margin = new Thickness(0, 6, 0, 0) };
         line.SetResourceReference(TextElement.ForegroundProperty, "TextFillColorTertiaryBrush");
 
-        var label = new TextBlock { Text = "Kopieren", Margin = new Thickness(5, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
-        var copyButton = new Button
+        if (content.Length > 0)
+            line.Inlines.Add(FooterButton("", "Kopieren", "Antwort kopieren",
+                "Antwort in die Zwischenablage kopieren (mit Markdown-Formatierung)",
+                () => CopyToClipboard(() => Clipboard.SetText(content))));
+        if (image != null)
+        {
+            line.Inlines.Add(FooterButton("", "Bild kopieren", "Bild kopieren", "Bild in die Zwischenablage kopieren",
+                () => CopyToClipboard(() => Clipboard.SetImage(LoadBitmap(image)))));
+            line.Inlines.Add(FooterButton("", "Speichern", "Bild speichern", "Bild als PNG-Datei speichern",
+                () => SaveImage(image)));
+        }
+        if (stats != null)
+            line.Inlines.Add(new Run("   " + FormatStats(stats)));
+        body.Blocks.Add(line);
+    }
+
+    // Kleiner Knopf in der Zeile unter einer Antwort; zeigt nach dem Klick kurz eine Bestätigung
+    private InlineUIContainer FooterButton(string glyph, string text, string automationName, string tooltip, Func<bool> action)
+    {
+        var label = new TextBlock { Text = text, Margin = new Thickness(5, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        var button = new Button
         {
             Style = (Style)FindResource("IconButton"),
             Padding = new Thickness(6, 2, 8, 2),
-            ToolTip = "Antwort in die Zwischenablage kopieren (mit Markdown-Formatierung)",
+            ToolTip = tooltip,
             Content = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -438,7 +491,7 @@ public partial class MainWindow : Window
                 {
                     new TextBlock
                     {
-                        Text = "",
+                        Text = glyph,
                         FontFamily = (FontFamily)FindResource("IconFont"),
                         FontSize = 12,
                         VerticalAlignment = VerticalAlignment.Center
@@ -447,28 +500,25 @@ public partial class MainWindow : Window
                 }
             }
         };
-        System.Windows.Automation.AutomationProperties.SetName(copyButton, "Antwort kopieren");
-        copyButton.Click += async (_, _) =>
+        System.Windows.Automation.AutomationProperties.SetName(button, automationName);
+        button.Click += async (_, _) =>
         {
-            label.Text = CopyToClipboard(content) ? "Kopiert ✓" : "Zwischenablage belegt – nochmal versuchen";
+            if (!action()) return;
+            label.Text = text == "Speichern" ? "Gespeichert ✓" : "Kopiert ✓";
             await Task.Delay(1800);
-            label.Text = "Kopieren";
+            label.Text = text;
         };
-
-        line.Inlines.Add(new InlineUIContainer(copyButton) { BaselineAlignment = BaselineAlignment.Center });
-        if (stats != null)
-            line.Inlines.Add(new Run("   " + FormatStats(stats)));
-        body.Blocks.Add(line);
+        return new InlineUIContainer(button) { BaselineAlignment = BaselineAlignment.Center };
     }
 
     // Die Zwischenablage kann kurz von einem anderen Programm gesperrt sein – dann ein paar Mal wiederholen
-    private static bool CopyToClipboard(string text)
+    private bool CopyToClipboard(Action copy)
     {
         for (var attempt = 0; attempt < 5; attempt++)
         {
             try
             {
-                Clipboard.SetText(text);
+                copy();
                 return true;
             }
             catch (System.Runtime.InteropServices.COMException)
@@ -476,27 +526,60 @@ public partial class MainWindow : Window
                 Thread.Sleep(50);
             }
         }
+        StatusText.Text = "Die Zwischenablage ist gerade belegt – bitte nochmal versuchen.";
         return false;
     }
 
-    private static Image MakeThumbnail(byte[] png)
+    private bool SaveImage(byte[] png)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Title = "Bild speichern",
+            Filter = "PNG-Bild|*.png",
+            FileName = $"LmChat-Bild-{DateTime.Now:yyyy-MM-dd-HHmmss}.png"
+        };
+        if (dialog.ShowDialog(this) != true) return false;
+        File.WriteAllBytes(dialog.FileName, png);
+        StatusText.Text = $"Bild gespeichert: {dialog.FileName}";
+        return true;
+    }
+
+    private static BitmapImage LoadBitmap(byte[] data)
     {
         var bitmap = new BitmapImage();
         bitmap.BeginInit();
         bitmap.CacheOption = BitmapCacheOption.OnLoad;
-        bitmap.StreamSource = new MemoryStream(png);
+        bitmap.StreamSource = new MemoryStream(data);
         bitmap.EndInit();
+        bitmap.Freeze();
+        return bitmap;
+    }
 
+    // Erzeugte Bilder kommen je nach Anbieter als PNG, JPEG oder WebP – einheitlich als PNG speichern
+    private static byte[] ToPng(byte[] data)
+    {
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(LoadBitmap(data)));
+        using var ms = new MemoryStream();
+        encoder.Save(ms);
+        return ms.ToArray();
+    }
+
+    private static Image MakeThumbnail(byte[] png) => MakeImageView(png, 180, 320);
+
+    private static Image MakeImageView(byte[] png, double maxHeight, double maxWidth)
+    {
         var image = new Image
         {
-            Source = bitmap,
-            MaxHeight = 180,
-            MaxWidth = 320,
+            Source = LoadBitmap(png),
+            MaxHeight = maxHeight,
+            MaxWidth = maxWidth,
             Stretch = Stretch.Uniform,
             HorizontalAlignment = HorizontalAlignment.Left,
             Cursor = Cursors.Hand,
             ToolTip = "Klicken zum Vergrößern"
         };
+        RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
         image.MouseLeftButtonUp += (_, _) => OpenImage(png);
         return image;
     }
@@ -703,6 +786,7 @@ public partial class MainWindow : Window
         {
             config.Model = model.Id;
             config.ModelVision = model.Vision;
+            config.ModelImageGen = model.ImageGen;
         }
     }
 
@@ -740,7 +824,7 @@ public partial class MainWindow : Window
         _repeatPenaltyRow.SetSupported(info.SupportsRepeatPenalty, info.Name);
 
         _models.Clear();
-        EnsureModelItem(config.Model, config.ModelVision);
+        EnsureModelItem(config.Model, config.ModelVision, config.ModelImageGen);
         ModelCombo.SelectedValue = config.Model;
         _ = LoadModelsAsync();
     }
@@ -838,36 +922,46 @@ public partial class MainWindow : Window
             if (loadId != _modelLoadId) return;
             SettingsStatus.Text = $"Modelle konnten nicht geladen werden: {ex.Message}";
             // Liste nicht ladbar: bisherige Auswahl trotzdem anzeigen
-            EnsureModelItem(selected, null);
+            var saved = _draft.Config(info.Kind);
+            EnsureModelItem(selected, saved.Model == selected ? saved.ModelVision : null,
+                saved.Model == selected && saved.ModelImageGen);
         }
         ModelCombo.SelectedValue = selected;
 
-        // Bildfähigkeit des aktiven Modells aktualisieren (z. B. nach dem Programmstart)
+        // Fähigkeiten des aktiven Modells aktualisieren (z. B. nach dem Programmstart)
         if (info.Kind == _settings.Provider &&
-            _models.FirstOrDefault(m => m.Id == _settings.Current.Model) is { Vision: not null } active &&
-            active.Vision != _settings.Current.ModelVision)
+            _models.FirstOrDefault(m => m.Id == _settings.Current.Model) is { } active &&
+            ((active.Vision != null && active.Vision != _settings.Current.ModelVision) ||
+             active.ImageGen != _settings.Current.ModelImageGen))
         {
-            _settings.Current.ModelVision = active.Vision;
-            _draft.Config(info.Kind).ModelVision = active.Vision;
+            _settings.Current.ModelVision = active.Vision ?? _settings.Current.ModelVision;
+            _settings.Current.ModelImageGen = active.ImageGen;
+            _draft.Config(info.Kind).ModelVision = _settings.Current.ModelVision;
+            _draft.Config(info.Kind).ModelImageGen = active.ImageGen;
             _settings.Save(_store);
             UpdateModelUi();
         }
     }
 
-    private void EnsureModelItem(string id, bool? vision)
+    private void EnsureModelItem(string id, bool? vision, bool imageGen = false)
     {
         if (id.Length > 0 && _models.All(m => m.Id != id))
-            _models.Add(new ModelInfo(id, vision, false));
+            _models.Add(new ModelInfo(id, vision, false, imageGen));
     }
 
     private void ModelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        ModelHint.Text = (ModelCombo.SelectedItem as ModelInfo)?.Vision switch
+        var model = ModelCombo.SelectedItem as ModelInfo;
+        var visionHint = model?.Vision switch
         {
             true => "🖼 Dieses Modell versteht Bilder.",
             false => "Dieses Modell versteht nur Text.",
-            _ => ModelCombo.SelectedItem == null ? "" : "Ob das Modell Bilder versteht, meldet dieser Anbieter nicht – einfach ausprobieren."
+            _ => model == null ? "" : "Ob das Modell Bilder versteht, meldet dieser Anbieter nicht – einfach ausprobieren."
         };
+        ModelHint.Text = model?.ImageGen == true
+            ? "🎨 Dieses Modell erzeugt Bilder: Deine Nachricht ist die Bildbeschreibung. Ein angehängtes Bild (oder mit " +
+              "„Verlauf mitsenden“ das zuletzt erzeugte) dient als Vorlage zum Bearbeiten. Bilder kosten meist mehr als Text."
+            : visionHint;
     }
 
     private void UpdateModelUi()
@@ -877,7 +971,7 @@ public partial class MainWindow : Window
         var region = RegionOption.Name(_settings.Current.Region);
         var provider = ActiveProvider.Name + (region.Length > 0 ? $" ({region})" : "");
         var modelText = model.Length > 0 ? model : "kein Modell gewählt";
-        var visionText = vision switch { true => "versteht Bilder", false => "nur Text", _ => "" };
+        var visionText = CurrentImageGen ? "erzeugt Bilder" : vision switch { true => "versteht Bilder", false => "nur Text", _ => "" };
 
         // Karte unten in der Seitenleiste
         ProviderInfoText.Text = provider;
@@ -890,8 +984,11 @@ public partial class MainWindow : Window
         TileModel.ToolTip = modelText;
         TileModelHint.Text = "Aktives Modell" + (visionText.Length > 0 ? $" · {visionText}" : "");
 
-        EmptyStateHint.Text = $"Du chattest mit {modelText} über {provider}." +
-                              (vision == false ? "" : " Bilder kannst du per Strg+V oder „Bild“ anhängen.");
+        EmptyStateHint.Text = CurrentImageGen
+            ? $"🎨 {modelText} über {provider} erzeugt Bilder: Beschreibe, was zu sehen sein soll. " +
+              "Mit einem angehängten Bild wird dieses bearbeitet."
+            : $"Du chattest mit {modelText} über {provider}." +
+              (vision == false ? "" : " Bilder kannst du per Strg+V oder „Bild“ anhängen.");
         ImageButton.IsEnabled = vision != false && _cts == null;
         ImageButton.ToolTip = vision == false
             ? "Dieses Modell kann keine Bilder verarbeiten"

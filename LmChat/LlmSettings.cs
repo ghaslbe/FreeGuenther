@@ -11,6 +11,7 @@ public sealed class ProviderConfig
     public string Server { get; set; } = "";
     public string Model { get; set; } = "";
     public bool? ModelVision { get; set; }
+    public bool ModelImageGen { get; set; }
 
     // Nur OpenRouter: "" = weltweit, "eu" / "us" = nur Rechenzentren in dieser Region
     public string Region { get; set; } = "";

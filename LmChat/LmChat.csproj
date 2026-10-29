@@ -20,13 +20,14 @@
   <PropertyGroup>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <!-- Bei jeder Änderung hochzählen: Major.Minor.Patch -->
-    <Version>1.6.0</Version>
+    <Version>1.7.0</Version>
     <Authors>ghaslbe</Authors>
     <Copyright>Copyright (c) 2026 ghaslbe – MIT-Lizenz</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
     <Resource Include="app.ico" />
+    <Resource Include="app-logo.png" />
   </ItemGroup>
 
   <ItemGroup>

@@ -39,10 +39,18 @@ public partial class MainWindow : Window
         InitializeComponent();
         Title = $"LM Chat {AppVersion}";
         VersionRun.Text = $"Version {AppVersion}.";
+        SidebarVersion.Text = $"Version {AppVersion}";
         _settings = LlmSettings.Load(_store);
         _draft = _settings.Clone();
         foreach (var chat in _store.ListChats())
             _chats.Add(chat);
+
+        // Chatliste: nach Datum gruppiert und über das Suchfeld filterbar
+        var chatView = System.Windows.Data.CollectionViewSource.GetDefaultView(_chats);
+        chatView.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription(nameof(ChatInfo.DateGroup)));
+        chatView.Filter = item => item is ChatInfo c &&
+            c.Title.Contains(ChatSearchBox.Text.Trim(), StringComparison.CurrentCultureIgnoreCase);
+        _chats.CollectionChanged += (_, _) => UpdateTiles();
         ChatList.ItemsSource = _chats;
         ProviderCombo.ItemsSource = ProviderInfo.All;
         RegionCombo.ItemsSource = RegionOption.All;
@@ -53,10 +61,39 @@ public partial class MainWindow : Window
         // Beim Befüllen der Einstellungen kann ein Element dort den Fokus bekommen – immer im Chat starten
         Loaded += (_, _) =>
         {
+            NavChat.IsChecked = true;
             MainTabs.SelectedIndex = 0;
             SettingsScroll.ScrollToTop();
+            UpdateTiles();
+            UpdateEmptyState();
             InputBox.Focus();
         };
+    }
+
+    // ---------- Seitenleiste ----------
+
+    private void Nav_Checked(object sender, RoutedEventArgs e)
+    {
+        if (MainTabs == null) return;
+        MainTabs.SelectedIndex = sender == NavSettings ? 1 : sender == NavHelp ? 2 : 0;
+        if (sender == NavChat) InputBox.Focus();
+    }
+
+    private void ModelCard_Click(object sender, MouseButtonEventArgs e) => NavSettings.IsChecked = true;
+
+    private void ChatSearch_TextChanged(object sender, TextChangedEventArgs e) =>
+        System.Windows.Data.CollectionViewSource.GetDefaultView(_chats)?.Refresh();
+
+    private void UpdateTiles()
+    {
+        TileChats.Text = _chats.Count.ToString();
+    }
+
+    private void UpdateEmptyState()
+    {
+        EmptyState.Visibility = ChatBox.Document.Blocks.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        ChatTitleText.Text = _currentChat?.Title ?? "Neuer Chat";
+        DeleteChatButton.Visibility = _currentChat == null ? Visibility.Hidden : Visibility.Visible;
     }
 
     private ProviderInfo ActiveProvider => ProviderInfo.Get(_settings.Provider);
@@ -187,6 +224,7 @@ public partial class MainWindow : Window
             _cts.Dispose();
             _cts = null;
             SetBusy(false);
+            UpdateEmptyState();
             InputBox.Focus();
         }
     }
@@ -204,6 +242,8 @@ public partial class MainWindow : Window
         _messages.Clear();
         _messages.AddRange(_store.LoadMessages(chat.Id));
         RenderChat();
+        UpdateEmptyState();
+        NavChat.IsChecked = true;
         InputBox.Focus();
     }
 
@@ -213,6 +253,8 @@ public partial class MainWindow : Window
         _messages.Clear();
         ChatBox.Document.Blocks.Clear();
         SelectChatSilently(null);
+        UpdateEmptyState();
+        NavChat.IsChecked = true;
         StatusText.Text = "Neuer Chat.";
         InputBox.Focus();
     }
@@ -256,14 +298,44 @@ public partial class MainWindow : Window
     private MessageView AddMessageBlock(ChatMessage m, bool streaming = false)
     {
         var blocks = ChatBox.Document.Blocks;
-        blocks.Add(new Paragraph(new Run(m.Role == "user" ? "Du" : "LLM") { FontWeight = FontWeights.Bold })
-        {
-            Margin = new Thickness(0, blocks.Count == 0 ? 0 : 16, 0, 4)
-        });
-        if (m.Image != null)
-            blocks.Add(new BlockUIContainer(MakeThumbnail(m.Image)) { Margin = new Thickness(0, 0, 0, 6) });
+        var top = blocks.Count == 0 ? 8 : 22;
 
-        var body = new Section();
+        // Eigene Nachrichten: rechtsbündige, abgerundete Blase (Text markier- und kopierbar)
+        if (m.Role == "user")
+        {
+            var content = new StackPanel();
+            if (m.Image != null)
+                content.Children.Add(MakeThumbnail(m.Image));
+            if (m.Content.Length > 0)
+                content.Children.Add(new TextBox
+                {
+                    Text = m.Content,
+                    IsReadOnly = true,
+                    TextWrapping = TextWrapping.Wrap,
+                    BorderThickness = new Thickness(0),
+                    Background = Brushes.Transparent,
+                    Padding = new Thickness(0),
+                    FontSize = 15,
+                    Margin = new Thickness(0, m.Image != null ? 8 : 0, 0, 0),
+                    Cursor = Cursors.IBeam
+                });
+            var bubble = new Border
+            {
+                Child = content,
+                CornerRadius = new CornerRadius(18),
+                Padding = new Thickness(16, 10, 16, 10),
+                MaxWidth = 560,
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+            bubble.SetResourceReference(Border.BackgroundProperty, "SubtleFillColorSecondaryBrush");
+            blocks.Add(new BlockUIContainer(bubble) { Margin = new Thickness(80, top, 0, 0) });
+            ChatBox.ScrollToEnd();
+            UpdateEmptyState();
+            return new MessageView(new Section(), null);
+        }
+
+        // Antworten: ohne Blase als gut lesbarer Fließtext (Markdown)
+        var body = new Section { Margin = new Thickness(0, top, 0, 0) };
         blocks.Add(body);
         Run? stream = null;
         if (streaming)
@@ -271,15 +343,12 @@ public partial class MainWindow : Window
             stream = new Run();
             body.Blocks.Add(new Paragraph(stream) { Margin = new Thickness(0) });
         }
-        else if (m.Role == "assistant")
+        else
         {
             MarkdownRenderer.Render(m.Content, body.Blocks);
         }
-        else
-        {
-            body.Blocks.Add(new Paragraph(new Run(m.Content)) { Margin = new Thickness(0) });
-        }
         ChatBox.ScrollToEnd();
+        UpdateEmptyState();
         return new MessageView(body, stream);
     }
 
@@ -319,7 +388,7 @@ public partial class MainWindow : Window
     private void SetBusy(bool busy)
     {
         SendButton.IsEnabled = !busy;
-        StopButton.IsEnabled = busy;
+        StopButton.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
         NewChatButton.IsEnabled = !busy;
         DeleteChatButton.IsEnabled = !busy;
         ChatList.IsEnabled = !busy;
@@ -679,13 +748,23 @@ public partial class MainWindow : Window
         var vision = CurrentVision;
         var model = _settings.Current.Model;
         var region = RegionOption.Name(_settings.Current.Region);
-        var provider = ActiveProvider.Name + (region.Length > 0 ? $" (nur {region})" : "");
-        ModelInfoText.Text = $"{provider}   ·   {(model.Length > 0 ? model : "kein Modell gewählt")}" + vision switch
-        {
-            true => "   ·   🖼 versteht Bilder",
-            false => "   ·   nur Text",
-            _ => ""
-        };
+        var provider = ActiveProvider.Name + (region.Length > 0 ? $" ({region})" : "");
+        var modelText = model.Length > 0 ? model : "kein Modell gewählt";
+        var visionText = vision switch { true => "versteht Bilder", false => "nur Text", _ => "" };
+
+        // Karte unten in der Seitenleiste
+        ProviderInfoText.Text = provider;
+        ModelInfoText.Text = modelText;
+        ModelInfoText.ToolTip = $"{provider} · {modelText}" + (visionText.Length > 0 ? $" · {visionText}" : "");
+
+        // Kacheln oben in den Einstellungen
+        TileProvider.Text = provider;
+        TileModel.Text = modelText.Contains('/') ? modelText[(modelText.LastIndexOf('/') + 1)..] : modelText;
+        TileModel.ToolTip = modelText;
+        TileModelHint.Text = "Aktives Modell" + (visionText.Length > 0 ? $" · {visionText}" : "");
+
+        EmptyStateHint.Text = $"Du chattest mit {modelText} über {provider}." +
+                              (vision == false ? "" : " Bilder kannst du per Strg+V oder „Bild“ anhängen.");
         ImageButton.IsEnabled = vision != false && _cts == null;
         ImageButton.ToolTip = vision == false
             ? "Dieses Modell kann keine Bilder verarbeiten"

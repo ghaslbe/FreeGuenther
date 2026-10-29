@@ -37,7 +37,12 @@ Ein einfacher Windows-Chat-Client für lokale und Online-Sprachmodelle: [LM Stud
 
   Die Zahlenwerte stellst du per Schieberegler ein, nur innerhalb gültiger Bereiche und jeweils mit Erklärung. Ohne Haken gilt der Standardwert des Modells.
 - **Hilfe-Seite:** Kurzanleitung, Fehlerbehebung, Lizenz und Link zu diesem Repository.
-- **Aussehen:** Die App folgt dem Hell- oder Dunkelmodus von Windows 11 (Fluent) und hat ein eigenes Icon.
+- **Oberfläche:**
+  - Seitenleiste mit Logo, Navigation (Chat, Einstellungen, Hilfe), Suchfeld und nach Datum gruppierter Chatliste (Heute, Gestern, Letzte 7 Tage …). Unten zeigt eine Karte den aktiven Anbieter und das Modell.
+  - Chat in einer mittigen Lesespalte: eigene Nachrichten als Sprechblasen, Antworten als Fließtext. Ein leerer Chat zeigt eine Startansicht.
+  - Eingabe in einer abgerundeten Karte mit Bild-Knopf, „Verlauf mitsenden“ und rundem Senden-Knopf.
+  - Einstellungen und Hilfe als Karten, oben in den Einstellungen Kacheln für Anbieter, Modell und Anzahl der Chats.
+  - Die App folgt dem Hell- oder Dunkelmodus und der Akzentfarbe von Windows 11 (Fluent).
 
 ## Bedienung
 

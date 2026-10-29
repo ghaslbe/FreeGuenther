@@ -1,6 +1,10 @@
-# Erzeugt LmChat/app.ico (16–256 px): Sprechblase auf Farbverlauf.
+# Erzeugt LmChat/app.ico (16–256 px) und LmChat/app-logo.png (512 px, scharfes Logo in der App):
+# Sprechblase auf Farbverlauf.
 # Aufruf: powershell -File tools\make-icon.ps1
-param([string]$Out = (Join-Path $PSScriptRoot '..\LmChat\app.ico'))
+param(
+    [string]$Out = (Join-Path $PSScriptRoot '..\LmChat\app.ico'),
+    [string]$LogoOut = (Join-Path $PSScriptRoot '..\LmChat\app-logo.png')
+)
 
 Add-Type -AssemblyName System.Drawing
 
@@ -71,3 +75,6 @@ foreach ($img in $images) { $w.Write($img) }
 $w.Flush()
 [IO.File]::WriteAllBytes([IO.Path]::GetFullPath($Out), $stream.ToArray())
 "Icon geschrieben: $([IO.Path]::GetFullPath($Out))"
+
+[IO.File]::WriteAllBytes([IO.Path]::GetFullPath($LogoOut), (New-IconPng 512))
+"Logo geschrieben: $([IO.Path]::GetFullPath($LogoOut))"

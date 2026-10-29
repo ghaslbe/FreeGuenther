@@ -4,7 +4,18 @@ using Microsoft.Data.Sqlite;
 
 namespace LmChat;
 
-public record ChatInfo(long Id, string Title, DateTime Updated);
+public record ChatInfo(long Id, string Title, DateTime Updated)
+{
+    // Überschrift der Gruppe in der Chatliste
+    public string DateGroup
+    {
+        get
+        {
+            var days = (DateTime.Today - Updated.Date).Days;
+            return days <= 0 ? "Heute" : days == 1 ? "Gestern" : days < 7 ? "Letzte 7 Tage" : days < 30 ? "Letzte 30 Tage" : "Älter";
+        }
+    }
+}
 
 public record ChatMessage(string Role, string Content, byte[]? Image = null)
 {

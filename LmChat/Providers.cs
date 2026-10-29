@@ -870,7 +870,7 @@ public static class LlmClient
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         if (p.Kind == ProviderKind.OpenRouter)
         {
-            request.Headers.Add("HTTP-Referer", "https://github.com/ghaslbe/lmstudioChatWindows");
+            request.Headers.Add("HTTP-Referer", "https://github.com/ghaslbe/FreeGuenther");
             request.Headers.Add("X-Title", "FreeGuenther");
         }
     }

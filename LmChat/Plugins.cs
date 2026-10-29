@@ -183,7 +183,7 @@ public sealed class ToolBox
 
 public sealed class PluginManager : IAsyncDisposable
 {
-    public const string CatalogUrl = "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/index.json";
+    public const string CatalogUrl = "https://raw.githubusercontent.com/ghaslbe/FreeGuenther/main/plugins/index.json";
 
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(25) };
     private readonly ChatStore _store;

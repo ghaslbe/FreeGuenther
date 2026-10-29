@@ -967,7 +967,7 @@
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap">
                                         Aus dem Plugin-Katalog im
-                                        <Hyperlink NavigateUri="https://github.com/ghaslbe/lmstudioChatWindows/tree/main/plugins"
+                                        <Hyperlink NavigateUri="https://github.com/ghaslbe/FreeGuenther/tree/main/plugins"
                                                    RequestNavigate="Link_RequestNavigate">GitHub-Projekt</Hyperlink>
                                         herunterladen oder eine Plugin-Datei (.json) importieren. Vor der Installation siehst du, worauf das Plugin zugreift.
                                     </TextBlock>
@@ -1013,10 +1013,10 @@
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}">
                                 Ein einfacher Chat-Client für lokale und Online-Sprachmodelle. <Run x:Name="VersionRun"/>
                                 Projekt auf GitHub:
-                                <Hyperlink NavigateUri="https://github.com/ghaslbe/lmstudioChatWindows"
-                                           RequestNavigate="Link_RequestNavigate">github.com/ghaslbe/lmstudioChatWindows</Hyperlink>
+                                <Hyperlink NavigateUri="https://github.com/ghaslbe/FreeGuenther"
+                                           RequestNavigate="Link_RequestNavigate">github.com/ghaslbe/FreeGuenther</Hyperlink>
                                 ·
-                                <Hyperlink NavigateUri="https://github.com/ghaslbe/lmstudioChatWindows/releases/latest"
+                                <Hyperlink NavigateUri="https://github.com/ghaslbe/FreeGuenther/releases/latest"
                                            RequestNavigate="Link_RequestNavigate">Neueste Version</Hyperlink>
                             </TextBlock>
 

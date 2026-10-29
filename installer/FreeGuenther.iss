@@ -18,9 +18,9 @@ AppName=FreeGuenther
 AppVersion={#AppVersion}
 AppVerName=FreeGuenther {#AppVersion}
 AppPublisher=ghaslbe
-AppPublisherURL=https://github.com/ghaslbe/lmstudioChatWindows
-AppSupportURL=https://github.com/ghaslbe/lmstudioChatWindows
-AppUpdatesURL=https://github.com/ghaslbe/lmstudioChatWindows/releases/latest
+AppPublisherURL=https://github.com/ghaslbe/FreeGuenther
+AppSupportURL=https://github.com/ghaslbe/FreeGuenther
+AppUpdatesURL=https://github.com/ghaslbe/FreeGuenther/releases/latest
 VersionInfoVersion={#AppVersion}
 ; Ohne Administratorrechte für den aktuellen Benutzer installieren (wahlweise für alle)
 PrivilegesRequired=lowest

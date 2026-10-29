@@ -32,10 +32,10 @@ Ein einfacher Windows-Chat-Client für lokale und Online-Sprachmodelle: [LM Stud
 
 | Datei | Wofür |
 |---|---|
-| **[FreeGuenther-Setup.exe](https://github.com/ghaslbe/lmstudioChatWindows/releases/latest/download/FreeGuenther-Setup.exe)** (Installer, empfohlen) | Installiert FreeGuenther mit Startmenü-Eintrag und optionalem Desktop-Symbol. Deinstallation über die Windows-Einstellungen. Keine Administratorrechte nötig, Updates einfach drüberinstallieren. |
-| **[FreeGuenther.exe](https://github.com/ghaslbe/lmstudioChatWindows/releases/latest/download/FreeGuenther.exe)** (portabel) | Ohne Installation, z. B. vom USB-Stick oder zum schnellen Ausprobieren. Herunterladen und starten. |
+| **[FreeGuenther-Setup.exe](https://github.com/ghaslbe/FreeGuenther/releases/latest/download/FreeGuenther-Setup.exe)** (Installer, empfohlen) | Installiert FreeGuenther mit Startmenü-Eintrag und optionalem Desktop-Symbol. Deinstallation über die Windows-Einstellungen. Keine Administratorrechte nötig, Updates einfach drüberinstallieren. |
+| **[FreeGuenther.exe](https://github.com/ghaslbe/FreeGuenther/releases/latest/download/FreeGuenther.exe)** (portabel) | Ohne Installation, z. B. vom USB-Stick oder zum schnellen Ausprobieren. Herunterladen und starten. |
 
-Beide Varianten sind dieselbe App und nutzen dieselben Chats und Einstellungen (`%LOCALAPPDATA%\FreeGuenther`). Alle Versionen findest du unter [Releases](https://github.com/ghaslbe/lmstudioChatWindows/releases).
+Beide Varianten sind dieselbe App und nutzen dieselben Chats und Einstellungen (`%LOCALAPPDATA%\FreeGuenther`). Alle Versionen findest du unter [Releases](https://github.com/ghaslbe/FreeGuenther/releases).
 
 Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann deshalb beim ersten Start warnen. Über „Weitere Informationen“ → „Trotzdem ausführen“ lässt sich die App starten.
 

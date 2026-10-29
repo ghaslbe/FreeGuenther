@@ -6,7 +6,7 @@
       "version": "1.0.0",
       "type": "http",
       "description": "Aktuelles Wetter und Vorhersage für jeden Ort (Open-Meteo, ohne Schlüssel).",
-      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/wetter.json"
+      "url": "https://raw.githubusercontent.com/ghaslbe/FreeGuenther/main/plugins/wetter.json"
     },
     {
       "id": "datum-uhrzeit",
@@ -14,7 +14,7 @@
       "version": "1.0.0",
       "type": "builtin",
       "description": "Heutiges Datum, Uhrzeit, Wochentag und Kalenderwoche – läuft lokal.",
-      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/datum-uhrzeit.json"
+      "url": "https://raw.githubusercontent.com/ghaslbe/FreeGuenther/main/plugins/datum-uhrzeit.json"
     },
     {
       "id": "wikipedia",
@@ -22,7 +22,7 @@
       "version": "1.0.0",
       "type": "http",
       "description": "Wikipedia durchsuchen und Artikel-Zusammenfassungen lesen.",
-      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/wikipedia.json"
+      "url": "https://raw.githubusercontent.com/ghaslbe/FreeGuenther/main/plugins/wikipedia.json"
     },
     {
       "id": "waehrung",
@@ -30,7 +30,7 @@
       "version": "1.0.0",
       "type": "http",
       "description": "Tagesaktuelle Wechselkurse der EZB.",
-      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/waehrung.json"
+      "url": "https://raw.githubusercontent.com/ghaslbe/FreeGuenther/main/plugins/waehrung.json"
     },
     {
       "id": "dateien",
@@ -38,7 +38,7 @@
       "version": "1.0.0",
       "type": "builtin",
       "description": "Lesezugriff auf einen Ordner deiner Wahl (auflisten, lesen, suchen) – eingebaut, mit Rückfrage.",
-      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/dateien.json"
+      "url": "https://raw.githubusercontent.com/ghaslbe/FreeGuenther/main/plugins/dateien.json"
     },
     {
       "id": "webhook",
@@ -46,7 +46,7 @@
       "version": "1.0.0",
       "type": "builtin",
       "description": "Antwort (Text und/oder Bild) als JSON per POST an eine Adresse senden – Knopf „Senden“ unter jeder Antwort.",
-      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/webhook.json"
+      "url": "https://raw.githubusercontent.com/ghaslbe/FreeGuenther/main/plugins/webhook.json"
     },
     {
       "id": "webseite",
@@ -54,7 +54,7 @@
       "version": "1.0.0",
       "type": "builtin",
       "description": "Eine Internetadresse per GET laden – Webseiten als lesbarer Text, JSON unverändert.",
-      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/webseite.json"
+      "url": "https://raw.githubusercontent.com/ghaslbe/FreeGuenther/main/plugins/webseite.json"
     },
     {
       "id": "mcp-deepwiki",
@@ -62,7 +62,7 @@
       "version": "1.0.0",
       "type": "mcp",
       "description": "MCP-Beispiel übers Internet: Fragen zu öffentlichen GitHub-Projekten.",
-      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/mcp-deepwiki.json"
+      "url": "https://raw.githubusercontent.com/ghaslbe/FreeGuenther/main/plugins/mcp-deepwiki.json"
     }
   ]
 }

@@ -347,8 +347,64 @@
                                        Text="Stell eine Frage oder häng ein Bild an – z. B. per Strg+V."/>
                         </StackPanel>
 
+                        <!-- Erster Start bzw. nichts eingerichtet: an die Hand nehmen statt Chat -->
+                        <ScrollViewer x:Name="SetupPanel" Grid.Row="1" Grid.RowSpan="3" VerticalScrollBarVisibility="Auto"
+                                      Visibility="Collapsed">
+                            <StackPanel MaxWidth="760" Margin="32,8,32,24" VerticalAlignment="Center">
+                                <Image Source="app-logo.png" Width="56" Height="56" Margin="0,0,0,14"
+                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                                <TextBlock Text="Willkommen bei LM Chat!" FontSize="30" FontWeight="SemiBold"
+                                           FontFamily="Segoe UI Variable Display, Segoe UI" HorizontalAlignment="Center"/>
+                                <TextBlock Style="{StaticResource Body}" HorizontalAlignment="Center" TextAlignment="Center"
+                                           Margin="0,8,0,20" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                    Zum Chatten brauchst du ein KI-Modell. Das läuft entweder kostenlos auf deinem eigenen Rechner
+                                    oder bei einem Online-Dienst. Wähle aus, was du nutzen möchtest – danach führen dich die
+                                    Einstellungen Schritt für Schritt weiter.
+                                </TextBlock>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource Heading}" Text="💻 Lokal auf deinem Rechner – kostenlos"/>
+                                        <TextBlock Style="{StaticResource Body}">
+                                            Deine Texte verlassen den Rechner nicht, und es kostet nichts. Du brauchst dafür ein kostenloses
+                                            Programm, das das Modell ausführt, und einen einigermaßen kräftigen Rechner (am besten mit
+                                            Grafikkarte). Kein Schlüssel nötig.
+                                        </TextBlock>
+                                        <WrapPanel Margin="0,12,0,0">
+                                            <Button Tag="LmStudio" Click="SetupProvider_Click" Margin="0,0,8,0" Padding="14,6"
+                                                    Style="{StaticResource AccentButtonStyle}" Content="LM Studio einrichten"/>
+                                            <Button Tag="Ollama" Click="SetupProvider_Click" Padding="14,6" Content="Ollama einrichten"/>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource Heading}" Text="☁ Online – mit API-Schlüssel"/>
+                                        <TextBlock Style="{StaticResource Body}">
+                                            Die großen, schnellen Modelle laufen beim Anbieter. Dafür brauchst du dort ein Konto und einen
+                                            <Run FontWeight="SemiBold" Text="API-Schlüssel"/> (eine Art Passwort für Programme). Jede Anfrage
+                                            kostet ein wenig Geld – meist Bruchteile eines Cents.
+                                            <Run FontWeight="SemiBold" Text="OpenRouter"/> ist für den Anfang am einfachsten: ein Schlüssel für
+                                            Hunderte Modelle, auch von OpenAI und Anthropic.
+                                        </TextBlock>
+                                        <WrapPanel Margin="0,12,0,0">
+                                            <Button Tag="OpenRouter" Click="SetupProvider_Click" Margin="0,0,8,0" Padding="14,6"
+                                                    Style="{StaticResource AccentButtonStyle}" Content="OpenRouter einrichten (empfohlen)"/>
+                                            <Button Tag="OpenAI" Click="SetupProvider_Click" Margin="0,0,8,0" Padding="14,6" Content="OpenAI"/>
+                                            <Button Tag="Anthropic" Click="SetupProvider_Click" Padding="14,6" Content="Anthropic (Claude)"/>
+                                        </WrapPanel>
+                                        <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,0" Foreground="#B45309">
+                                            ⚠ Setze beim Anbieter unbedingt ein Ausgabenlimit für den Schlüssel –
+                                            <Hyperlink Click="ShowHelp_Click">warum, steht in der Hilfe</Hyperlink>.
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+
                         <!-- Eingabekarte -->
-                        <Border Grid.Row="2" MaxWidth="860" Margin="24,8,24,6" CornerRadius="20" Padding="16,12,12,10"
+                        <Border x:Name="InputCard" Grid.Row="2" MaxWidth="860" Margin="24,8,24,6" CornerRadius="20" Padding="16,12,12,10"
                                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                             <Border.Effect>
@@ -417,6 +473,18 @@
                             <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,18"
                                        Text="Wo das Sprachmodell läuft, welches Modell antwortet und wie es antwortet."/>
 
+                            <!-- Schritt-für-Schritt-Anleitung, solange noch nichts fertig eingerichtet ist -->
+                            <Border x:Name="SetupGuide" Style="{StaticResource Card}" Background="#1A3B82F6" BorderBrush="#663B82F6"
+                                    Visibility="Collapsed">
+                                <StackPanel>
+                                    <TextBlock x:Name="SetupGuideTitle" Style="{StaticResource Heading}" Text="So geht's los – in 4 Schritten"/>
+                                    <StackPanel x:Name="SetupSteps"/>
+                                    <Button x:Name="SetupDoneButton" Content="Los geht's – zum Chat" Margin="0,12,0,0" Padding="14,6"
+                                            HorizontalAlignment="Left" Style="{StaticResource AccentButtonStyle}"
+                                            Visibility="Collapsed" Click="SetupDone_Click"/>
+                                </StackPanel>
+                            </Border>
+
                             <!-- Kacheln -->
                             <UniformGrid Columns="3" Margin="0,0,-12,20">
                                 <Border Style="{StaticResource Tile}" Background="#1F3B82F6">
@@ -473,7 +541,7 @@
                                             Achtung: Bei Online-Diensten werden deine Nachrichten und Bilder an den Anbieter gesendet,
                                             und die Nutzung kostet in der Regel Geld.
                                         </TextBlock>
-                                        <PasswordBox x:Name="ApiKeyBox"/>
+                                        <PasswordBox x:Name="ApiKeyBox" PasswordChanged="ApiKeyBox_PasswordChanged"/>
                                         <Border CornerRadius="8" Padding="12,8" Margin="0,8,0,0" Background="#1FF59E0B"
                                                 BorderBrush="#66F59E0B" BorderThickness="1">
                                             <TextBlock TextWrapping="Wrap">

@@ -20,7 +20,7 @@
   <PropertyGroup>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <!-- Bei jeder Änderung hochzählen: Major.Minor.Patch -->
-    <Version>1.11.0</Version>
+    <Version>1.12.0</Version>
     <Authors>ghaslbe</Authors>
     <Copyright>Copyright (c) 2026 ghaslbe – MIT-Lizenz</Copyright>
   </PropertyGroup>

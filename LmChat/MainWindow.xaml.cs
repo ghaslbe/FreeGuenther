@@ -18,8 +18,9 @@ public partial class MainWindow : Window
     private static readonly string[] ImageExtensions = [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tif", ".tiff"];
     private const int MaxImageSide = 2048;
 
-    private readonly ChatStore _store = new(Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LmChat", "chats.db"));
+    // LMCHAT_DB = andere Datenbank verwenden (z. B. zum Testen mit leerem Stand)
+    private readonly ChatStore _store = new(Environment.GetEnvironmentVariable("LMCHAT_DB") is { Length: > 0 } db ? db
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LmChat", "chats.db"));
     private readonly ObservableCollection<ChatInfo> _chats = new();
     private readonly ObservableCollection<ModelInfo> _models = new();
     private readonly List<ChatMessage> _messages = new();
@@ -192,9 +193,128 @@ public partial class MainWindow : Window
 
     private void UpdateEmptyState()
     {
-        EmptyState.Visibility = ChatBox.Document.Blocks.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        EmptyState.Visibility = IsReady && ChatBox.Document.Blocks.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         ChatTitleText.Text = _currentChat?.Title ?? "Neuer Chat";
         DeleteChatButton.Visibility = _currentChat == null ? Visibility.Hidden : Visibility.Visible;
+    }
+
+    // ---------- Einrichtung (erster Start) ----------
+
+    // Startklar = Modell gewählt und gespeichert, bei Online-Diensten mit Schlüssel
+    private bool IsReady => _settings.Current.Model.Length > 0 && (!ActiveProvider.NeedsKey || _settings.Current.ApiKey.Length > 0);
+
+    private bool _setupJustFinished;
+    private ProviderKind? _modelsLoadedFor;
+
+    // Ohne Einrichtung zeigt die Chat-Seite statt Verlauf und Eingabe die Willkommens-Anleitung
+    private void UpdateSetupState()
+    {
+        var ready = IsReady;
+        SetupPanel.Visibility = ready ? Visibility.Collapsed : Visibility.Visible;
+        var chat = ready ? Visibility.Visible : Visibility.Collapsed;
+        ChatBox.Visibility = chat;
+        InputCard.Visibility = chat;
+        StatusText.Visibility = chat;
+        UpdateEmptyState();
+        UpdateSetupGuide();
+    }
+
+    private void SetupProvider_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string tag } || !Enum.TryParse<ProviderKind>(tag, out var kind)) return;
+        ProviderCombo.SelectedItem = ProviderInfo.Get(kind);
+        NavSettings.IsChecked = true;
+        SettingsScroll.ScrollToTop();
+    }
+
+    private void SetupDone_Click(object sender, RoutedEventArgs e)
+    {
+        _setupJustFinished = false;
+        UpdateSetupGuide();
+        NavChat.IsChecked = true;
+    }
+
+    private void ApiKeyBox_PasswordChanged(object sender, RoutedEventArgs e) => UpdateSetupGuide();
+
+    // Schritt-für-Schritt-Karte oben in den Einstellungen: zeigt, was schon erledigt ist und was als Nächstes kommt
+    private void UpdateSetupGuide()
+    {
+        if (SetupGuide == null) return;
+        var ready = IsReady;
+        SetupGuide.Visibility = !ready || _setupJustFinished ? Visibility.Visible : Visibility.Collapsed;
+        if (SetupGuide.Visibility != Visibility.Visible) return;
+
+        var info = ShownProvider;
+        var hasKey = ApiKeyBox.Password.Trim().Length > 0;
+        var hasModel = ModelCombo.SelectedItem is ModelInfo;
+        var saved = ready && _settings.Provider == info.Kind;
+        SetupGuideTitle.Text = saved ? "Fertig eingerichtet – du kannst loslegen!" : "So geht's los – in 4 Schritten";
+        SetupDoneButton.Visibility = saved ? Visibility.Visible : Visibility.Collapsed;
+
+        SetupSteps.Children.Clear();
+        AddStep(true, "1. Anbieter wählen", new Run($"Gewählt: {info.Name}. Ändern kannst du das unten unter „Anbieter“."));
+
+        if (info.NeedsKey)
+        {
+            var limit = info.Links.FirstOrDefault(l => l.Item1.Contains("Limit"));
+            var body = new List<Inline>
+            {
+                new Run("Beim Anbieter ein Konto anlegen und einen Schlüssel erstellen: "),
+                MakeLink(info.KeyUrl!.Replace("https://", ""), info.KeyUrl),
+                new Run(". Den Schlüssel kopieren und unten bei „API-Schlüssel“ einfügen. ")
+            };
+            if (limit.Item2 != null)
+            {
+                body.Add(new Run("Gleich dabei ein ") { FontWeight = FontWeights.SemiBold });
+                body.Add(MakeLink("Ausgabenlimit setzen", limit.Item2));
+                body.Add(new Run(", damit nie mehr als gewollt abgebucht wird."));
+            }
+            AddStep(hasKey, "2. API-Schlüssel eintragen", body.ToArray());
+        }
+        else if (info.Kind == ProviderKind.LmStudio)
+            AddStep(_modelsLoadedFor == info.Kind, "2. LM Studio starten",
+                new Run("LM Studio installieren ("), MakeLink("lmstudio.ai", "https://lmstudio.ai"),
+                new Run("), dort ein Modell herunterladen (z. B. Gemma oder Qwen) und unter „Developer“ den Server starten. " +
+                        "Läuft LM Studio auf einem anderen Rechner: dort „Serve on Local Network“ einschalten und unten dessen Adresse eintragen. " +
+                        "Danach unten bei „Modell“ auf „Liste aktualisieren“ klicken."));
+        else
+            AddStep(_modelsLoadedFor == info.Kind, "2. Ollama starten",
+                new Run("Ollama installieren ("), MakeLink("ollama.com", "https://ollama.com"),
+                new Run(") und ein Modell laden, z. B. in der Eingabeaufforderung: "),
+                new Run("ollama pull gemma3") { FontFamily = new FontFamily("Cascadia Mono, Consolas") },
+                new Run(". Danach unten bei „Modell“ auf „Liste aktualisieren“ klicken."));
+
+        AddStep(hasModel, "3. Modell auswählen",
+            new Run("Unten unter „Modell“ eins aus der Liste wählen" + info.Kind switch
+            {
+                ProviderKind.OpenRouter => ". Für den Anfang gut: „openrouter/auto“ – sucht automatisch ein passendes Modell aus.",
+                ProviderKind.OpenAI or ProviderKind.Anthropic => ". Die Liste erscheint, sobald der Schlüssel eingetragen ist (sonst „Liste aktualisieren“).",
+                _ => ". Ist die Liste leer, läuft der Server noch nicht oder die Adresse stimmt nicht."
+            }));
+        AddStep(saved, "4. Speichern", new Run("Ganz unten auf „Speichern“ klicken – danach kannst du im Chat loslegen."));
+    }
+
+    private void AddStep(bool done, string title, params Inline[] body)
+    {
+        var text = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0), FontSize = 14, LineHeight = 21 };
+        // Segoe Fluent Icons: erledigt = grüner Haken im Kreis, offen = leerer Kreis
+        text.Inlines.Add(new Run(done ? "" : "")
+        {
+            FontFamily = (FontFamily)FindResource("IconFont"),
+            Foreground = done ? new SolidColorBrush(Color.FromRgb(0x16, 0xA3, 0x4A)) : Brushes.Gray
+        });
+        text.Inlines.Add(new Run("  " + title) { FontWeight = FontWeights.SemiBold });
+        text.Inlines.Add(new LineBreak());
+        text.Inlines.AddRange(body);
+        if (done) text.Opacity = 0.75;
+        SetupSteps.Children.Add(text);
+    }
+
+    private Hyperlink MakeLink(string text, string url)
+    {
+        var link = new Hyperlink(new Run(text)) { NavigateUri = new Uri(url), ToolTip = url };
+        link.RequestNavigate += Link_RequestNavigate;
+        return link;
     }
 
     private ProviderInfo ActiveProvider => ProviderInfo.Get(_settings.Provider);
@@ -970,9 +1090,11 @@ public partial class MainWindow : Window
         _repeatPenaltyRow.SetSupported(info.SupportsRepeatPenalty, info.Name);
 
         _selectedModelId = config.Model;
+        _modelsLoadedFor = null;
         _models.Clear();
         EnsureModelItem(config.Model, config.ModelVision, config.ModelImageGen);
         ModelCombo.SelectedValue = config.Model;
+        UpdateSetupGuide();
         _ = LoadModelsAsync();
     }
 
@@ -1024,8 +1146,10 @@ public partial class MainWindow : Window
         _draft.TopK = _topKRow.Value;
         _draft.MaxTokens = _maxTokensRow.Value;
         _draft.RepeatPenalty = _repeatPenaltyRow.Value;
+        var wasReady = IsReady;
         _draft.Save(_store);
         _settings = _draft.Clone();
+        _setupJustFinished |= !wasReady && IsReady;
         UpdateModelUi();
         SettingsStatus.Text = $"Gespeichert – aktiv: {info.Name}, {_settings.Current.Model} ({DateTime.Now:HH:mm:ss}).";
     }
@@ -1059,6 +1183,7 @@ public partial class MainWindow : Window
             _models.Clear();
             foreach (var m in models)
                 _models.Add(m);
+            _modelsLoadedFor = models.Count > 0 ? info.Kind : null;
             var where = region.Length > 0 ? $" (nur {RegionOption.Name(region)})" : "";
             SettingsStatus.Text = $"{models.Count} Modelle von {info.Name}{where} gefunden." +
                 (selected.Length > 0 && models.All(m => m.Id != selected)
@@ -1076,6 +1201,7 @@ public partial class MainWindow : Window
         }
         ModelCombo.SelectedValue = selected;
         ApplyModelFilter();
+        UpdateSetupGuide();
 
         // Fähigkeiten des aktiven Modells aktualisieren (z. B. nach dem Programmstart)
         if (info.Kind == _settings.Provider &&
@@ -1133,6 +1259,7 @@ public partial class MainWindow : Window
         var model = ModelCombo.SelectedItem as ModelInfo;
         if (model != null)
             _selectedModelId = model.Id;
+        UpdateSetupGuide();
         var visionHint = model?.Vision switch
         {
             true => "🖼 Dieses Modell versteht Bilder.",
@@ -1170,6 +1297,7 @@ public partial class MainWindow : Window
               "Mit einem angehängten Bild wird dieses bearbeitet."
             : $"Du chattest mit {modelText} über {provider}." +
               (vision == false ? "" : " Bilder kannst du per Strg+V oder „Bild“ anhängen.");
+        UpdateSetupState();
         ImageButton.IsEnabled = vision != false && _cts == null;
         ImageButton.ToolTip = vision == false
             ? "Dieses Modell kann keine Bilder verarbeiten"

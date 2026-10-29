@@ -10,6 +10,14 @@ Ein einfacher Windows-Chat-Client für lokale und Online-Sprachmodelle: [LM Stud
 
 *Antworten werden als Markdown dargestellt: Code-Blöcke, Listen, Tabellen und Inline-Code.*
 
+![LM Chat: Verbrauchsseite mit Tokens und geschätzten Kosten je Modell](docs/screenshot-verbrauch.png)
+
+*Verbrauch je Modell: Antworten, Tokens und ungefähre Kosten. Das ist nur eine Schätzung, die exakten Kosten stehen im Konto des Anbieters.*
+
+![LM Chat: Willkommensseite beim ersten Start](docs/screenshot-willkommen.png)
+
+*Beim ersten Start: Auswahl, ob lokal oder online. Danach führen die Einstellungen Schritt für Schritt weiter.*
+
 ## Download
 
 | Datei | Wofür |
@@ -37,6 +45,13 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
 - **OpenRouter: Standort der Rechenzentren:** Die Modellliste zeigt nur Modelle, die in der gewählten Region laufen. Es gibt zwei Wege:
   - **Über Hoster-Auswahl (Europa, Deutschland oder USA, jeder Tarif):** Die App ermittelt pro Modell die Hoster-Endpunkte mit bekanntem Standort. Grundlage ist die Region in der Endpunkt-Kennung, z. B. `mistral/eu`, `amazon-bedrock/eu-central-1` oder `google-vertex/us`, ersatzweise die Rechenzentrums-Länder des Hosters. Beim Senden lässt die App per `provider.only` nur diese Endpunkte zu und schaltet Ausweichhoster ab (`allow_fallbacks: false`). Die Standortangaben stammen von OpenRouter und den Hostern und sind nicht garantiert; Endpunkte wie `…/global` gelten als unbekannt und werden ausgeschlossen. Stand Oktober 2026 meldet kein Endpunkt einen Standort in Deutschland, die DE-Liste ist deshalb leer.
   - **Garantiert (Europa oder USA, nur Business-Tarif):** Anfragen gehen über `eu.openrouter.ai` bzw. `us.openrouter.ai` ([In-Region-Routing](https://openrouter.ai/docs/guides/features/sovereign-ai)). Ohne Business-Tarif antwortet OpenRouter mit HTTP 403.
+- **Geführte Einrichtung:** Ist noch kein Modell eingerichtet, zeigt die Chat-Seite eine Willkommensseite. Dort wählst du „lokal“ (LM Studio, Ollama: kostenlos, kein Schlüssel) oder „online“ (OpenRouter empfohlen, OpenAI, Anthropic: mit API-Schlüssel und Ausgabenlimit). In den Einstellungen folgt eine Anleitung in 4 Schritten, die abhakt, was schon erledigt ist:
+  1. Anbieter wählen
+  2. Schlüssel eintragen bzw. Server starten
+  3. Modell wählen
+  4. Speichern
+
+  Danach geht es mit „Los geht's – zum Chat“ weiter.
 - **Chat mit Live-Antwort:** Die Antwort erscheint Wort für Wort (Streaming). Danach wird sie als **Markdown** dargestellt, mit Überschriften, Fettdruck, Listen, Tabellen, Codeblöcken und Links.
 - **Was passiert gerade?** Bis der erste Text kommt, zeigt eine graue Zeile im Chat den Stand mit Sekundenzähler, z. B. „Anfrage an OpenRouter gesendet, warte auf Antwort … 3 s“. Die Phasen sind:
   - Hoster suchen (bei OpenRouter mit Regionsfilter)
@@ -176,6 +191,12 @@ dotnet publish LmChat -c Release -o LmChat\publish -p:DebugType=none
 Ergebnis: `LmChat\publish\LmChat.exe` (ca. 63 MB, enthält die .NET-Laufzeit).
 
 Das Icon erzeugt `tools\make-icon.ps1` neu.
+
+Zum Testen mit einer anderen bzw. leeren Datenbank (z. B. für die Willkommensseite) die Umgebungsvariable `LMCHAT_DB` setzen:
+
+```
+$env:LMCHAT_DB = "$env:TEMP\lmchat-test.db"; .\LmChat\publish\LmChat.exe
+```
 
 ## Projektaufbau
 

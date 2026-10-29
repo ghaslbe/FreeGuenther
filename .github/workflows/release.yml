@@ -1,0 +1,40 @@
+# Baut bei jedem Push auf main die eigenständige LmChat.exe
+# und ersetzt damit das Release "latest" (immer der neueste Stand).
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Einzel-.exe bauen
+        run: dotnet publish LmChat -c Release -o publish -p:DebugType=none
+
+      - name: Release "latest" ersetzen
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --cleanup-tag --yes || true
+          gh release create latest publish/LmChat.exe \
+            --title "LmChat – neuester Stand" \
+            --notes "Automatisch gebaut aus Commit ${GITHUB_SHA::7}. Einfach LmChat.exe herunterladen und starten – keine Installation nötig." \
+            --target "$GITHUB_SHA" \
+            --latest

@@ -2,6 +2,10 @@
 
 Ein einfacher Windows-Chat-Client für [LM Studio](https://lmstudio.ai). Er läuft als **eine einzige .exe** und braucht keine Installation und kein .NET auf dem Zielrechner.
 
+**Download:** [LmChat.exe (neuester Stand)](https://github.com/ghaslbe/lmstudioChatWindows/releases/latest/download/LmChat.exe)
+
+Die .exe wird bei jedem Push auf `main` automatisch von GitHub Actions gebaut (`.github/workflows/release.yml`) und ersetzt das Release `latest`.
+
 ## Funktionen
 
 - **Chat mit Live-Antwort:** Die Antwort erscheint Wort für Wort (Streaming).

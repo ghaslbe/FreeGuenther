@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net.Http;
@@ -6,6 +7,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -39,6 +41,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Title = $"LM Chat {AppVersion}";
+        VersionRun.Text = $"Version {AppVersion}.";
         _settings = LlmSettings.Load(_store);
         foreach (var chat in _store.ListChats())
             _chats.Add(chat);
@@ -90,7 +94,8 @@ public partial class MainWindow : Window
         _messages.Add(userMsg);
         InputBox.Clear();
         ClearImage();
-        AppendChat(Format(userMsg) + "LLM:\n");
+        AddMessageBlock(userMsg);
+        var answerRun = AddMessageBlock(new ChatMessage("assistant", ""));
 
         List<ChatMessage> toSend = HistoryCheck.IsChecked == true ? _messages.ToList() : [userMsg];
 
@@ -102,23 +107,22 @@ public partial class MainWindow : Window
             await StreamAnswerAsync(toSend, chunk =>
             {
                 answer.Append(chunk);
-                AppendChat(chunk);
+                AppendToRun(answerRun, chunk);
             }, _cts.Token);
             StatusText.Text = "Fertig.";
         }
         catch (OperationCanceledException)
         {
-            AppendChat(" [abgebrochen]");
+            AppendToRun(answerRun, " [abgebrochen]");
             StatusText.Text = "Abgebrochen.";
         }
         catch (Exception ex)
         {
-            AppendChat($"[Fehler: {ex.Message}]");
+            AppendToRun(answerRun, $"[Fehler: {ex.Message}]");
             StatusText.Text = "Fehler – Server und Modell in den Einstellungen prüfen.";
         }
         finally
         {
-            AppendChat("\n\n");
             if (answer.Length > 0)
             {
                 var reply = new ChatMessage("assistant", answer.ToString());
@@ -234,7 +238,7 @@ public partial class MainWindow : Window
     {
         _currentChat = null;
         _messages.Clear();
-        ChatBox.Clear();
+        ChatBox.Document.Blocks.Clear();
         SelectChatSilently(null);
         StatusText.Text = "Neuer Chat.";
         InputBox.Focus();
@@ -266,19 +270,67 @@ public partial class MainWindow : Window
         return firstLine.Length > 40 ? firstLine[..40] + "…" : firstLine;
     }
 
-    private static string Format(ChatMessage m) =>
-        (m.Role == "user" ? "Du:\n" : "LLM:\n") + (m.Image != null ? "[🖼 Bild]\n" : "") + m.Content + "\n\n";
-
     private void RenderChat()
     {
-        ChatBox.Text = string.Concat(_messages.Select(Format));
+        ChatBox.Document.Blocks.Clear();
+        foreach (var m in _messages)
+            AddMessageBlock(m);
+    }
+
+    // Fügt eine Nachricht (Überschrift, ggf. Bildvorschau, Text) an und liefert den Text-Run zum Weiterschreiben
+    private Run AddMessageBlock(ChatMessage m)
+    {
+        var blocks = ChatBox.Document.Blocks;
+        blocks.Add(new Paragraph(new Run(m.Role == "user" ? "Du" : "LLM") { FontWeight = FontWeights.Bold })
+        {
+            Margin = new Thickness(0, blocks.Count == 0 ? 0 : 14, 0, 4)
+        });
+        if (m.Image != null)
+            blocks.Add(new BlockUIContainer(MakeThumbnail(m.Image)) { Margin = new Thickness(0, 0, 0, 6) });
+
+        var run = new Run(m.Content);
+        blocks.Add(new Paragraph(run) { Margin = new Thickness(0) });
+        ChatBox.ScrollToEnd();
+        return run;
+    }
+
+    private void AppendToRun(Run run, string text)
+    {
+        run.Text += text;
         ChatBox.ScrollToEnd();
     }
 
-    private void AppendChat(string text)
+    private static Image MakeThumbnail(byte[] png)
     {
-        ChatBox.AppendText(text);
-        ChatBox.ScrollToEnd();
+        var bitmap = new BitmapImage();
+        bitmap.BeginInit();
+        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        bitmap.StreamSource = new MemoryStream(png);
+        bitmap.EndInit();
+
+        var image = new Image
+        {
+            Source = bitmap,
+            MaxHeight = 180,
+            MaxWidth = 320,
+            Stretch = Stretch.Uniform,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Cursor = Cursors.Hand,
+            ToolTip = "Klicken zum Vergrößern"
+        };
+        image.MouseLeftButtonUp += (_, _) => OpenImage(png);
+        return image;
+    }
+
+    // Öffnet das Bild in voller Größe mit dem Standard-Bildbetrachter
+    private static void OpenImage(byte[] png)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "LmChat");
+        Directory.CreateDirectory(dir);
+        var file = Path.Combine(dir, $"bild-{Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(png))[..12]}.png");
+        if (!File.Exists(file))
+            File.WriteAllBytes(file, png);
+        Process.Start(new ProcessStartInfo(file) { UseShellExecute = true });
     }
 
     private void SetBusy(bool busy)
@@ -412,27 +464,66 @@ public partial class MainWindow : Window
 
     private string ServerUrl => _settings.Server.Trim().TrimEnd('/');
 
+    private readonly ParamRow _temperatureRow = new("Temperatur",
+        "Wie frei bzw. zufällig das Modell formuliert. Niedrig (0 bis 0,3): sachlich und bei gleicher Frage fast " +
+        "immer gleiche Antwort – gut für Fakten, Code und Bilder auslesen. Mittel (0,7): ausgewogen. " +
+        "Hoch (über 1): kreativ, aber zunehmend wirr.",
+        0, 2, 0.05, 0.7, "0.00");
+
+    private readonly ParamRow _topPRow = new("Top-P",
+        "Das Modell wählt das nächste Wort nur aus den wahrscheinlichsten Kandidaten, die zusammen diesen Anteil " +
+        "ausmachen. 0,95 = die oberen 95 %. Kleiner = vorsichtiger. Meist reicht es, nur die Temperatur zu ändern.",
+        0.05, 1, 0.01, 0.95, "0.00");
+
+    private readonly ParamRow _topKRow = new("Top-K",
+        "Das Modell wählt das nächste Wort nur aus den K wahrscheinlichsten Kandidaten. 40 ist üblich. " +
+        "Kleiner = eintöniger, größer = abwechslungsreicher.",
+        1, 200, 1, 40, "0");
+
+    private readonly ParamRow _maxTokensRow = new("Maximale Antwortlänge (Tokens)",
+        "Begrenzt, wie lang eine Antwort höchstens wird. Ein Token ist ungefähr ein halbes bis ganzes Wort; " +
+        "1000 Tokens sind etwa ein bis zwei Seiten Text. Ohne Haken: keine Begrenzung.",
+        64, 32768, 64, 2048, "0");
+
+    private readonly ParamRow _repeatPenaltyRow = new("Wiederholungsstrafe",
+        "Bremst das Modell, wenn es sich wiederholt. 1,00 = aus, 1,10 = leicht (üblich). " +
+        "Über 1,30 kann die Sprache holprig werden.",
+        1, 2, 0.01, 1.1, "0.00");
+
+    private IEnumerable<ParamRow> ParamRows => [_temperatureRow, _topPRow, _topKRow, _maxTokensRow, _repeatPenaltyRow];
+
     private void ShowSettings()
     {
+        foreach (var row in ParamRows)
+            ParamsPanel.Children.Add(row.Element);
+
         ServerBox.Text = _settings.Server;
         SystemPromptBox.Text = _settings.SystemPrompt;
-        TemperatureBox.Text = FormatNumber(_settings.Temperature);
-        TopPBox.Text = FormatNumber(_settings.TopP);
-        TopKBox.Text = FormatNumber(_settings.TopK);
-        MaxTokensBox.Text = FormatNumber(_settings.MaxTokens);
-        RepeatPenaltyBox.Text = FormatNumber(_settings.RepeatPenalty);
+        _temperatureRow.Value = _settings.Temperature;
+        _topPRow.Value = _settings.TopP;
+        _topKRow.Value = _settings.TopK;
+        _maxTokensRow.Value = _settings.MaxTokens;
+        _repeatPenaltyRow.Value = _settings.RepeatPenalty;
         EnsureModelItem(_settings.Model);
         ModelCombo.SelectedValue = _settings.Model;
         UpdateModelUi();
     }
 
+    private void ResetParams_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var row in ParamRows)
+            row.Value = null;
+        SettingsStatus.Text = "Alle Feineinstellungen auf Standard – zum Übernehmen „Speichern“ klicken.";
+    }
+
     private void SaveSettings_Click(object sender, RoutedEventArgs e)
     {
-        if (!TryParseNumber(TemperatureBox, out var temperature) || !TryParseNumber(TopPBox, out var topP) ||
-            !TryParseNumber(TopKBox, out var topK) || !TryParseNumber(MaxTokensBox, out var maxTokens) ||
-            !TryParseNumber(RepeatPenaltyBox, out var repeatPenalty))
+        var server = ServerBox.Text.Trim().TrimEnd('/');
+        if (!server.Contains("://"))
+            server = "http://" + server;
+        if (!Uri.TryCreate(server, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
         {
-            SettingsStatus.Text = "Bitte nur Zahlen eingeben (oder Feld leer lassen).";
+            SettingsStatus.Text = "Die Server-Adresse ist ungültig. Beispiel: http://192.168.178.191:1234";
             return;
         }
         if (ModelCombo.SelectedValue is not string model)
@@ -441,15 +532,16 @@ public partial class MainWindow : Window
             return;
         }
 
-        var serverChanged = _settings.Server != ServerBox.Text.Trim();
-        _settings.Server = ServerBox.Text.Trim();
+        ServerBox.Text = server;
+        var serverChanged = _settings.Server != server;
+        _settings.Server = server;
         _settings.Model = model;
-        _settings.SystemPrompt = SystemPromptBox.Text;
-        _settings.Temperature = temperature;
-        _settings.TopP = topP;
-        _settings.TopK = topK;
-        _settings.MaxTokens = maxTokens;
-        _settings.RepeatPenalty = repeatPenalty;
+        _settings.SystemPrompt = SystemPromptBox.Text.Trim();
+        _settings.Temperature = _temperatureRow.Value;
+        _settings.TopP = _topPRow.Value;
+        _settings.TopK = _topKRow.Value;
+        _settings.MaxTokens = _maxTokensRow.Value;
+        _settings.RepeatPenalty = _repeatPenaltyRow.Value;
         _settings.Save(_store);
         UpdateModelUi();
         SettingsStatus.Text = $"Gespeichert ({DateTime.Now:HH:mm:ss}).";
@@ -522,15 +614,20 @@ public partial class MainWindow : Window
             : "Bild anhängen (auch per Strg+V oder Hineinziehen)";
     }
 
-    private static string FormatNumber(double? value) => value?.ToString(CultureInfo.InvariantCulture) ?? "";
+    // ---------- Hilfe ----------
 
-    private static bool TryParseNumber(TextBox box, out double? value)
+    private static string AppVersion
     {
-        value = null;
-        var s = box.Text.Trim().Replace(',', '.');
-        if (s.Length == 0) return true;
-        if (!double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var d)) return false;
-        value = d;
-        return true;
+        get
+        {
+            var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!;
+            return $"{v.Major}.{v.Minor}.{v.Build}";
+        }
+    }
+
+    private void Link_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        e.Handled = true;
     }
 }

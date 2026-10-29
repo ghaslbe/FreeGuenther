@@ -1,5 +1,6 @@
-# Baut bei jedem Push auf main die eigenständige LmChat.exe
-# und ersetzt damit das Release "latest" (immer der neueste Stand).
+# Baut bei jedem Push auf main die eigenständige LmChat.exe und legt sie
+# als Release "v<Version>" ab (Version aus LmChat/LmChat.csproj).
+# Gibt es das Release schon, wird nur die .exe ersetzt.
 name: Build & Release
 
 on:
@@ -27,14 +28,21 @@ jobs:
       - name: Einzel-.exe bauen
         run: dotnet publish LmChat -c Release -o publish -p:DebugType=none
 
-      - name: Release "latest" ersetzen
+      - name: Release v<Version> anlegen oder aktualisieren
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete latest --cleanup-tag --yes || true
-          gh release create latest publish/LmChat.exe \
-            --title "LmChat – neuester Stand" \
-            --notes "Automatisch gebaut aus Commit ${GITHUB_SHA::7}. Einfach LmChat.exe herunterladen und starten – keine Installation nötig." \
-            --target "$GITHUB_SHA" \
-            --latest
+          VERSION=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' LmChat/LmChat.csproj)
+          TAG="v$VERSION"
+          # Altes rollendes Release aus früheren Builds entfernen
+          gh release delete latest --cleanup-tag --yes 2>/dev/null || true
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" publish/LmChat.exe --clobber
+          else
+            gh release create "$TAG" publish/LmChat.exe \
+              --title "LmChat $VERSION" \
+              --notes "Automatisch gebaut aus Commit ${GITHUB_SHA::7}. Einfach LmChat.exe herunterladen und starten – keine Installation nötig." \
+              --target "$GITHUB_SHA" \
+              --latest
+          fi

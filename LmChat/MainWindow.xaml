@@ -2,9 +2,27 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="LM Chat" Height="720" Width="1050" MinHeight="450" MinWidth="700"
-        ThemeMode="System" AllowDrop="True"
+        ThemeMode="System" AllowDrop="True" Icon="app.ico"
         PreviewDragOver="Window_PreviewDragOver" PreviewDrop="Window_PreviewDrop"
         Closing="Window_Closing">
+    <Window.Resources>
+        <Style x:Key="Heading" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="17"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,22,0,4"/>
+        </Style>
+        <Style x:Key="Hint" TargetType="TextBlock">
+            <Setter Property="Opacity" Value="0.75"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+        <Style x:Key="Body" TargetType="TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="LineHeight" Value="21"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+    </Window.Resources>
+
     <TabControl Margin="8">
 
         <!-- ========== Chat ========== -->
@@ -48,10 +66,12 @@
                     <TextBlock x:Name="ModelInfoText" Opacity="0.7" Margin="0,0,0,6"/>
 
                     <!-- Verlauf -->
-                    <TextBox x:Name="ChatBox" Grid.Row="1"
-                             IsReadOnly="True" TextWrapping="Wrap"
-                             VerticalScrollBarVisibility="Auto"
-                             FontSize="14" Padding="8"/>
+                    <RichTextBox x:Name="ChatBox" Grid.Row="1"
+                                 IsReadOnly="True" IsDocumentEnabled="True"
+                                 VerticalScrollBarVisibility="Auto"
+                                 FontSize="14" Padding="8">
+                        <FlowDocument PagePadding="4" FontFamily="Segoe UI Variable Text, Segoe UI"/>
+                    </RichTextBox>
 
                     <!-- Angehängtes Bild -->
                     <Border x:Name="AttachmentPanel" Grid.Row="2" Visibility="Collapsed" Margin="0,10,0,0"
@@ -98,74 +118,149 @@
         <!-- ========== Einstellungen ========== -->
         <TabItem Header="Einstellungen">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <Grid Margin="8,16,8,8" MaxWidth="760" HorizontalAlignment="Left">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="200"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <Grid.Resources>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="VerticalAlignment" Value="Center"/>
-                            <Setter Property="Margin" Value="0,0,12,0"/>
-                        </Style>
-                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                            <Setter Property="Margin" Value="0,5"/>
-                        </Style>
-                    </Grid.Resources>
+                <StackPanel Margin="12,4,16,16" MaxWidth="780" HorizontalAlignment="Left">
 
-                    <TextBlock Grid.Row="0" Text="LM-Studio-Server"/>
-                    <TextBox x:Name="ServerBox" Grid.Row="0" Grid.Column="1"/>
+                    <TextBlock Style="{StaticResource Heading}" Text="Verbindung"/>
+                    <TextBlock Style="{StaticResource Hint}">
+                        Adresse des LM-Studio-Servers, z. B. <Run FontFamily="Consolas" Text="http://192.168.178.191:1234"/>.
+                        Den Port findest du in LM Studio unter „Developer“. Dort muss der Server laufen und
+                        „Serve on Local Network“ eingeschaltet sein.
+                    </TextBlock>
+                    <TextBox x:Name="ServerBox"/>
 
-                    <TextBlock Grid.Row="1" Text="Modell"/>
-                    <DockPanel Grid.Row="1" Grid.Column="1" Margin="0,5">
-                        <Button DockPanel.Dock="Right" Content="Modelle laden" Margin="8,0,0,0"
+                    <TextBlock Style="{StaticResource Heading}" Text="Modell"/>
+                    <TextBlock Style="{StaticResource Hint}">
+                        Die Liste kommt direkt von LM Studio.
+                        <Run FontWeight="SemiBold" Text="🖼"/> = versteht Bilder,
+                        <Run FontWeight="SemiBold" Text="●"/> = ist gerade geladen und antwortet sofort.
+                        Andere Modelle lädt LM Studio beim ersten Senden; das kann je nach Größe eine Weile dauern.
+                    </TextBlock>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Liste aktualisieren" Margin="8,0,0,0"
                                 Click="ReloadModels_Click"/>
                         <ComboBox x:Name="ModelCombo" DisplayMemberPath="Label" SelectedValuePath="Id"
                                   HorizontalAlignment="Stretch" SelectionChanged="ModelCombo_SelectionChanged"/>
                     </DockPanel>
-                    <TextBlock x:Name="ModelHint" Grid.Row="2" Grid.Column="1" Opacity="0.7" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="ModelHint" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
 
-                    <TextBlock Grid.Row="3" Text="System-Prompt" VerticalAlignment="Top" Margin="0,10,12,0"/>
-                    <TextBox x:Name="SystemPromptBox" Grid.Row="3" Grid.Column="1" Height="110"
+                    <TextBlock Style="{StaticResource Heading}" Text="System-Prompt"/>
+                    <TextBlock Style="{StaticResource Hint}">
+                        Eine feste Anweisung, die das Modell vor jedem Chat bekommt, z. B.
+                        „Antworte immer auf Deutsch und möglichst kurz.“ Leer lassen, wenn du keine brauchst.
+                    </TextBlock>
+                    <TextBox x:Name="SystemPromptBox" Height="100"
                              AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
 
-                    <TextBlock Grid.Row="4" Text="Temperatur (0–2)"/>
-                    <TextBox x:Name="TemperatureBox" Grid.Row="4" Grid.Column="1"/>
+                    <TextBlock Style="{StaticResource Heading}" Text="Feineinstellungen"/>
+                    <TextBlock Style="{StaticResource Hint}">
+                        Setze einen Haken, um einen eigenen Wert zu verwenden. Ohne Haken nimmt LM Studio den
+                        Standardwert des Modells. Das ist meistens die beste Wahl.
+                    </TextBlock>
+                    <StackPanel x:Name="ParamsPanel"/>
 
-                    <TextBlock Grid.Row="5" Text="Top-P (0–1)"/>
-                    <TextBox x:Name="TopPBox" Grid.Row="5" Grid.Column="1"/>
-
-                    <TextBlock Grid.Row="6" Text="Top-K"/>
-                    <TextBox x:Name="TopKBox" Grid.Row="6" Grid.Column="1"/>
-
-                    <TextBlock Grid.Row="7" Text="Max. Tokens (−1 = unbegrenzt)"/>
-                    <TextBox x:Name="MaxTokensBox" Grid.Row="7" Grid.Column="1"/>
-
-                    <TextBlock Grid.Row="8" Text="Wiederholungsstrafe"/>
-                    <TextBox x:Name="RepeatPenaltyBox" Grid.Row="8" Grid.Column="1"/>
-
-                    <TextBlock Grid.Row="9" Grid.Column="1" Opacity="0.7" Margin="0,4,0,12" TextWrapping="Wrap"
-                               Text="Leere Felder = Standardwert des Modells in LM Studio."/>
-
-                    <StackPanel Grid.Row="10" Grid.Column="1" Orientation="Horizontal">
-                        <Button Content="Speichern" MinWidth="110" Click="SaveSettings_Click"
+                    <StackPanel Orientation="Horizontal" Margin="0,22,0,0">
+                        <Button Content="Speichern" MinWidth="120" Click="SaveSettings_Click"
                                 Style="{StaticResource AccentButtonStyle}"/>
-                        <TextBlock x:Name="SettingsStatus" Margin="12,0,0,0" Opacity="0.7"/>
+                        <Button Content="Alles auf Standard" Margin="8,0,0,0" Click="ResetParams_Click"/>
+                        <TextBlock x:Name="SettingsStatus" Margin="12,0,0,0" Opacity="0.75"
+                                   VerticalAlignment="Center" TextWrapping="Wrap"/>
                     </StackPanel>
-                </Grid>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <!-- ========== Hilfe ========== -->
+        <TabItem Header="Hilfe">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="12,4,16,16" MaxWidth="780" HorizontalAlignment="Left">
+
+                    <TextBlock Style="{StaticResource Heading}" Text="LM Chat"/>
+                    <TextBlock Style="{StaticResource Body}">
+                        Ein einfacher Chat-Client für LM Studio. <Run x:Name="VersionRun"/>
+                        <LineBreak/>
+                        Projekt auf GitHub:
+                        <Hyperlink NavigateUri="https://github.com/ghaslbe/lmstudioChatWindows"
+                                   RequestNavigate="Link_RequestNavigate">github.com/ghaslbe/lmstudioChatWindows</Hyperlink>
+                        <LineBreak/>
+                        Neueste Version herunterladen:
+                        <Hyperlink NavigateUri="https://github.com/ghaslbe/lmstudioChatWindows/releases/latest"
+                                   RequestNavigate="Link_RequestNavigate">Releases</Hyperlink>
+                    </TextBlock>
+
+                    <TextBlock Style="{StaticResource Heading}" Text="Erste Schritte"/>
+                    <TextBlock Style="{StaticResource Body}">
+                        1. In LM Studio unter „Developer“ den Server starten und „Serve on Local Network“ einschalten.<LineBreak/>
+                        2. Hier unter „Einstellungen“ die Server-Adresse eintragen, ein Modell wählen und „Speichern“ klicken.<LineBreak/>
+                        3. Unter „Chat“ eine Frage eintippen und Enter drücken. Die Antwort erscheint Wort für Wort.
+                    </TextBlock>
+
+                    <TextBlock Style="{StaticResource Heading}" Text="Bedienung"/>
+                    <TextBlock Style="{StaticResource Body}">
+                        <Run FontWeight="SemiBold" Text="Enter"/> – Nachricht senden<LineBreak/>
+                        <Run FontWeight="SemiBold" Text="Umschalt + Enter"/> – neue Zeile<LineBreak/>
+                        <Run FontWeight="SemiBold" Text="Strg + V"/> – Bild aus der Zwischenablage anhängen (z. B. Screenshot)<LineBreak/>
+                        <Run FontWeight="SemiBold" Text="Stopp"/> – laufende Antwort abbrechen
+                    </TextBlock>
+
+                    <TextBlock Style="{StaticResource Heading}" Text="Chats und Verlauf"/>
+                    <TextBlock Style="{StaticResource Body}">
+                        Jeder Chat wird automatisch gespeichert und erscheint links in der Liste. Ein Klick darauf öffnet ihn wieder.
+                        „+ Neuer Chat“ beginnt ein neues Gespräch.<LineBreak/>
+                        <Run FontWeight="SemiBold" Text="Bisherigen Chatverlauf mitsenden:"/>
+                        Mit Haken (Standard) kennt das Modell alles, was vorher im Chat gesagt wurde, so kann man ein Gespräch führen.
+                        Ohne Haken bekommt es nur die aktuelle Nachricht. Das ist schneller und gut für einzelne, unabhängige Fragen.
+                    </TextBlock>
+
+                    <TextBlock Style="{StaticResource Heading}" Text="Bilder"/>
+                    <TextBlock Style="{StaticResource Body}">
+                        Modelle mit 🖼 verstehen Bilder. Ein Bild hängst du mit „Bild …“, mit Strg + V oder durch Hineinziehen ins Fenster an.
+                        Schreib dazu, was du wissen willst, z. B. „Lies mal das Bild aus“.
+                        Große Bilder werden automatisch verkleinert. Im Chat erscheint eine Vorschau; ein Klick darauf öffnet das Bild in voller Größe.
+                    </TextBlock>
+
+                    <TextBlock Style="{StaticResource Heading}" Text="Wenn es nicht klappt"/>
+                    <TextBlock Style="{StaticResource Body}">
+                        <Run FontWeight="SemiBold" Text="„Fehler“ / keine Verbindung:"/>
+                        Läuft der Server in LM Studio? Ist „Serve on Local Network“ an? Stimmt die Adresse? Lässt die Firewall den Port durch?<LineBreak/>
+                        <Run FontWeight="SemiBold" Text="Modellliste ist leer:"/>
+                        In den Einstellungen „Liste aktualisieren“ klicken, nachdem die Adresse stimmt.<LineBreak/>
+                        <Run FontWeight="SemiBold" Text="Erste Antwort dauert lange:"/>
+                        LM Studio lädt das Modell erst. Danach geht es schneller.<LineBreak/>
+                        <Run FontWeight="SemiBold" Text="Bild-Button ausgegraut:"/>
+                        Das gewählte Modell versteht keine Bilder. Wähle eines mit 🖼.
+                    </TextBlock>
+
+                    <TextBlock Style="{StaticResource Heading}" Text="Daten"/>
+                    <TextBlock Style="{StaticResource Body}">
+                        Chats, Bilder und Einstellungen liegen nur auf diesem Rechner in
+                        <Run FontFamily="Consolas" Text="%LOCALAPPDATA%\LmChat\chats.db"/>.
+                        Gesendet wird ausschließlich an den eingestellten LM-Studio-Server.
+                    </TextBlock>
+
+                    <TextBlock Style="{StaticResource Heading}" Text="Lizenz und Haftungsausschluss"/>
+                    <TextBlock Style="{StaticResource Body}">
+                        Diese Software steht unter der <Run FontWeight="SemiBold" Text="MIT-Lizenz"/>.
+                        Sie darf frei genutzt, verändert und weitergegeben werden.<LineBreak/>
+                        Sie wird <Run FontWeight="SemiBold" Text="ohne jede Gewährleistung"/> bereitgestellt. Die Autoren übernehmen
+                        <Run FontWeight="SemiBold" Text="keinerlei Haftung"/> für Schäden, Datenverlust oder sonstige Folgen der Nutzung.
+                        Antworten von KI-Modellen können falsch sein. Prüfe wichtige Informationen selbst.
+                    </TextBlock>
+                    <TextBlock Style="{StaticResource Hint}" FontFamily="Consolas" FontSize="11" Margin="0,6,0,0">
+                        MIT License – Copyright (c) 2026 ghaslbe<LineBreak/><LineBreak/>
+                        Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+                        associated documentation files (the "Software"), to deal in the Software without restriction, including
+                        without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+                        copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+                        following conditions:<LineBreak/><LineBreak/>
+                        The above copyright notice and this permission notice shall be included in all copies or substantial
+                        portions of the Software.<LineBreak/><LineBreak/>
+                        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+                        LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+                        EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+                        IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+                        USE OR OTHER DEALINGS IN THE SOFTWARE.
+                    </TextBlock>
+                </StackPanel>
             </ScrollViewer>
         </TabItem>
     </TabControl>

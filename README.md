@@ -2,9 +2,7 @@
 
 Ein einfacher Windows-Chat-Client für [LM Studio](https://lmstudio.ai). Er läuft als **eine einzige .exe** und braucht keine Installation und kein .NET auf dem Zielrechner.
 
-**Download:** [LmChat.exe (neuester Stand)](https://github.com/ghaslbe/lmstudioChatWindows/releases/latest/download/LmChat.exe)
-
-Die .exe wird bei jedem Push auf `main` automatisch von GitHub Actions gebaut (`.github/workflows/release.yml`) und ersetzt das Release `latest`.
+**Download:** [LmChat.exe (neueste Version)](https://github.com/ghaslbe/lmstudioChatWindows/releases/latest/download/LmChat.exe). Alle Versionen findest du unter [Releases](https://github.com/ghaslbe/lmstudioChatWindows/releases).
 
 ## Funktionen
 
@@ -16,14 +14,16 @@ Die .exe wird bei jedem Push auf `main` automatisch von GitHub Actions gebaut (`
   - **Strg+V** (Screenshot oder kopierte Bilddatei)
   - Bilddatei ins Fenster ziehen
 
-  Große Bilder werden automatisch auf maximal 2048 px verkleinert.
+  Große Bilder werden automatisch auf maximal 2048 px verkleinert. Im Chat erscheint eine Vorschau, ein Klick darauf öffnet das Bild in voller Größe.
 - **Einstellungen (eigene Seite):**
-  - Server-Adresse
+  - Server-Adresse (wird beim Speichern geprüft)
   - Modell per Dropdown, direkt aus LM Studio geladen. Bildfähige Modelle sind mit 🖼 markiert, geladene mit ●.
-  - System-Prompt, Temperatur, Top-P, Top-K, Max. Tokens, Wiederholungsstrafe
+  - System-Prompt
+  - Temperatur, Top-P, Top-K, maximale Antwortlänge und Wiederholungsstrafe
 
-  Leere Felder bedeuten: Standardwert des Modells verwenden.
-- **Aussehen:** Die App folgt dem Hell- oder Dunkelmodus von Windows 11 (Fluent).
+  Die Zahlenwerte stellst du per Schieberegler ein, nur innerhalb gültiger Bereiche und jeweils mit Erklärung. Ohne Haken gilt der Standardwert des Modells.
+- **Hilfe-Seite:** Kurzanleitung, Fehlerbehebung, Lizenz und Link zu diesem Repository.
+- **Aussehen:** Die App folgt dem Hell- oder Dunkelmodus von Windows 11 (Fluent) und hat ein eigenes Icon.
 
 ## Bedienung
 
@@ -46,7 +46,7 @@ Die App nutzt zwei Schnittstellen von LM Studio:
 
 ## Daten
 
-Chats und Einstellungen liegen in:
+Chats und Einstellungen liegen nur lokal in:
 
 ```
 %LOCALAPPDATA%\LmChat\chats.db
@@ -57,6 +57,12 @@ Die SQLite-Datenbank hat drei Tabellen:
 - `chats`
 - `messages`: Bilder werden als PNG-BLOB gespeichert
 - `settings`
+
+## Versionen und Releases
+
+Die Versionsnummer steht in `LmChat/LmChat.csproj` (`<Version>`) und wird bei jeder Änderung hochgezählt. Sie erscheint im Fenstertitel und in der Hilfe.
+
+Bei jedem Push auf `main` baut GitHub Actions (`.github/workflows/release.yml`) die .exe und legt sie als Release `v<Version>` ab. Gibt es das Release schon, wird nur die .exe ersetzt.
 
 ## Bauen
 
@@ -80,13 +86,23 @@ dotnet publish LmChat -c Release -o LmChat\publish -p:DebugType=none
 
 Ergebnis: `LmChat\publish\LmChat.exe` (ca. 63 MB, enthält die .NET-Laufzeit).
 
+Das Icon erzeugt `tools\make-icon.ps1` neu.
+
 ## Projektaufbau
 
 | Datei | Inhalt |
 |---|---|
-| `LmChat/MainWindow.xaml` | Oberfläche: Chat-Seite und Einstellungen |
-| `LmChat/MainWindow.xaml.cs` | Logik: Senden/Streaming, Bilder, Chatliste, Modellliste |
+| `LmChat/MainWindow.xaml` | Oberfläche: Chat, Einstellungen, Hilfe |
+| `LmChat/MainWindow.xaml.cs` | Logik: Senden/Streaming, Bilder, Chatliste, Modellliste, Einstellungen |
+| `LmChat/ParamRow.cs` | Einstellungszeile mit Haken, Erklärung und Schieberegler |
 | `LmChat/ChatStore.cs` | SQLite-Speicher für Chats, Nachrichten, Einstellungen |
 | `LmChat/LlmSettings.cs` | LM-Studio-Einstellungen (als JSON in der Datenbank) |
+| `LmChat/app.ico` | App-Icon |
 
 Technik: C# / WPF auf .NET 10, `Microsoft.Data.Sqlite`.
+
+## Lizenz und Haftungsausschluss
+
+Dieses Projekt steht unter der [MIT-Lizenz](LICENSE). Du darfst es frei nutzen, verändern und weitergeben.
+
+Die Software wird **ohne jede Gewährleistung** bereitgestellt. Die Autoren übernehmen **keinerlei Haftung** für Schäden, Datenverlust oder sonstige Folgen der Nutzung. Antworten von KI-Modellen können falsch sein. Prüfe wichtige Informationen selbst.

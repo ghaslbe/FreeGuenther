@@ -109,6 +109,18 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
     - **Wetter:** Open-Meteo, kostenlos, ohne Schlüssel
     - **Datum und Uhrzeit:** läuft lokal
     - **Dateien:** liest nur in einem freigegebenen Ordner, mit Rückfrage
+    - **Webseite abrufen (GET):** lädt eine Adresse. Webseiten werden zu lesbarem Text, JSON und Text kommen unverändert. Optional lässt sich eine Liste erlaubter Domains einstellen, und Adressen im lokalen Netz sind standardmäßig gesperrt.
+    - **Webhook (POST):** schickt eine Antwort als JSON an eine Adresse deiner Wahl, z. B. n8n, Make, Zapier, Home Assistant oder einen eigenen Server. Das geht per Knopf „Senden“ unter jeder Antwort oder per Chat („Schick die letzte Antwort an den Webhook“), dann mit Rückfrage. Ein optionaler Schlüssel wird als `Authorization: Bearer …` mitgeschickt. Format:
+
+      ```json
+      {
+        "app": "LM Chat", "appVersion": "1.14.0", "sentAt": "2026-10-29T13:26:06+01:00",
+        "chat": "Titel des Chats", "type": "text | image | text+image",
+        "question": "die Frage dazu", "text": "die Antwort (Markdown)",
+        "image": { "mimeType": "image/png", "base64": "…" },
+        "provider": "OpenRouter", "model": "google/gemini-2.5-flash-image", "note": "optionale Notiz"
+      }
+      ```
   - **Weitere herunterladen:** aus dem [Plugin-Katalog](plugins/) (z. B. Wikipedia, Währungsrechner, DeepWiki per MCP), per Datei-Import oder von einer https-Adresse. Vor der Installation zeigt LM Chat, worauf das Plugin zugreift.
   - **MCP:** Plugins vom Typ MCP binden einen MCP-Server an, per URL (Streamable HTTP) oder als lokales Programm (stdio). Die Anbindung nutzt das offizielle C#-SDK `ModelContextProtocol`. Vor jeder Aktion fragt LM Chat nach.
   - **Unterstützte Anbieter:** alle (OpenAI-kompatibel über `tools`/`tool_calls`, Anthropic über `tool_use`), mit bis zu 8 Werkzeugrunden pro Antwort. Ob ein Modell Werkzeuge kann, erkennt die App:

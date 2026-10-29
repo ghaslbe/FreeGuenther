@@ -20,7 +20,7 @@
   <PropertyGroup>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <!-- Bei jeder Änderung hochzählen: Major.Minor.Patch -->
-    <Version>1.13.0</Version>
+    <Version>1.14.0</Version>
     <Authors>ghaslbe</Authors>
     <Copyright>Copyright (c) 2026 ghaslbe – MIT-Lizenz</Copyright>
   </PropertyGroup>
@@ -32,6 +32,8 @@
     <EmbeddedResource Include="..\plugins\wetter.json" LogicalName="plugin.wetter.json" />
     <EmbeddedResource Include="..\plugins\datum-uhrzeit.json" LogicalName="plugin.datum-uhrzeit.json" />
     <EmbeddedResource Include="..\plugins\dateien.json" LogicalName="plugin.dateien.json" />
+    <EmbeddedResource Include="..\plugins\webhook.json" LogicalName="plugin.webhook.json" />
+    <EmbeddedResource Include="..\plugins\webseite.json" LogicalName="plugin.webseite.json" />
   </ItemGroup>
 
   <ItemGroup>

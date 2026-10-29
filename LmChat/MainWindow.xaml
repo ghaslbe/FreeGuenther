@@ -875,7 +875,10 @@
                                         Plugins geben dem Modell zusätzliche Fähigkeiten. Unter <Run FontWeight="SemiBold" Text="Plugins"/>
                                         schaltest du jedes einzeln ein und stellst es ein (⚙ Einstellungen). Mitgeliefert sind
                                         <Run FontWeight="SemiBold" Text="Wetter"/>, <Run FontWeight="SemiBold" Text="Datum und Uhrzeit"/> und
-                                        <Run FontWeight="SemiBold" Text="Dateien"/> (liest nur in einem freigegebenen Ordner). Weitere lädst du
+                                        <Run FontWeight="SemiBold" Text="Dateien"/> (liest nur in einem freigegebenen Ordner),
+                                        <Run FontWeight="SemiBold" Text="Webseite abrufen"/> (lädt eine Adresse per GET) und
+                                        <Run FontWeight="SemiBold" Text="Webhook"/> (schickt eine Antwort samt Bild als JSON per POST an eine Adresse –
+                                        Knopf „Senden“ unter jeder Antwort). Weitere lädst du
                                         aus dem Katalog oder importierst eine Plugin-Datei. Alles läuft ohne zusätzliche Installation.<LineBreak/>
                                         Danach einfach normal fragen, z. B. „Wie wird das Wetter morgen in Köln?“ – das Modell ruft das Plugin
                                         selbst auf. Im Chat siehst du „🔧 Wetter …“, unter der Antwort, welche Plugins benutzt wurden.<LineBreak/>

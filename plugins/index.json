@@ -41,6 +41,22 @@
       "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/dateien.json"
     },
     {
+      "id": "webhook",
+      "name": "Webhook",
+      "version": "1.0.0",
+      "type": "builtin",
+      "description": "Antwort (Text und/oder Bild) als JSON per POST an eine Adresse senden – Knopf „Senden“ unter jeder Antwort.",
+      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/webhook.json"
+    },
+    {
+      "id": "webseite",
+      "name": "Webseite abrufen",
+      "version": "1.0.0",
+      "type": "builtin",
+      "description": "Eine Internetadresse per GET laden – Webseiten als lesbarer Text, JSON unverändert.",
+      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/webseite.json"
+    },
+    {
       "id": "mcp-deepwiki",
       "name": "DeepWiki (MCP)",
       "version": "1.0.0",

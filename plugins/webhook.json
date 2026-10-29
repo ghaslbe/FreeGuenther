@@ -1,0 +1,45 @@
+{
+  "id": "webhook",
+  "name": "Webhook",
+  "version": "1.0.0",
+  "author": "ghaslbe",
+  "description": "Schickt eine Antwort – Text, Bild oder beides – als JSON per POST an eine Adresse deiner Wahl, z. B. an n8n, Make, Zapier, Home Assistant oder einen eigenen Server. Unter jeder Antwort erscheint dafür der Knopf „Senden“; oder sag im Chat „Schick die letzte Antwort an den Webhook“. In LM Chat eingebaut.",
+  "type": "builtin",
+  "askBeforeRun": true,
+  "settings": [
+    {
+      "key": "url",
+      "label": "Ziel-Adresse (URL)",
+      "type": "text",
+      "default": "",
+      "description": "Hierhin wird per POST gesendet, z. B. https://n8n.example.com/webhook/lmchat. Nur Adressen eintragen, denen du vertraust – der Inhalt der Antwort geht dorthin."
+    },
+    {
+      "key": "token",
+      "label": "Schlüssel (optional)",
+      "type": "secret",
+      "default": "",
+      "description": "Wird als „Authorization: Bearer …“ mitgeschickt, falls die Gegenstelle das verlangt. Leer lassen, wenn nicht nötig."
+    },
+    {
+      "key": "image",
+      "label": "Bilder mitsenden",
+      "type": "bool",
+      "default": "true",
+      "description": "Bilder gehen als PNG in Base64 im Feld „image“ mit. Ausschalten, wenn nur Text gewünscht ist."
+    }
+  ],
+  "tools": [
+    {
+      "name": "senden",
+      "description": "Sendet die letzte Antwort in diesem Chat (Text und/oder Bild) als JSON an den vom Nutzer eingestellten Webhook. Nur nutzen, wenn der Nutzer ausdrücklich darum bittet, etwas zu senden, zu schicken oder weiterzuleiten.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "notiz": { "type": "string", "description": "Optionale kurze Notiz, die im Feld „note“ mitgeschickt wird" }
+        }
+      },
+      "builtin": "webhook_post"
+    }
+  ]
+}

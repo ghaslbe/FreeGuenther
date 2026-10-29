@@ -56,6 +56,8 @@ public partial class MainWindow
             if (state.Enabled && m.Settings.Any(s => s.Type == "folder" && _plugins.GetValue(m, s).Length == 0))
                 _openPluginSettings.Add(m.Id);
             ShowPlugins();
+            // Knopf „Senden“ unter den Antworten erscheint/verschwindet mit dem Webhook-Plugin
+            if (_cts == null && m.Tools.Any(t => t.Builtin == "webhook_post")) RenderChat();
         };
         toggle.Checked += onToggle;
         toggle.Unchecked += onToggle;
@@ -172,7 +174,7 @@ public partial class MainWindow
                     var pick = new Button { Content = "Ordner wählen …", Margin = new Thickness(8, 0, 0, 0), Padding = new Thickness(12, 4, 12, 4) };
                     DockPanel.SetDock(pick, Dock.Right);
                     var box = new TextBox { Text = value };
-                    box.LostFocus += (_, _) => Changed(s, box.Text.Trim());
+                    box.TextChanged += (_, _) => Changed(s, box.Text.Trim());
                     pick.Click += (_, _) =>
                     {
                         var dialog = new OpenFolderDialog { Title = s.Label };
@@ -190,7 +192,7 @@ public partial class MainWindow
                 default:
                 {
                     var box = new TextBox { Text = value };
-                    box.LostFocus += (_, _) => Changed(s, box.Text.Trim());
+                    box.TextChanged += (_, _) => Changed(s, box.Text.Trim());
                     panel.Children.Add(box);
                     break;
                 }

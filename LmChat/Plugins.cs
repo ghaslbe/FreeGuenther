@@ -168,6 +168,9 @@ public sealed class PluginState
 // Eintrag im Online-Katalog (plugins/index.json im GitHub-Repository)
 public sealed record CatalogEntry(string Id, string Name, string Version, string Description, string Type, string Url);
 
+// Eine Antwort samt Frage, wie sie das Webhook-Plugin verschickt
+public sealed record ExportAnswer(string ChatTitle, string? Question, ChatMessage Answer);
+
 // Ein Werkzeug, wie es dem Modell angeboten wird
 public sealed record ToolSpec(string Name, string Description, JsonObject Parameters);
 
@@ -443,6 +446,12 @@ public sealed class PluginManager : IAsyncDisposable
                 var text = string.Join("\n", result.Content.Select(c => c is TextContentBlock t ? t.Text : $"[{c.Type}]"));
                 return Limit((result.IsError == true ? "Fehler: " : "") + text);
             }
+            case "builtin" when m.Tools.First(t => t.Name == tool).Builtin == "webhook_post":
+                return LastAnswer?.Invoke() is { } answer
+                    ? await PostAnswerAsync(m, answer, (string?)args["notiz"], ct)
+                    : "Fehler: In diesem Chat gibt es noch keine Antwort, die gesendet werden könnte.";
+            case "builtin" when m.Tools.First(t => t.Name == tool).Builtin == "http_get":
+                return await WebPage.FetchAsync(Http, (string?)args["url"] ?? "", SettingsObject(m), ct);
             case "builtin":
                 return Builtin(m, m.Tools.First(t => t.Name == tool).Builtin, args);
             default:
@@ -494,6 +503,67 @@ public sealed class PluginManager : IAsyncDisposable
             "files_list" or "files_read" or "files_search" => LocalFiles.Run(name, (string?)settings["folder"] ?? "", args),
             _ => "Fehler: unbekannte eingebaute Funktion."
         };
+    }
+
+    // ---------- Webhook: Antwort als JSON an eine Adresse senden ----------
+
+    // Liefert die letzte Antwort im aktuellen Chat (setzt das Hauptfenster)
+    public Func<ExportAnswer?>? LastAnswer { get; set; }
+
+    // Das aktive Webhook-Plugin (null = keins eingeschaltet)
+    public PluginManifest? ActiveWebhook => Enabled.FirstOrDefault(p => p.Tools.Any(t => t.Builtin == "webhook_post"));
+
+    public async Task<string> PostAnswerAsync(PluginManifest m, ExportAnswer a, string? note, CancellationToken ct)
+    {
+        var settings = SettingsObject(m);
+        var url = ((string?)settings["url"] ?? "").Trim();
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "http"))
+            return "Fehler: Im Plugin „Webhook“ ist keine gültige Ziel-Adresse eingestellt (Plugins → Webhook → Einstellungen).";
+        var withImage = (string?)settings["image"] != "false";
+
+        var image = withImage && a.Answer.Image != null
+            ? new { mimeType = "image/png", base64 = Convert.ToBase64String(a.Answer.Image) }
+            : null;
+        var payload = new
+        {
+            app = "LM Chat",
+            appVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3),
+            sentAt = DateTimeOffset.Now.ToString("o"),
+            chat = a.ChatTitle,
+            type = (a.Answer.Content.Length > 0, a.Answer.Image != null) switch
+            {
+                (true, true) => "text+image", (false, true) => "image", _ => "text"
+            },
+            question = a.Question,
+            text = a.Answer.Content.Length > 0 ? a.Answer.Content : null,
+            image,
+            provider = a.Answer.Stats?.Provider,
+            model = a.Answer.Stats?.Model,
+            note = string.IsNullOrWhiteSpace(note) ? null : note,
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, uri)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(payload, new JsonSerializerOptions
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                // Umlaute, Anführungszeichen usw. lesbar lassen statt \u-Schreibweise (wird als UTF-8 gesendet)
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            }), Encoding.UTF8, "application/json")
+        };
+        if ((string?)settings["token"] is { Length: > 0 } token)
+            request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + token);
+        try
+        {
+            using var response = await Http.SendAsync(request, ct);
+            return response.IsSuccessStatusCode
+                ? $"Gesendet an {uri.Host} (HTTP {(int)response.StatusCode})."
+                : $"Fehler: {uri.Host} antwortete mit HTTP {(int)response.StatusCode}. {Limit(await response.Content.ReadAsStringAsync(ct), 300)}";
+        }
+        catch (HttpRequestException ex)
+        {
+            return $"Fehler: {uri.Host} nicht erreichbar – {ex.Message}";
+        }
     }
 
     private static string Limit(string text, int max = 12000) => text.Length <= max ? text : text[..max] + " … [gekürzt]";
@@ -591,6 +661,113 @@ public static class LocalFiles
                     hits.Add($"{rel}, Zeile {i + 1}: {lines[i].Trim()[..Math.Min(lines[i].Trim().Length, 160)]}");
         }
         return hits.Count == 0 ? "Nichts gefunden." : string.Join("\n", hits);
+    }
+}
+
+// Eingebautes Plugin „Webseite abrufen“: lädt eine Adresse per GET und macht aus HTML lesbaren Text
+public static class WebPage
+{
+    public static async Task<string> FetchAsync(HttpClient http, string url, JsonObject settings, CancellationToken ct)
+    {
+        if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "http"))
+            return "Fehler: Bitte eine vollständige Adresse mit http:// oder https:// angeben.";
+
+        // Nur erlaubte Domains (falls eingestellt): "example.com" erlaubt auch "www.example.com"
+        var allowed = ((string?)settings["domains"] ?? "")
+            .Split([',', ';', ' ', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(d => d.ToLowerInvariant().TrimStart('*', '.')).ToList();
+        var host = uri.Host.ToLowerInvariant();
+        if (allowed.Count > 0 && !allowed.Any(d => host == d || host.EndsWith("." + d)))
+            return $"Fehler: {host} ist nicht freigegeben. Erlaubt sind: {string.Join(", ", allowed)} (Plugins → Webseite abrufen → Einstellungen).";
+
+        // Geräte im eigenen Netz (Router, NAS, …) nur, wenn ausdrücklich erlaubt
+        if ((string?)settings["local"] != "true")
+        {
+            try
+            {
+                var addresses = await System.Net.Dns.GetHostAddressesAsync(uri.Host, ct);
+                if (addresses.Length == 0 || addresses.Any(IsPrivate))
+                    return $"Fehler: {host} ist eine Adresse im lokalen Netz. Das ist in den Plugin-Einstellungen gesperrt.";
+            }
+            catch (System.Net.Sockets.SocketException)
+            {
+                return $"Fehler: {host} wurde nicht gefunden.";
+            }
+        }
+
+        var max = int.TryParse((string?)settings["max"], out var m) ? m : 12000;
+        using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+        request.Headers.Accept.ParseAdd("text/html,application/json,text/plain;q=0.9,*/*;q=0.5");
+        request.Headers.AcceptLanguage.ParseAdd("de,en;q=0.8");
+        try
+        {
+            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+            var type = response.Content.Headers.ContentType?.MediaType ?? "";
+            var head = $"Adresse: {response.RequestMessage?.RequestUri ?? uri}\nStatus: HTTP {(int)response.StatusCode}\nInhaltstyp: {type}\n\n";
+            if (!(type.StartsWith("text/") || type.Contains("json") || type.Contains("xml") || type.Length == 0))
+                return head + $"Der Inhalt ist keine Text- oder Webseite ({type}, {response.Content.Headers.ContentLength?.ToString("N0") ?? "?"} Bytes) und kann nicht gelesen werden.";
+
+            // Höchstens 2 MB lesen
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            var buffer = new MemoryStream();
+            await CopyLimitedAsync(stream, buffer, 2_000_000, ct);
+            var charset = response.Content.Headers.ContentType?.CharSet;
+            var encoding = charset != null ? TryEncoding(charset) : Encoding.UTF8;
+            var body = encoding.GetString(buffer.ToArray());
+            var text = type.Contains("html") || (type.Length == 0 && body.Contains("<html", StringComparison.OrdinalIgnoreCase))
+                ? HtmlToText(body)
+                : body;
+            return head + (text.Length > max ? text[..max] + "\n… [gekürzt]" : text);
+        }
+        catch (HttpRequestException ex)
+        {
+            return $"Fehler: {host} nicht erreichbar – {ex.Message}";
+        }
+    }
+
+    private static async Task CopyLimitedAsync(Stream from, Stream to, int limit, CancellationToken ct)
+    {
+        var buffer = new byte[81920];
+        int read, total = 0;
+        while (total < limit && (read = await from.ReadAsync(buffer.AsMemory(0, Math.Min(buffer.Length, limit - total)), ct)) > 0)
+        {
+            await to.WriteAsync(buffer.AsMemory(0, read), ct);
+            total += read;
+        }
+    }
+
+    private static Encoding TryEncoding(string name)
+    {
+        try { return Encoding.GetEncoding(name.Trim('"')); }
+        catch (ArgumentException) { return Encoding.UTF8; }
+    }
+
+    private static bool IsPrivate(System.Net.IPAddress ip)
+    {
+        if (System.Net.IPAddress.IsLoopback(ip)) return true;
+        if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+        if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+            return ip.IsIPv6LinkLocal || ip.IsIPv6SiteLocal || ip.IsIPv6UniqueLocal;
+        var b = ip.GetAddressBytes();
+        return b[0] == 10 || b[0] == 127 || b[0] == 0 || (b[0] == 169 && b[1] == 254) ||
+               (b[0] == 172 && b[1] >= 16 && b[1] <= 31) || (b[0] == 192 && b[1] == 168) || (b[0] == 100 && b[1] >= 64 && b[1] <= 127);
+    }
+
+    // Grobe, aber robuste Umwandlung: Titel, Text mit Absätzen, ohne Skripte, Stile und Menüs
+    public static string HtmlToText(string html)
+    {
+        var title = Regex.Match(html, @"<title[^>]*>([\s\S]*?)</title>", RegexOptions.IgnoreCase).Groups[1].Value;
+        var s = Regex.Replace(html, @"<(script|style|noscript|svg|template|iframe|nav|footer|head)\b[\s\S]*?</\1\s*>", " ", RegexOptions.IgnoreCase);
+        s = Regex.Replace(s, @"<!--[\s\S]*?-->", " ");
+        s = Regex.Replace(s, @"<(br|/p|/div|/li|/h[1-6]|/tr|/section|/article|/blockquote|/pre)\b[^>]*>", "\n", RegexOptions.IgnoreCase);
+        s = Regex.Replace(s, @"<li\b[^>]*>", "\n• ", RegexOptions.IgnoreCase);
+        s = Regex.Replace(s, @"<h[1-6]\b[^>]*>", "\n## ", RegexOptions.IgnoreCase);
+        s = Regex.Replace(s, @"<[^>]+>", " ");
+        s = System.Net.WebUtility.HtmlDecode(s);
+        s = Regex.Replace(s, @"[ \t\r\f\v]+", " ");
+        s = Regex.Replace(s, @" *\n[ \n]*", "\n\n").Trim();
+        title = System.Net.WebUtility.HtmlDecode(Regex.Replace(title, @"\s+", " ")).Trim();
+        return (title.Length > 0 ? $"Titel: {title}\n\n" : "") + s;
     }
 }
 

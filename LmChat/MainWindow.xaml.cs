@@ -46,7 +46,11 @@ public partial class MainWindow : Window
         SidebarVersion.Text = $"Version {AppVersion}";
         _settings = LlmSettings.Load(_store);
         _draft = _settings.Clone();
-        _plugins = new PluginManager(_store, Path.Combine(Path.GetDirectoryName(DbPath)!, "plugins"));
+        _plugins = new PluginManager(_store, Path.Combine(Path.GetDirectoryName(DbPath)!, "plugins"))
+        {
+            // Für das Webhook-Plugin: die letzte Antwort im geöffneten Chat
+            LastAnswer = () => _messages.LastOrDefault(m => m.Role == "assistant") is { } last ? ToExport(last) : null
+        };
         foreach (var chat in _store.ListChats())
             _chats.Add(chat);
 
@@ -525,13 +529,13 @@ public partial class MainWindow : Window
             foreach (var pluginNote in pluginNotes)
                 answerView.Body.Blocks.Add(new Paragraph(new Italic(new Run(pluginNote)))
                     { Margin = new Thickness(0, 4, 0, 0), FontSize = 12.5, Foreground = Brushes.DarkOrange });
+            var reply = new ChatMessage("assistant", answer.ToString(), generated) { Stats = stats };
             if (success)
-                AddAnswerFooter(answerView.Body, answer.ToString(), stats, generated);
+                AddAnswerFooter(answerView.Body, reply);
             ChatBox.ScrollToEnd();
 
             if (success)
             {
-                var reply = new ChatMessage("assistant", answer.ToString(), generated) { Stats = stats };
                 _messages.Add(reply with { Id = _store.AddMessage(chat.Id, reply) });
                 _store.AddUsage(provider.Kind, stats);
             }
@@ -788,7 +792,7 @@ public partial class MainWindow : Window
             if (m.Image != null)
                 body.Blocks.Add(new BlockUIContainer(MakeImageView(m.Image, 420, 560)));
             MarkdownRenderer.Render(m.Content, body.Blocks);
-            AddAnswerFooter(body, m.Content, m.Stats, m.Image);
+            AddAnswerFooter(body, m);
         }
         ChatBox.ScrollToEnd();
         UpdateEmptyState();
@@ -830,8 +834,9 @@ public partial class MainWindow : Window
     }
 
     // Zeile unter einer Antwort: Knöpfe (Kopieren bzw. Bild kopieren/speichern) und Anbieter, Modell, Token/s, Tokens
-    private void AddAnswerFooter(Section body, string content, AnswerStats? stats, byte[]? image = null)
+    private void AddAnswerFooter(Section body, ChatMessage answer)
     {
+        var (content, stats, image) = (answer.Content, answer.Stats, answer.Image);
         var line = new Paragraph { FontSize = 11.5, Margin = new Thickness(0, 6, 0, 0) };
         line.SetResourceReference(TextElement.ForegroundProperty, "TextFillColorTertiaryBrush");
 
@@ -846,6 +851,8 @@ public partial class MainWindow : Window
             line.Inlines.Add(FooterButton("", "Speichern", "Bild speichern", "Bild als PNG-Datei speichern",
                 () => SaveImage(image)));
         }
+        if (_plugins.ActiveWebhook != null)
+            line.Inlines.Add(WebhookButton(answer));
         if (stats != null)
             line.Inlines.Add(new Run("   " + FormatStats(stats)));
         body.Blocks.Add(line);
@@ -885,6 +892,62 @@ public partial class MainWindow : Window
             label.Text = text;
         };
         return new InlineUIContainer(button) { BaselineAlignment = BaselineAlignment.Center };
+    }
+
+    // Knopf „Senden“ (Plugin Webhook): schickt diese Antwort als JSON an die eingestellte Adresse
+    private InlineUIContainer WebhookButton(ChatMessage answer)
+    {
+        var label = new TextBlock { Text = "Senden", Margin = new Thickness(5, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        var button = new Button
+        {
+            Style = (Style)FindResource("IconButton"),
+            Padding = new Thickness(6, 2, 8, 2),
+            ToolTip = "Diese Antwort als JSON an den Webhook senden (Plugin „Webhook“)",
+            Content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Children =
+                {
+                    new TextBlock { Text = "", FontFamily = (FontFamily)FindResource("IconFont"), FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
+                    label
+                }
+            }
+        };
+        System.Windows.Automation.AutomationProperties.SetName(button, "Antwort senden");
+        button.Click += async (_, _) =>
+        {
+            if (_plugins.ActiveWebhook is not { } webhook)
+            {
+                StatusText.Text = "Das Plugin „Webhook“ ist ausgeschaltet (Plugins → Webhook).";
+                return;
+            }
+            button.IsEnabled = false;
+            label.Text = "Sende …";
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            string result;
+            try
+            {
+                result = await _plugins.PostAnswerAsync(webhook, ToExport(answer), null, cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                result = "Fehler: Zeitüberschreitung beim Senden.";
+            }
+            StatusText.Text = result;
+            label.Text = result.StartsWith("Fehler") ? "Fehler ✗" : "Gesendet ✓";
+            await Task.Delay(2500);
+            label.Text = "Senden";
+            button.IsEnabled = true;
+        };
+        return new InlineUIContainer(button) { BaselineAlignment = BaselineAlignment.Center };
+    }
+
+    // Antwort samt zugehöriger Frage für den Webhook
+    private ExportAnswer ToExport(ChatMessage answer)
+    {
+        var index = _messages.FindLastIndex(m => m.Role == "assistant" && m.Content == answer.Content && m.Image == answer.Image);
+        var question = index > 0 && _messages[index - 1].Role == "user" ? _messages[index - 1].Content : null;
+        return new ExportAnswer(_currentChat?.Title ?? "", question, answer);
     }
 
     // Die Zwischenablage kann kurz von einem anderen Programm gesperrt sein – dann ein paar Mal wiederholen

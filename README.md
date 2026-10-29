@@ -43,7 +43,8 @@ Ein einfacher Windows-Chat-Client für lokale und Online-Sprachmodelle: [LM Stud
   Große Bilder werden automatisch auf maximal 2048 px verkleinert. Im Chat erscheint eine Vorschau, ein Klick darauf öffnet das Bild in voller Größe.
 - **Einstellungen (eigene Seite):**
   - Server-Adresse (wird beim Speichern geprüft)
-  - Modell per Dropdown, direkt aus LM Studio geladen. Bildfähige Modelle sind mit 🖼 markiert, geladene mit ●.
+  - Modell per Dropdown, direkt vom Anbieter geladen. 🎨 = erzeugt Bilder, 🖼 = versteht Bilder, ● = gerade geladen.
+  - Darüber ein **Filter**: ein Suchfeld (alle Wörter müssen im Namen vorkommen, z. B. „gemini flash“) und eine Auswahl „Alle Modelle“, „Erzeugt Bilder“, „Versteht Bilder“ oder „Gerade geladen“. Daneben steht, wie viele Modelle passen.
   - System-Prompt
   - Temperatur, Top-P, Top-K, maximale Antwortlänge und Wiederholungsstrafe
 

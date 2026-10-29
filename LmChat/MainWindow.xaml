@@ -503,8 +503,31 @@
                                         Die Liste kommt direkt vom Anbieter („Liste aktualisieren“, nachdem Adresse und ggf. Schlüssel stimmen).
                                         <Run FontWeight="SemiBold" Text="🖼"/> = versteht Bilder,
                                         <Run FontWeight="SemiBold" Text="●"/> = ist gerade geladen und antwortet sofort.
-                                        Im aufgeklappten Feld kannst du die Anfangsbuchstaben tippen, um schnell zu springen.
+                                        <Run FontWeight="SemiBold" Text="🎨"/> = erzeugt Bilder.
+                                        Mit dem Suchfeld und der Auswahl daneben lässt sich die Liste eingrenzen.
                                     </TextBlock>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid>
+                                            <TextBox x:Name="ModelSearchBox" Padding="32,6,8,6" TextChanged="ModelSearch_TextChanged"/>
+                                            <TextBlock Text="&#xE721;" FontFamily="{StaticResource IconFont}" FontSize="13" Margin="11,0,0,0"
+                                                       VerticalAlignment="Center" IsHitTestVisible="False"
+                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                            <TextBlock Text="Modelle suchen, z. B. „gemini flash“" Margin="33,0,0,0" VerticalAlignment="Center"
+                                                       IsHitTestVisible="False" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                       Visibility="{Binding Text.IsEmpty, ElementName=ModelSearchBox, Converter={StaticResource BoolToVis}}"/>
+                                        </Grid>
+                                        <ComboBox x:Name="ModelFilterCombo" Grid.Column="1" Margin="8,0,0,0" SelectedIndex="0"
+                                                  SelectionChanged="ModelFilterCombo_SelectionChanged">
+                                            <ComboBoxItem Content="Alle Modelle"/>
+                                            <ComboBoxItem Content="🎨  Erzeugt Bilder"/>
+                                            <ComboBoxItem Content="🖼  Versteht Bilder"/>
+                                            <ComboBoxItem Content="●  Gerade geladen"/>
+                                        </ComboBox>
+                                    </Grid>
                                     <DockPanel>
                                         <Button DockPanel.Dock="Right" Content="Liste aktualisieren" Margin="8,0,0,0"
                                                 Click="ReloadModels_Click"/>
@@ -512,6 +535,8 @@
                                                   TextSearch.TextPath="Id" MaxDropDownHeight="420"
                                                   HorizontalAlignment="Stretch" SelectionChanged="ModelCombo_SelectionChanged"/>
                                     </DockPanel>
+                                    <TextBlock x:Name="ModelFilterInfo" FontSize="12" Margin="0,6,0,0"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     <TextBlock x:Name="ModelHint" Style="{StaticResource Hint}" Margin="0,8,0,0"/>
                                 </StackPanel>
                             </Border>

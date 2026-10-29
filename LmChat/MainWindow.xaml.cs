@@ -55,6 +55,7 @@ public partial class MainWindow : Window
         ProviderCombo.ItemsSource = ProviderInfo.All;
         RegionCombo.ItemsSource = RegionOption.All;
         ModelCombo.ItemsSource = _models;
+        System.Windows.Data.CollectionViewSource.GetDefaultView(_models).Filter = ModelMatchesFilter;
         foreach (var row in ParamRows)
             ParamsPanel.Children.Add(row.Element);
         ShowSettings();
@@ -823,6 +824,7 @@ public partial class MainWindow : Window
         _topKRow.SetSupported(info.SupportsTopK, info.Name);
         _repeatPenaltyRow.SetSupported(info.SupportsRepeatPenalty, info.Name);
 
+        _selectedModelId = config.Model;
         _models.Clear();
         EnsureModelItem(config.Model, config.ModelVision, config.ModelImageGen);
         ModelCombo.SelectedValue = config.Model;
@@ -908,6 +910,7 @@ public partial class MainWindow : Window
             var models = await LlmClient.ListModelsAsync(info, ServerBox.Text, region, key, cts.Token,
                 status => { if (loadId == _modelLoadId) SettingsStatus.Text = status; });
             if (loadId != _modelLoadId) return; // inzwischen anderer Anbieter gewählt
+            _selectedModelId = selected;
             _models.Clear();
             foreach (var m in models)
                 _models.Add(m);
@@ -927,6 +930,7 @@ public partial class MainWindow : Window
                 saved.Model == selected && saved.ModelImageGen);
         }
         ModelCombo.SelectedValue = selected;
+        ApplyModelFilter();
 
         // Fähigkeiten des aktiven Modells aktualisieren (z. B. nach dem Programmstart)
         if (info.Kind == _settings.Provider &&
@@ -943,6 +947,36 @@ public partial class MainWindow : Window
         }
     }
 
+    // ---------- Filter über der Modellliste ----------
+
+    private void ModelSearch_TextChanged(object sender, TextChangedEventArgs e) => ApplyModelFilter();
+
+    private void ModelFilterCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) => ApplyModelFilter();
+
+    // Das gewählte Modell bleibt immer in der Liste, sonst ginge die Auswahl beim Filtern verloren
+    private string _selectedModelId = "";
+
+    private bool ModelMatchesFilter(object item) =>
+        item is ModelInfo m && (m.Id == _selectedModelId || MatchesModelSearch(m));
+
+    // Alle Suchwörter müssen im Namen vorkommen, dazu die gewählte Eigenschaft
+    private bool MatchesModelSearch(ModelInfo m)
+    {
+        var words = (ModelSearchBox?.Text ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return words.All(w => m.Id.Contains(w, StringComparison.OrdinalIgnoreCase)) &&
+               (ModelFilterCombo?.SelectedIndex ?? 0) switch { 1 => m.ImageGen, 2 => m.Vision == true, 3 => m.Loaded, _ => true };
+    }
+
+    private void ApplyModelFilter()
+    {
+        if (ModelCombo == null || ModelFilterInfo == null) return; // noch beim Aufbau des Fensters
+        System.Windows.Data.CollectionViewSource.GetDefaultView(_models).Refresh();
+        var filtered = ModelSearchBox.Text.Trim().Length > 0 || ModelFilterCombo.SelectedIndex > 0;
+        ModelFilterInfo.Text = filtered
+            ? $"{_models.Count(MatchesModelSearch)} von {_models.Count} Modellen passen – Liste aufklappen zum Auswählen."
+            : _models.Count > 0 ? $"{_models.Count} Modelle" : "";
+    }
+
     private void EnsureModelItem(string id, bool? vision, bool imageGen = false)
     {
         if (id.Length > 0 && _models.All(m => m.Id != id))
@@ -952,6 +986,8 @@ public partial class MainWindow : Window
     private void ModelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         var model = ModelCombo.SelectedItem as ModelInfo;
+        if (model != null)
+            _selectedModelId = model.Id;
         var visionHint = model?.Vision switch
         {
             true => "🖼 Dieses Modell versteht Bilder.",

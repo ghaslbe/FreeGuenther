@@ -1,0 +1,69 @@
+{
+  "id": "wetter",
+  "name": "Wetter",
+  "version": "1.0.0",
+  "author": "ghaslbe",
+  "description": "Aktuelles Wetter und Vorhersage für jeden Ort – über Open-Meteo (kostenlos, ohne Schlüssel). Beispiel: „Wie wird das Wetter morgen auf Rügen?“",
+  "homepage": "https://open-meteo.com",
+  "type": "http",
+  "settings": [
+    {
+      "key": "home",
+      "label": "Standardort",
+      "type": "text",
+      "default": "",
+      "description": "Wird genommen, wenn in der Frage kein Ort steht, z. B. „Berlin“."
+    },
+    {
+      "key": "days",
+      "label": "Tage Vorhersage",
+      "type": "choice",
+      "default": "3",
+      "options": [ "1", "3", "7", "14" ],
+      "description": "Wie viele Tage die Vorhersage standardmäßig umfasst."
+    },
+    {
+      "key": "unit",
+      "label": "Temperatur",
+      "type": "choice",
+      "default": "celsius",
+      "options": [ "celsius", "fahrenheit" ],
+      "optionLabels": [ "Grad Celsius", "Grad Fahrenheit" ],
+      "description": "Einheit der Temperaturen."
+    },
+    {
+      "key": "wind",
+      "label": "Windgeschwindigkeit",
+      "type": "choice",
+      "default": "kmh",
+      "options": [ "kmh", "ms", "mph", "kn" ],
+      "optionLabels": [ "km/h", "m/s", "mph", "Knoten" ],
+      "description": "Einheit für Wind und Böen."
+    }
+  ],
+  "tools": [
+    {
+      "name": "wetter",
+      "description": "Liefert das aktuelle Wetter und eine Vorhersage (Temperatur, Niederschlag, Wind, Bewölkung, Sonnenauf- und -untergang) für einen Ort. Nutze es bei allen Fragen nach Wetter, Temperatur, Regen oder Wind.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "ort": { "type": "string", "description": "Ortsname, z. B. „Rügen“ oder „München“. Leer lassen für den Standardort." },
+          "tage": { "type": "integer", "description": "Anzahl Tage Vorhersage (1–16), optional." }
+        }
+      },
+      "requests": [
+        {
+          "as": "geo",
+          "url": "https://geocoding-api.open-meteo.com/v1/search?name={ort|settings.home}&count=1&language=de&format=json",
+          "require": "geo.results.0",
+          "error": "Ort „{ort|settings.home}“ nicht gefunden. Ist kein Ort genannt und kein Standardort eingestellt, bitte nach dem Ort fragen."
+        },
+        {
+          "url": "https://api.open-meteo.com/v1/forecast?latitude={geo.results.0.latitude}&longitude={geo.results.0.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_gusts_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset&forecast_days={tage|settings.days|'3'}&timezone=auto&temperature_unit={settings.unit|'celsius'}&wind_speed_unit={settings.wind|'kmh'}"
+        }
+      ],
+      "result": "Wetterdaten von Open-Meteo für {geo.results.0.name} ({geo.results.0.admin1}, {geo.results.0.country}). Wettercodes nach WMO: 0 klar, 1–3 heiter bis bedeckt, 45/48 Nebel, 51–57 Niesel, 61–67 Regen, 71–77 Schnee, 80–82 Regenschauer, 85/86 Schneeschauer, 95–99 Gewitter. Antworte in normaler Sprache, nicht mit den Rohdaten."
+    }
+  ]
+}

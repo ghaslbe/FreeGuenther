@@ -33,7 +33,8 @@ public sealed record AnswerStats(
     long? OutputTokens,
     double? TokensPerSecond,
     double Seconds,
-    double? Cost = null);
+    double? Cost = null,
+    string? Tools = null);   // genutzte Plugins, z. B. "Wetter (Rügen)"
 
 // Verbrauch eines Modells im gewählten Zeitraum. CostCount = Antworten mit vom Anbieter gemeldeten Kosten.
 public sealed record UsageRow(ProviderKind Provider, string Model, long Requests, long InputTokens, long OutputTokens,

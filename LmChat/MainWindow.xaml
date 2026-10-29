@@ -241,6 +241,8 @@
                              Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavUsage" Style="{StaticResource NavItem}" Tag="&#xE9D2;" Content="Verbrauch"
                              Checked="Nav_Checked"/>
+                <RadioButton x:Name="NavPlugins" Style="{StaticResource NavItem}" Tag="&#xEA86;" Content="Plugins"
+                             Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavHelp" Style="{StaticResource NavItem}" Tag="&#xE897;" Content="Hilfe"
                              Checked="Nav_Checked"/>
             </StackPanel>
@@ -751,6 +753,73 @@
                     </ScrollViewer>
                 </TabItem>
 
+                <!-- ========== Plugins ========== -->
+                <TabItem Header="Plugins">
+                    <ScrollViewer x:Name="PluginsScroll" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="32,24,32,24" MaxWidth="860" HorizontalAlignment="Left">
+                            <TextBlock Style="{StaticResource PageTitle}" Text="Plugins"/>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,18" TextWrapping="Wrap"
+                                       Text="Plugins geben dem Modell zusätzliche Fähigkeiten, z. B. das aktuelle Wetter abfragen. Jedes Plugin lässt sich einzeln einschalten und einstellen."/>
+
+                            <Border Style="{StaticResource Card}" Background="#1A3B82F6" BorderBrush="#663B82F6">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Heading}" Text="So funktioniert's"/>
+                                    <TextBlock Style="{StaticResource Body}">
+                                        Ist ein Plugin eingeschaltet, kann das Modell es bei Bedarf selbst aufrufen – frag einfach ganz normal,
+                                        z. B. „Wie wird das Wetter morgen in Hamburg?“. Im Chat siehst du, wenn ein Plugin läuft, und unter der
+                                        Antwort, welche benutzt wurden.<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="Nicht jedes Modell kann Plugins nutzen."/>
+                                        In der Modellliste stehen geeignete Modelle mit 🔧. Ohne diese Fähigkeit antwortet das Modell einfach ohne Plugins.<LineBreak/>
+                                        <Run x:Name="PluginModelInfo" FontWeight="SemiBold"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Style="{StaticResource SubHeading}" Text="Installierte Plugins" Margin="0,8,0,10"/>
+                            <StackPanel x:Name="PluginList"/>
+
+                            <TextBlock Style="{StaticResource SubHeading}" Text="Weitere Plugins" Margin="0,18,0,10"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap">
+                                        Aus dem Plugin-Katalog im
+                                        <Hyperlink NavigateUri="https://github.com/ghaslbe/lmstudioChatWindows/tree/main/plugins"
+                                                   RequestNavigate="Link_RequestNavigate">GitHub-Projekt</Hyperlink>
+                                        herunterladen oder eine Plugin-Datei (.json) importieren. Vor der Installation siehst du, worauf das Plugin zugreift.
+                                    </TextBlock>
+                                    <StackPanel x:Name="CatalogList" Margin="0,10,0,0"/>
+                                    <TextBlock x:Name="CatalogStatus" Style="{StaticResource Hint}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                                    <WrapPanel Margin="0,12,0,0">
+                                        <Button Content="Katalog neu laden" Click="ReloadCatalog_Click" Margin="0,0,8,8" Padding="12,5"/>
+                                        <Button Content="Plugin-Datei importieren …" Click="ImportPluginFile_Click" Margin="0,0,8,8" Padding="12,5"/>
+                                    </WrapPanel>
+                                    <DockPanel Margin="0,4,0,0">
+                                        <Button DockPanel.Dock="Right" Content="Von Adresse installieren" Click="ImportPluginUrl_Click"
+                                                Margin="8,0,0,0" Padding="12,5"/>
+                                        <TextBox x:Name="PluginUrlBox" ToolTip="Adresse einer Plugin-Datei, z. B. https://…/mein-plugin.json"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}" Background="#1FF59E0B" BorderBrush="#66F59E0B">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Heading}" Text="⚠ Sicherheit"/>
+                                    <TextBlock Style="{StaticResource Body}">
+                                        Installiere nur Plugins aus Quellen, denen du vertraust.<LineBreak/>
+                                        • <Run FontWeight="SemiBold" Text="Web-Plugins"/> rufen nur die angezeigten Adressen ab. Dabei geht das,
+                                        was das Modell einträgt (z. B. ein Ortsname), an diesen Dienst.<LineBreak/>
+                                        • <Run FontWeight="SemiBold" Text="Eingebaute Plugins"/> laufen in LM Chat selbst. „Dateien“ kann nur lesen
+                                        und nur im freigegebenen Ordner.<LineBreak/>
+                                        • <Run FontWeight="SemiBold" Text="MCP-Plugins"/> verbinden sich mit einem MCP-Server bzw. starten ein Programm
+                                        auf deinem Rechner – das kann je nach Server viel dürfen. Deshalb wird vor jeder Aktion nachgefragt.<LineBreak/>
+                                        Bei Online-Anbietern gehen die Ergebnisse der Plugins mit an den Anbieter und kosten Tokens.
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
                 <!-- ========== Hilfe ========== -->
                 <TabItem Header="Hilfe">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -795,6 +864,25 @@
                                         eine Übersicht je Modell gibt es unter „Verbrauch“ – beides nur als Schätzung, verbindlich ist
                                         allein die Abrechnung im Konto des Anbieters.<LineBreak/>
                                         Lokale Anbieter (LM Studio, Ollama) brauchen keinen Schlüssel und kosten nichts.
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Heading}" Text="Plugins"/>
+                                    <TextBlock Style="{StaticResource Body}">
+                                        Plugins geben dem Modell zusätzliche Fähigkeiten. Unter <Run FontWeight="SemiBold" Text="Plugins"/>
+                                        schaltest du jedes einzeln ein und stellst es ein (⚙ Einstellungen). Mitgeliefert sind
+                                        <Run FontWeight="SemiBold" Text="Wetter"/>, <Run FontWeight="SemiBold" Text="Datum und Uhrzeit"/> und
+                                        <Run FontWeight="SemiBold" Text="Dateien"/> (liest nur in einem freigegebenen Ordner). Weitere lädst du
+                                        aus dem Katalog oder importierst eine Plugin-Datei. Alles läuft ohne zusätzliche Installation.<LineBreak/>
+                                        Danach einfach normal fragen, z. B. „Wie wird das Wetter morgen in Köln?“ – das Modell ruft das Plugin
+                                        selbst auf. Im Chat siehst du „🔧 Wetter …“, unter der Antwort, welche Plugins benutzt wurden.<LineBreak/>
+                                        Voraussetzung: ein Modell, das Werkzeuge aufrufen kann (in der Modellliste mit 🔧). Kann es das nicht,
+                                        kommt die Antwort ohne Plugins und ein Hinweis erscheint.<LineBreak/>
+                                        <Run FontWeight="SemiBold" Text="MCP:"/> Plugins vom Typ MCP verbinden sich mit einem MCP-Server (Model Context
+                                        Protocol). Weil der Server viel dürfen kann, fragt LM Chat vor jeder Aktion nach.
                                     </TextBlock>
                                 </StackPanel>
                             </Border>

@@ -12,6 +12,7 @@ public sealed class ProviderConfig
     public string Model { get; set; } = "";
     public bool? ModelVision { get; set; }
     public bool ModelImageGen { get; set; }
+    public bool? ModelTools { get; set; }   // kann Werkzeuge (Plugins) aufrufen; null = unbekannt
 
     // Nur OpenRouter: "" = weltweit, "eu" / "us" = nur Rechenzentren in dieser Region
     public string Region { get; set; } = "";
@@ -22,22 +23,30 @@ public sealed class ProviderConfig
     [JsonIgnore]
     public string ApiKey
     {
-        get
+        get => Secret.Unprotect(ApiKeyProtected);
+        set => ApiKeyProtected = Secret.Protect(value);
+    }
+}
+
+// Verschlüsselt Geheimnisse (API-Schlüssel) mit Windows DPAPI – nur für das eigene Windows-Konto lesbar
+public static class Secret
+{
+    public static string Protect(string value) => value.Length == 0
+        ? ""
+        : Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(value), null, DataProtectionScope.CurrentUser));
+
+    public static string Unprotect(string protectedValue)
+    {
+        if (protectedValue.Length == 0) return "";
+        try
         {
-            if (ApiKeyProtected.Length == 0) return "";
-            try
-            {
-                var bytes = ProtectedData.Unprotect(Convert.FromBase64String(ApiKeyProtected), null, DataProtectionScope.CurrentUser);
-                return Encoding.UTF8.GetString(bytes);
-            }
-            catch (Exception ex) when (ex is CryptographicException or FormatException)
-            {
-                return "";
-            }
+            var bytes = ProtectedData.Unprotect(Convert.FromBase64String(protectedValue), null, DataProtectionScope.CurrentUser);
+            return Encoding.UTF8.GetString(bytes);
         }
-        set => ApiKeyProtected = value.Length == 0
-            ? ""
-            : Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(value), null, DataProtectionScope.CurrentUser));
+        catch (Exception ex) when (ex is CryptographicException or FormatException)
+        {
+            return "";
+        }
     }
 }
 

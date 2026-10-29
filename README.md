@@ -18,6 +18,14 @@ Ein einfacher Windows-Chat-Client für lokale und Online-Sprachmodelle: [LM Stud
 
 *Beim ersten Start: Auswahl, ob lokal oder online. Danach führen die Einstellungen Schritt für Schritt weiter.*
 
+![LM Chat: Antwort mit Wetter- und Datums-Plugin](docs/screenshot-wetter.png)
+
+*Plugins: Das Modell ruft selbst „Datum und Uhrzeit“ und „Wetter“ auf. Unter der Antwort steht, welche Plugins benutzt wurden.*
+
+![LM Chat: Plugin-Seite](docs/screenshot-plugins.png)
+
+*Plugin-Seite: Jedes Plugin lässt sich einzeln einschalten und einstellen, weitere kommen aus dem Katalog oder per Import.*
+
 ## Download
 
 | Datei | Wofür |
@@ -95,6 +103,22 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
   - Temperatur, Top-P, Top-K, maximale Antwortlänge und Wiederholungsstrafe
 
   Die Zahlenwerte stellst du per Schieberegler ein, nur innerhalb gültiger Bereiche und jeweils mit Erklärung. Ohne Haken gilt der Standardwert des Modells.
+- **Plugins (eigene Seite):** geben dem Modell zusätzliche Fähigkeiten über Tool Calling. Alles ist in die .exe eingebaut, es muss nichts zusätzlich installiert werden.
+  - **Einzeln einschaltbar**, jedes Plugin mit eigener **Einstellungsseite**. Die Felder legt das Plugin selbst fest, z. B. Standardort, Einheiten, Ordner oder Schlüssel. Schlüssel werden verschlüsselt gespeichert.
+  - **Mitgeliefert:**
+    - **Wetter:** Open-Meteo, kostenlos, ohne Schlüssel
+    - **Datum und Uhrzeit:** läuft lokal
+    - **Dateien:** liest nur in einem freigegebenen Ordner, mit Rückfrage
+  - **Weitere herunterladen:** aus dem [Plugin-Katalog](plugins/) (z. B. Wikipedia, Währungsrechner, DeepWiki per MCP), per Datei-Import oder von einer https-Adresse. Vor der Installation zeigt LM Chat, worauf das Plugin zugreift.
+  - **MCP:** Plugins vom Typ MCP binden einen MCP-Server an, per URL (Streamable HTTP) oder als lokales Programm (stdio). Die Anbindung nutzt das offizielle C#-SDK `ModelContextProtocol`. Vor jeder Aktion fragt LM Chat nach.
+  - **Unterstützte Anbieter:** alle (OpenAI-kompatibel über `tools`/`tool_calls`, Anthropic über `tool_use`), mit bis zu 8 Werkzeugrunden pro Antwort. Ob ein Modell Werkzeuge kann, erkennt die App:
+    - LM Studio: `tool_use`
+    - Ollama: `tools`
+    - OpenRouter: `supported_parameters`
+
+    Geeignete Modelle sind in der Liste mit 🔧 markiert. Lehnt ein Modell Werkzeuge ab, kommt die Antwort automatisch ohne Plugins.
+  - Im Chat zeigt die Statuszeile „🔧 Wetter: …“ bzw. „❓ Warte auf deine Bestätigung“. Unter der Antwort steht, welche Plugins benutzt wurden.
+  - Eigene Plugins schreiben: siehe [plugins/README.md](plugins/README.md).
 - **Hilfe-Seite:** Kurzanleitung, Fehlerbehebung, Lizenz und Link zu diesem Repository.
 - **Oberfläche:**
   - Seitenleiste mit Logo, Navigation (Chat, Einstellungen, Hilfe), Suchfeld und nach Datum gruppierter Chatliste (Heute, Gestern, Letzte 7 Tage …). Unten zeigt eine Karte den aktiven Anbieter und das Modell.
@@ -156,6 +180,8 @@ Die SQLite-Datenbank hat vier Tabellen:
 - `settings`
 - `usage`: Verbrauch je Antwort (Anbieter, Modell, Tokens, gemeldete Kosten), unabhängig von den Chats
 
+Installierte Plugins liegen als JSON-Dateien in `%LOCALAPPDATA%\LmChat\plugins`. Ihr Zustand (an/aus, Einstellungen) steht in der Datenbank unter `settings` → `plugins`.
+
 ## Versionen und Releases
 
 Die Versionsnummer steht in `LmChat/LmChat.csproj` (`<Version>`) und wird bei jeder Änderung hochgezählt. Sie erscheint im Fenstertitel und in der Hilfe.
@@ -204,6 +230,9 @@ $env:LMCHAT_DB = "$env:TEMP\lmchat-test.db"; .\LmChat\publish\LmChat.exe
 |---|---|
 | `LmChat/MainWindow.xaml` | Oberfläche: Chat, Einstellungen, Hilfe |
 | `LmChat/MainWindow.xaml.cs` | Logik: Chat, Bilder, Chatliste, Einstellungsseite |
+| `LmChat/MainWindow.Plugins.cs` | Plugin-Seite: Liste, Einstellungen je Plugin, Katalog, Import |
+| `LmChat/Plugins.cs` | Plugin-Manifest, Laden/Installieren, Ausführen (Web, eingebaut, MCP) |
+| `plugins/` | Plugin-Katalog (`index.json`) und Plugin-Dateien, Anleitung für eigene Plugins |
 | `LmChat/Providers.cs` | Anbieter (Standardwerte, Links) und `LlmClient`: Modelllisten und Streaming je Anbieter |
 | `LmChat/MarkdownRenderer.cs` | Markdown → WPF-FlowDocument (über Markdig) |
 | `LmChat/ParamRow.cs` | Einstellungszeile mit Haken, Erklärung und Schieberegler |

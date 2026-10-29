@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Anthropic;
@@ -15,10 +16,11 @@ public enum ProviderKind { LmStudio, Ollama, OpenAI, Anthropic, OpenRouter }
 
 // Vision = null heißt: unbekannt (Anbieter meldet es nicht oder Server nicht erreichbar)
 // ImageGen = Modell erzeugt Bilder (wird über die Bild-Schnittstelle des Anbieters angesprochen)
-public record ModelInfo(string Id, bool? Vision, bool Loaded, bool ImageGen = false)
+// Tools = Modell kann Werkzeuge aufrufen, also Plugins nutzen (null = unbekannt)
+public record ModelInfo(string Id, bool? Vision, bool Loaded, bool ImageGen = false, bool? Tools = null)
 {
     public string Label => Id + (ImageGen ? "    🎨 erzeugt Bilder" : "") + (Vision == true ? "    🖼 versteht Bilder" : "") +
-                           (Loaded ? "    ● geladen" : "");
+                           (Tools == true ? "    🔧 Plugins" : "") + (Loaded ? "    ● geladen" : "");
 }
 
 // Feste Eigenschaften eines Anbieters: Standard-Adresse, Schlüssel nötig?, welche Feineinstellungen er versteht
@@ -306,12 +308,14 @@ public static class LlmClient
         {
             case ProviderKind.LmStudio:
             {
-                // LM-Studio-eigene API: Typ "vlm" = versteht Bilder
+                // LM-Studio-eigene API: Typ "vlm" = versteht Bilder, Fähigkeit "tool_use" = kann Plugins nutzen
                 var json = await SendJsonAsync(HttpMethod.Get, server + "/api/v0/models", p, apiKey, null, ct);
                 return (json?["data"] as JsonArray ?? [])
-                    .Select(n => (Id: (string?)n?["id"], Type: (string?)n?["type"], State: (string?)n?["state"]))
+                    .Select(n => (Id: (string?)n?["id"], Type: (string?)n?["type"], State: (string?)n?["state"],
+                        Caps: n?["capabilities"] as JsonArray))
                     .Where(m => m.Id != null && m.Type is "llm" or "vlm")
-                    .Select(m => new ModelInfo(m.Id!, m.Type == "vlm", m.State == "loaded"))
+                    .Select(m => new ModelInfo(m.Id!, m.Type == "vlm", m.State == "loaded",
+                        Tools: m.Caps?.Any(c => (string?)c == "tool_use") ?? false))
                     .OrderByDescending(m => m.Loaded).ThenBy(m => m.Id)
                     .ToList();
             }
@@ -338,7 +342,9 @@ public static class LlmClient
                         if (show?["capabilities"] is not JsonArray caps)
                             return new ModelInfo(name, null, loaded.Contains(name));
                         var list = caps.Select(c => (string?)c).ToList();
-                        return list.Contains("completion") ? new ModelInfo(name, list.Contains("vision"), loaded.Contains(name)) : null;
+                        return list.Contains("completion")
+                            ? new ModelInfo(name, list.Contains("vision"), loaded.Contains(name), Tools: list.Contains("tools"))
+                            : null;
                     }
                     catch (HttpRequestException)
                     {
@@ -356,7 +362,8 @@ public static class LlmClient
                 if (server.Contains("api.openai.com"))
                     ids = ids.Where(id => IsOpenAIChatModel(id) || IsOpenAIImageModel(id));
                 return ids.OrderBy(id => id)
-                    .Select(id => new ModelInfo(id, IsOpenAIImageModel(id) ? true : null, false, IsOpenAIImageModel(id)))
+                    .Select(id => new ModelInfo(id, IsOpenAIImageModel(id) ? true : null, false, IsOpenAIImageModel(id),
+                        IsOpenAIImageModel(id) ? false : null))
                     .ToList();
             }
 
@@ -371,7 +378,8 @@ public static class LlmClient
                         (string?)n?["id"] ?? "",
                         (n?["architecture"]?["input_modalities"] as JsonArray)?.Any(x => (string?)x == "image"),
                         false,
-                        Has(n, "output_modalities", "image") && !((string?)n?["id"] ?? "").StartsWith("openrouter/")))
+                        Has(n, "output_modalities", "image") && !((string?)n?["id"] ?? "").StartsWith("openrouter/"),
+                        (n?["supported_parameters"] as JsonArray)?.Any(x => (string?)x == "tools")))
                     .Where(m => m.Id.Length > 0)
                     .ToList();
 
@@ -415,7 +423,7 @@ public static class LlmClient
                     return checks.OfType<ModelInfo>().ToList();
                 }
                 if (region.Length == 0)
-                    models.Insert(0, new ModelInfo("openrouter/auto", true, false));
+                    models.Insert(0, new ModelInfo("openrouter/auto", true, false, Tools: true));
                 return models;
             }
 
@@ -423,7 +431,7 @@ public static class LlmClient
             {
                 var client = CreateAnthropicClient(server, apiKey);
                 var page = await client.Models.List(new ModelListParams { Limit = 100 }, ct);
-                return page.Items.Select(m => new ModelInfo(m.ID, true, false)).ToList();
+                return page.Items.Select(m => new ModelInfo(m.ID, true, false, Tools: true)).ToList();
             }
 
             default:
@@ -447,6 +455,7 @@ public static class LlmClient
         public long? InputTokens { get; set; }
         public long? OutputTokens { get; set; }
         public double? Cost { get; set; }       // OpenRouter: Kosten in US-Dollar laut Anbieter
+        public bool ToolsRejected { get; set; } // Modell hat Werkzeuge abgelehnt – Antwort kam ohne Plugins
     }
 
     // Was gerade passiert, solange noch kein Antworttext da ist (für die Statusanzeige im Chat)
@@ -517,17 +526,29 @@ public static class LlmClient
 
     // ---------- Text-Chat ----------
 
+    // So oft darf das Modell pro Antwort Werkzeuge aufrufen; danach muss es ohne Werkzeuge antworten
+    public const int MaxToolRounds = 8;
+
+    // tools = Werkzeuge der aktiven Plugins (null = keine). Ruft das Modell eins auf, wird es ausgeführt, das Ergebnis
+    // zurückgeschickt und weiter gestreamt – bis das Modell eine normale Antwort gibt.
     public static async Task StreamAsync(ChatRequest r, Action<string> onChunk, Action<Phase> onPhase, StreamResult result,
-        CancellationToken ct)
+        ToolBox? tools, CancellationToken ct)
     {
         if (r.Provider.Kind == ProviderKind.Anthropic)
-            await StreamAnthropicAsync(r, onChunk, onPhase, result, ct);
+            await StreamAnthropicAsync(r, onChunk, onPhase, result, tools, ct);
         else
-            await StreamOpenAICompatibleAsync(r, onChunk, onPhase, result, ct);
+            await StreamOpenAICompatibleAsync(r, onChunk, onPhase, result, tools, ct);
+    }
+
+    private static void AddUsage(StreamResult result, long? input, long? output, double? cost)
+    {
+        if (input != null) result.InputTokens = (result.InputTokens ?? 0) + input;
+        if (output != null) result.OutputTokens = (result.OutputTokens ?? 0) + output;
+        if (cost != null) result.Cost = (result.Cost ?? 0) + cost;
     }
 
     private static async Task StreamOpenAICompatibleAsync(ChatRequest r, Action<string> onChunk, Action<Phase> onPhase,
-        StreamResult result, CancellationToken ct)
+        StreamResult result, ToolBox? tools, CancellationToken ct)
     {
         var p = r.Provider;
         var s = r.Settings;
@@ -568,51 +589,122 @@ public static class LlmClient
             };
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, EffectiveServer(p, r.Server, r.Region) + "/v1/chat/completions")
-        {
-            Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json")
-        };
-        AddHeaders(request, p, r.ApiKey);
-        onPhase(Phase.Sending);
-        using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-        if (!response.IsSuccessStatusCode)
-            throw new HttpRequestException($"HTTP {(int)response.StatusCode}: {ErrorText(await response.Content.ReadAsStringAsync(ct))}");
-        onPhase(Phase.Connected);
-
-        var thinking = false;
-        using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(ct));
-        while (await reader.ReadLineAsync(ct) is { } line)
-        {
-            if (!line.StartsWith("data:")) continue;
-            var data = line[5..].Trim();
-            if (data == "[DONE]") break;
-
-            var json = JsonNode.Parse(data);
-            if (json?["error"] is { } error)
-                throw new HttpRequestException(ErrorText(error.ToJsonString()));
-            if (json?["model"] is JsonValue model && (string?)model is { Length: > 0 } modelId)
-                result.Model = modelId;
-            if (json?["provider"] is JsonValue hoster && (string?)hoster is { Length: > 0 } hosterName)
-                result.Hoster = hosterName;
-            if (json?["usage"] is JsonObject usage)
+        var toolsJson = tools is { Specs.Count: > 0 }
+            ? new JsonArray(tools.Specs.Select(t => (JsonNode)new JsonObject
             {
-                result.InputTokens = (long?)usage["prompt_tokens"] ?? result.InputTokens;
-                result.OutputTokens = (long?)usage["completion_tokens"] ?? result.OutputTokens;
-                if (usage["cost"] is JsonValue cost && cost.TryGetValue<double>(out var dollars))
-                    result.Cost = dollars;
-            }
-            if (json?["choices"] is not JsonArray { Count: > 0 } choices) continue;
-            var delta = choices[0]?["delta"];
-            // Denkphase: OpenRouter/Ollama melden sie als "reasoning", LM Studio als "reasoning_content"
-            if (!thinking && (delta?["reasoning"] ?? delta?["reasoning_content"]) is JsonValue reasoning
-                && reasoning.TryGetValue<string>(out var reasoningText) && reasoningText.Length > 0)
+                ["type"] = "function",
+                ["function"] = new JsonObject
+                {
+                    ["name"] = t.Name, ["description"] = t.Description, ["parameters"] = t.Parameters.DeepClone()
+                }
+            }).ToArray())
+            : null;
+
+        for (var round = 0; ; round++)
+        {
+            var offerTools = toolsJson != null && round < MaxToolRounds;
+            if (offerTools) body["tools"] = toolsJson!.DeepClone();
+            else body.Remove("tools");
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, EffectiveServer(p, r.Server, r.Region) + "/v1/chat/completions")
             {
-                thinking = true;
-                onPhase(Phase.Thinking);
+                Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json")
+            };
+            AddHeaders(request, p, r.ApiKey);
+            onPhase(Phase.Sending);
+            using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = ErrorText(await response.Content.ReadAsStringAsync(ct));
+                // Modell kann keine Werkzeuge: ohne Plugins nochmal versuchen statt mit Fehler abzubrechen
+                if (offerTools && round == 0 && error.Contains("tool", StringComparison.OrdinalIgnoreCase))
+                {
+                    toolsJson = null;
+                    result.ToolsRejected = true;
+                    round = -1;
+                    continue;
+                }
+                throw new HttpRequestException($"HTTP {(int)response.StatusCode}: {error}");
             }
-            var chunk = delta?["content"]?.GetValue<string>();
-            if (!string.IsNullOrEmpty(chunk))
-                onChunk(chunk);
+            onPhase(Phase.Connected);
+
+            var thinking = false;
+            var text = new StringBuilder();
+            var calls = new SortedDictionary<int, (string Id, string Name, StringBuilder Args)>();
+            long? roundInput = null, roundOutput = null;
+            double? roundCost = null;
+            using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(ct));
+            while (await reader.ReadLineAsync(ct) is { } line)
+            {
+                if (!line.StartsWith("data:")) continue;
+                var data = line[5..].Trim();
+                if (data == "[DONE]") break;
+
+                var json = JsonNode.Parse(data);
+                if (json?["error"] is { } streamError)
+                    throw new HttpRequestException(ErrorText(streamError.ToJsonString()));
+                if (json?["model"] is JsonValue model && (string?)model is { Length: > 0 } modelId)
+                    result.Model = modelId;
+                if (json?["provider"] is JsonValue hoster && (string?)hoster is { Length: > 0 } hosterName)
+                    result.Hoster = hosterName;
+                if (json?["usage"] is JsonObject usage)
+                {
+                    roundInput = (long?)usage["prompt_tokens"] ?? roundInput;
+                    roundOutput = (long?)usage["completion_tokens"] ?? roundOutput;
+                    if (usage["cost"] is JsonValue cost && cost.TryGetValue<double>(out var dollars))
+                        roundCost = dollars;
+                }
+                if (json?["choices"] is not JsonArray { Count: > 0 } choices) continue;
+                var delta = choices[0]?["delta"];
+                // Denkphase: OpenRouter/Ollama melden sie als "reasoning", LM Studio als "reasoning_content"
+                if (!thinking && (delta?["reasoning"] ?? delta?["reasoning_content"]) is JsonValue reasoning
+                    && reasoning.TryGetValue<string>(out var reasoningText) && reasoningText.Length > 0)
+                {
+                    thinking = true;
+                    onPhase(Phase.Thinking);
+                }
+                // Werkzeugaufrufe kommen stückweise: je Index Kennung, Name und Argumente (JSON) zusammensetzen
+                foreach (var call in delta?["tool_calls"] as JsonArray ?? [])
+                {
+                    var index = (int?)call?["index"] ?? 0;
+                    if (!calls.TryGetValue(index, out var entry))
+                        entry = ("", "", new StringBuilder());
+                    var id = (string?)call?["id"];
+                    var name = (string?)call?["function"]?["name"];
+                    entry = (string.IsNullOrEmpty(id) ? entry.Id : id, string.IsNullOrEmpty(name) ? entry.Name : entry.Name + name, entry.Args);
+                    entry.Args.Append((string?)call?["function"]?["arguments"]);
+                    calls[index] = entry;
+                }
+                var chunk = delta?["content"] is JsonValue c && c.TryGetValue<string>(out var piece) ? piece : null;
+                if (!string.IsNullOrEmpty(chunk))
+                {
+                    text.Append(chunk);
+                    onChunk(chunk);
+                }
+            }
+            AddUsage(result, roundInput, roundOutput, roundCost);
+
+            if (calls.Count == 0 || tools == null) break;
+
+            // Aufrufe ausführen und Ergebnisse fürs Modell anhängen
+            var assistant = new JsonObject
+            {
+                ["role"] = "assistant",
+                ["content"] = text.Length > 0 ? text.ToString() : null,
+                ["tool_calls"] = new JsonArray(calls.Values.Select((call, i) => (JsonNode)new JsonObject
+                {
+                    ["id"] = call.Id.Length > 0 ? call.Id : $"call_{round}_{i}",
+                    ["type"] = "function",
+                    ["function"] = new JsonObject { ["name"] = call.Name, ["arguments"] = call.Args.Length > 0 ? call.Args.ToString() : "{}" }
+                }).ToArray())
+            };
+            messages.Add(assistant);
+            if (text.Length > 0) onChunk("\n\n");
+            foreach (var call in (JsonArray)assistant["tool_calls"]!)
+            {
+                var output = await tools.Execute((string)call!["function"]!["name"]!, (string)call["function"]!["arguments"]!, ct);
+                messages.Add(new JsonObject { ["role"] = "tool", ["tool_call_id"] = (string)call["id"]!, ["content"] = output });
+            }
         }
     }
 
@@ -639,41 +731,96 @@ public static class LlmClient
     }
 
     private static async Task StreamAnthropicAsync(ChatRequest r, Action<string> onChunk, Action<Phase> onPhase,
-        StreamResult result, CancellationToken ct)
+        StreamResult result, ToolBox? tools, CancellationToken ct)
     {
         var client = CreateAnthropicClient(r.Server, r.ApiKey);
         var useFallback = FallbackModels.Contains(r.Model);
-        var parameters = new MessageCreateParams
-        {
-            Model = r.Model,
-            MaxTokens = (long)(r.Settings.MaxTokens ?? 64000),
-            Messages = r.Messages.Select(ToAnthropicMessage).ToList(),
-            System = string.IsNullOrWhiteSpace(r.SystemPrompt) ? (MessageCreateParamsSystem?)null : r.SystemPrompt,
-            // Lehnt das Modell eine Anfrage ab, beantwortet sie serverseitig automatisch ein passendes Ersatzmodell
-            Betas = useFallback ? ["server-side-fallback-2026-07-01"] : null,
-            Fallbacks = useFallback ? new Default() : (BetaFallbacksParam?)null,
-        };
+        var messages = r.Messages.Select(ToAnthropicMessage).ToList();
+        var toolDefs = tools is { Specs.Count: > 0 }
+            ? tools.Specs.Select(t => (BetaToolUnion)new BetaTool
+            {
+                Name = t.Name,
+                Description = t.Description,
+                InputSchema = new InputSchema
+                {
+                    Properties = (t.Parameters["properties"] as JsonObject ?? new JsonObject())
+                        .ToDictionary(p => p.Key, p => JsonSerializer.Deserialize<JsonElement>(p.Value?.ToJsonString() ?? "{}")),
+                    Required = (t.Parameters["required"] as JsonArray)?.Select(x => (string?)x).OfType<string>().ToList(),
+                },
+            }).ToList()
+            : null;
 
-        onPhase(Phase.Sending);
-        await foreach (var ev in client.Beta.Messages.CreateStreaming(parameters, ct))
+        for (var round = 0; ; round++)
         {
-            if (ev.TryPickContentBlockDelta(out var delta))
+            var parameters = new MessageCreateParams
             {
-                if (delta.Delta.TryPickText(out var text))
-                    onChunk(text.Text);
-            }
-            else if (ev.TryPickStart(out var start))
+                Model = r.Model,
+                MaxTokens = (long)(r.Settings.MaxTokens ?? 64000),
+                Messages = messages,
+                System = string.IsNullOrWhiteSpace(r.SystemPrompt) ? (MessageCreateParamsSystem?)null : r.SystemPrompt,
+                Tools = toolDefs != null && round < MaxToolRounds ? toolDefs : null,
+                // Lehnt das Modell eine Anfrage ab, beantwortet sie serverseitig automatisch ein passendes Ersatzmodell
+                Betas = useFallback ? ["server-side-fallback-2026-07-01"] : null,
+                Fallbacks = useFallback ? new Default() : (BetaFallbacksParam?)null,
+            };
+
+            var text = new StringBuilder();
+            var uses = new List<(string Id, string Name, StringBuilder Json)>();
+            onPhase(Phase.Sending);
+            await foreach (var ev in client.Beta.Messages.CreateStreaming(parameters, ct))
             {
-                onPhase(Phase.Connected);
-                result.Model = start.Message.Model.ToString();
-                result.InputTokens = start.Message.Usage.InputTokens;
+                if (ev.TryPickContentBlockDelta(out var delta))
+                {
+                    if (delta.Delta.TryPickText(out var t))
+                    {
+                        text.Append(t.Text);
+                        onChunk(t.Text);
+                    }
+                    else if (delta.Delta.TryPickInputJson(out var json) && uses.Count > 0)
+                        uses[^1].Json.Append(json.PartialJson);
+                }
+                else if (ev.TryPickContentBlockStart(out var blockStart))
+                {
+                    if (blockStart.ContentBlock.TryPickBetaToolUse(out var use))
+                        uses.Add((use.ID, use.Name, new StringBuilder()));
+                }
+                else if (ev.TryPickStart(out var start))
+                {
+                    onPhase(Phase.Connected);
+                    result.Model = start.Message.Model.ToString();
+                    AddUsage(result, start.Message.Usage.InputTokens, null, null);
+                }
+                else if (ev.TryPickDelta(out var messageDelta))
+                {
+                    AddUsage(result, null, messageDelta.Usage.OutputTokens, null);
+                    if (messageDelta.Delta.StopReason == "refusal")
+                        onChunk("\n\n*[Das Modell hat diese Anfrage abgelehnt.]*");
+                }
             }
-            else if (ev.TryPickDelta(out var messageDelta))
+
+            if (uses.Count == 0 || tools == null) break;
+
+            // Antwort mit Werkzeugaufrufen zurückspielen, Aufrufe ausführen, Ergebnisse als Nutzer-Nachricht anhängen
+            var assistantBlocks = new List<BetaContentBlockParam>();
+            if (text.Length > 0)
             {
-                result.OutputTokens = messageDelta.Usage.OutputTokens;
-                if (messageDelta.Delta.StopReason == "refusal")
-                    onChunk("\n\n*[Das Modell hat diese Anfrage abgelehnt.]*");
+                assistantBlocks.Add(new BetaTextBlockParam { Text = text.ToString() });
+                onChunk("\n\n");
             }
+            var resultBlocks = new List<BetaContentBlockParam>();
+            foreach (var (id, name, json) in uses)
+            {
+                var input = json.Length > 0 ? json.ToString() : "{}";
+                assistantBlocks.Add(new BetaToolUseBlockParam
+                {
+                    ID = id,
+                    Name = name,
+                    Input = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(input) ?? new(),
+                });
+                resultBlocks.Add(new BetaToolResultBlockParam { ToolUseID = id, Content = await tools.Execute(name, input, ct) });
+            }
+            messages.Add(new BetaAssistantMessageParam { Content = assistantBlocks });
+            messages.Add(new BetaUserMessageParam { Content = resultBlocks });
         }
     }
 

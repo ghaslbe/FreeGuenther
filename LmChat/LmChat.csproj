@@ -20,7 +20,7 @@
   <PropertyGroup>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <!-- Bei jeder Änderung hochzählen: Major.Minor.Patch -->
-    <Version>1.12.0</Version>
+    <Version>1.13.0</Version>
     <Authors>ghaslbe</Authors>
     <Copyright>Copyright (c) 2026 ghaslbe – MIT-Lizenz</Copyright>
   </PropertyGroup>
@@ -28,12 +28,17 @@
   <ItemGroup>
     <Resource Include="app.ico" />
     <Resource Include="app-logo.png" />
+    <!-- Mitgelieferte Plugins (dieselben Dateien bilden den Online-Katalog im Ordner plugins/) -->
+    <EmbeddedResource Include="..\plugins\wetter.json" LogicalName="plugin.wetter.json" />
+    <EmbeddedResource Include="..\plugins\datum-uhrzeit.json" LogicalName="plugin.datum-uhrzeit.json" />
+    <EmbeddedResource Include="..\plugins\dateien.json" LogicalName="plugin.dateien.json" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Anthropic" Version="13.3.0" />
     <PackageReference Include="Markdig" Version="1.5.1" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.14" />
+    <PackageReference Include="ModelContextProtocol" Version="2.3.0" />
   </ItemGroup>
 
 </Project>

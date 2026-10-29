@@ -1,0 +1,16 @@
+{
+  "id": "datum-uhrzeit",
+  "name": "Datum und Uhrzeit",
+  "version": "1.0.0",
+  "author": "ghaslbe",
+  "description": "Sagt dem Modell das heutige Datum, die Uhrzeit, den Wochentag und die Kalenderwoche – Sprachmodelle wissen das sonst nicht. Läuft komplett lokal.",
+  "type": "builtin",
+  "tools": [
+    {
+      "name": "jetzt",
+      "description": "Liefert das aktuelle Datum, die Uhrzeit, den Wochentag, die Zeitzone und die Kalenderwoche des Nutzers. Nutze es bei allen Fragen nach heute, morgen, Uhrzeit, Wochentag oder Datum.",
+      "parameters": { "type": "object", "properties": {} },
+      "builtin": "datetime"
+    }
+  ]
+}

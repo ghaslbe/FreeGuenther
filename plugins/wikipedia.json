@@ -1,0 +1,47 @@
+{
+  "id": "wikipedia",
+  "name": "Wikipedia",
+  "version": "1.0.0",
+  "author": "ghaslbe",
+  "description": "Sucht in der Wikipedia und liest die Zusammenfassung eines Artikels – für aktuelle, nachprüfbare Fakten. Kostenlos, ohne Schlüssel.",
+  "homepage": "https://www.wikipedia.org",
+  "type": "http",
+  "settings": [
+    {
+      "key": "lang",
+      "label": "Sprache",
+      "type": "choice",
+      "default": "de",
+      "options": [ "de", "en", "fr", "es", "it" ],
+      "optionLabels": [ "Deutsch", "Englisch", "Französisch", "Spanisch", "Italienisch" ],
+      "description": "In welcher Wikipedia gesucht wird."
+    }
+  ],
+  "tools": [
+    {
+      "name": "suche",
+      "description": "Sucht Wikipedia-Artikel zu einem Begriff und liefert Titel und kurze Ausschnitte. Danach mit „artikel“ den passenden Titel lesen.",
+      "parameters": {
+        "type": "object",
+        "properties": { "begriff": { "type": "string", "description": "Suchbegriff" } },
+        "required": [ "begriff" ]
+      },
+      "requests": [
+        { "url": "https://{settings.lang|'de'}.wikipedia.org/w/api.php?action=query&list=search&srsearch={begriff}&srlimit=5&format=json&utf8=1" }
+      ]
+    },
+    {
+      "name": "artikel",
+      "description": "Liefert die Zusammenfassung eines Wikipedia-Artikels zum genauen Titel.",
+      "parameters": {
+        "type": "object",
+        "properties": { "titel": { "type": "string", "description": "Genauer Artikeltitel, z. B. aus der Suche" } },
+        "required": [ "titel" ]
+      },
+      "requests": [
+        { "url": "https://{settings.lang|'de'}.wikipedia.org/api/rest_v1/page/summary/{titel}" }
+      ],
+      "result": "Quelle: Wikipedia (Lizenz CC BY-SA). Nenne bei der Antwort die Quelle."
+    }
+  ]
+}

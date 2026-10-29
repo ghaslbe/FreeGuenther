@@ -1,0 +1,27 @@
+{
+  "id": "waehrung",
+  "name": "Währungsrechner",
+  "version": "1.0.0",
+  "author": "ghaslbe",
+  "description": "Tagesaktuelle Wechselkurse der Europäischen Zentralbank über Frankfurter (kostenlos, ohne Schlüssel). Beispiel: „Wie viel sind 250 Euro in Schweizer Franken?“",
+  "homepage": "https://frankfurter.dev",
+  "type": "http",
+  "tools": [
+    {
+      "name": "kurs",
+      "description": "Liefert den aktuellen Wechselkurs zwischen Währungen (ISO-Codes wie EUR, USD, CHF, GBP, JPY). Rechne Beträge selbst damit um.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "von": { "type": "string", "description": "Ausgangswährung, ISO-Code, z. B. EUR" },
+          "nach": { "type": "string", "description": "Zielwährung(en), ISO-Code, mehrere mit Komma, z. B. USD,CHF" }
+        },
+        "required": [ "von", "nach" ]
+      },
+      "requests": [
+        { "url": "https://api.frankfurter.dev/v1/latest?base={von}&symbols={nach}" }
+      ],
+      "result": "Referenzkurse der EZB (Stand siehe „date“)."
+    }
+  ]
+}

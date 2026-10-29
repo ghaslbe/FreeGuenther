@@ -1,0 +1,12 @@
+{
+  "id": "mcp-deepwiki",
+  "name": "DeepWiki (MCP)",
+  "version": "1.0.0",
+  "author": "ghaslbe",
+  "description": "Beispiel für ein MCP-Plugin über das Internet: beantwortet Fragen zu öffentlichen GitHub-Projekten (Aufbau, Dokumentation). Der MCP-Server von DeepWiki ist kostenlos und braucht keinen Schlüssel.",
+  "homepage": "https://deepwiki.com",
+  "type": "mcp",
+  "mcp": {
+    "url": "https://mcp.deepwiki.com/mcp"
+  }
+}

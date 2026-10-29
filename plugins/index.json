@@ -1,0 +1,52 @@
+﻿{
+  "plugins": [
+    {
+      "id": "wetter",
+      "name": "Wetter",
+      "version": "1.0.0",
+      "type": "http",
+      "description": "Aktuelles Wetter und Vorhersage für jeden Ort (Open-Meteo, ohne Schlüssel).",
+      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/wetter.json"
+    },
+    {
+      "id": "datum-uhrzeit",
+      "name": "Datum und Uhrzeit",
+      "version": "1.0.0",
+      "type": "builtin",
+      "description": "Heutiges Datum, Uhrzeit, Wochentag und Kalenderwoche – läuft lokal.",
+      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/datum-uhrzeit.json"
+    },
+    {
+      "id": "wikipedia",
+      "name": "Wikipedia",
+      "version": "1.0.0",
+      "type": "http",
+      "description": "Wikipedia durchsuchen und Artikel-Zusammenfassungen lesen.",
+      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/wikipedia.json"
+    },
+    {
+      "id": "waehrung",
+      "name": "Währungsrechner",
+      "version": "1.0.0",
+      "type": "http",
+      "description": "Tagesaktuelle Wechselkurse der EZB.",
+      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/waehrung.json"
+    },
+    {
+      "id": "dateien",
+      "name": "Dateien",
+      "version": "1.0.0",
+      "type": "builtin",
+      "description": "Lesezugriff auf einen Ordner deiner Wahl (auflisten, lesen, suchen) – eingebaut, mit Rückfrage.",
+      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/dateien.json"
+    },
+    {
+      "id": "mcp-deepwiki",
+      "name": "DeepWiki (MCP)",
+      "version": "1.0.0",
+      "type": "mcp",
+      "description": "MCP-Beispiel übers Internet: Fragen zu öffentlichen GitHub-Projekten.",
+      "url": "https://raw.githubusercontent.com/ghaslbe/lmstudioChatWindows/main/plugins/mcp-deepwiki.json"
+    }
+  ]
+}

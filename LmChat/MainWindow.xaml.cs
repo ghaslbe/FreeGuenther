@@ -18,9 +18,11 @@ public partial class MainWindow : Window
     private static readonly string[] ImageExtensions = [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tif", ".tiff"];
     private const int MaxImageSide = 2048;
 
-    // LMCHAT_DB = andere Datenbank verwenden (z. B. zum Testen mit leerem Stand)
-    private readonly ChatStore _store = new(Environment.GetEnvironmentVariable("LMCHAT_DB") is { Length: > 0 } db ? db
-        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LmChat", "chats.db"));
+    // LMCHAT_DB = andere Datenbank verwenden (z. B. zum Testen mit leerem Stand); Plugins liegen daneben in "plugins"
+    private static readonly string DbPath = Environment.GetEnvironmentVariable("LMCHAT_DB") is { Length: > 0 } db ? db
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LmChat", "chats.db");
+    private readonly ChatStore _store = new(DbPath);
+    private readonly PluginManager _plugins;
     private readonly ObservableCollection<ChatInfo> _chats = new();
     private readonly ObservableCollection<ModelInfo> _models = new();
     private readonly List<ChatMessage> _messages = new();
@@ -44,6 +46,7 @@ public partial class MainWindow : Window
         SidebarVersion.Text = $"Version {AppVersion}";
         _settings = LlmSettings.Load(_store);
         _draft = _settings.Clone();
+        _plugins = new PluginManager(_store, Path.Combine(Path.GetDirectoryName(DbPath)!, "plugins"));
         foreach (var chat in _store.ListChats())
             _chats.Add(chat);
 
@@ -78,9 +81,10 @@ public partial class MainWindow : Window
     private void Nav_Checked(object sender, RoutedEventArgs e)
     {
         if (MainTabs == null) return;
-        MainTabs.SelectedIndex = sender == NavSettings ? 1 : sender == NavUsage ? 2 : sender == NavHelp ? 3 : 0;
+        MainTabs.SelectedIndex = sender == NavSettings ? 1 : sender == NavUsage ? 2 : sender == NavPlugins ? 3 : sender == NavHelp ? 4 : 0;
         if (sender == NavChat) InputBox.Focus();
         if (sender == NavUsage) _ = ShowUsageAsync();
+        if (sender == NavPlugins) ShowPlugins(loadCatalog: _catalog == null);
     }
 
     // ---------- Verbrauch ----------
@@ -395,6 +399,8 @@ public partial class MainWindow : Window
         double? firstChunkAt = null;
         byte[]? generated = null;
         double? cost = null;
+        var usedTools = new List<string>();
+        var pluginNotes = new List<string>();
 
         // Statuszeile über der Antwort: was gerade passiert und seit wann – verschwindet, sobald Text kommt
         var phase = $"Anfrage an {provider.Name} wird vorbereitet";
@@ -412,7 +418,17 @@ public partial class MainWindow : Window
             phaseRun.Text = $"⏳ {phase} … {seconds} s{hint}";
             StatusText.Text = phase + " …";
         }
-        void SetPhase(string text) { phase = text; ShowPhase(); }
+        void SetPhase(string text)
+        {
+            phase = text;
+            // Nach Text wieder einblenden (z. B. wenn das Modell zwischendurch ein Plugin aufruft) – dann unter dem Text
+            if (!ticker.IsEnabled)
+            {
+                answerView.Body.Blocks.Add(phaseLine);
+                ticker.Start();
+            }
+            ShowPhase();
+        }
         void HidePhase()
         {
             if (!ticker.IsEnabled) return;
@@ -443,6 +459,7 @@ public partial class MainWindow : Window
             }
             else
             {
+                var toolBox = await PrepareToolsAsync(config, SetPhase, usedTools, pluginNotes, _cts.Token);
                 await LlmClient.StreamAsync(request, chunk =>
                 {
                     HidePhase();
@@ -462,7 +479,15 @@ public partial class MainWindow : Window
                         LlmClient.Phase.Connected => $"{provider.Name} hat die Anfrage angenommen, warte auf die ersten Wörter",
                         _ => "💭 Das Modell denkt nach"
                     });
-                }, result, _cts.Token);
+                }, result, toolBox, _cts.Token);
+
+                // Modell hat die Werkzeuge abgelehnt: merken, damit es beim nächsten Mal gar nicht erst versucht wird
+                if (result.ToolsRejected)
+                {
+                    config.ModelTools = false;
+                    _settings.Save(_store);
+                    pluginNotes.Add("Hinweis: Dieses Modell kann keine Plugins nutzen – die Antwort kam ohne Plugins.");
+                }
             }
             ticker.Stop();
             StatusText.Text = "Fertig.";
@@ -480,7 +505,13 @@ public partial class MainWindow : Window
         finally
         {
             ticker.Stop();
-            var stats = MakeStats(result, config.Model, clock.Elapsed.TotalSeconds, firstChunkAt, cost ?? result.Cost);
+            // Manche lokalen Modelle (z. B. Gemma in LM Studio) reichen leere Denk-Markierungen durch – entfernen
+            var cleaned = System.Text.RegularExpressions.Regex.Replace(answer.ToString(), @"<\|channel\|?>[\s\S]*?<\|?channel\|>", "").TrimStart();
+            answer.Clear().Append(cleaned);
+            var stats = MakeStats(result, config.Model, clock.Elapsed.TotalSeconds, firstChunkAt, cost ?? result.Cost) with
+            {
+                Tools = usedTools.Count > 0 ? string.Join(", ", usedTools.Distinct()) : null
+            };
             var success = answer.Length > 0 || generated != null;
 
             // Fertige Antwort als Markdown darstellen (während des Streamings war es reiner Text)
@@ -491,6 +522,9 @@ public partial class MainWindow : Window
                 MarkdownRenderer.Render(answer.ToString(), answerView.Body.Blocks);
             if (note != null)
                 answerView.Body.Blocks.Add(new Paragraph(new Italic(new Run(note))) { Margin = new Thickness(0) });
+            foreach (var pluginNote in pluginNotes)
+                answerView.Body.Blocks.Add(new Paragraph(new Italic(new Run(pluginNote)))
+                    { Margin = new Thickness(0, 4, 0, 0), FontSize = 12.5, Foreground = Brushes.DarkOrange });
             if (success)
                 AddAnswerFooter(answerView.Body, answer.ToString(), stats, generated);
             ChatBox.ScrollToEnd();
@@ -533,9 +567,82 @@ public partial class MainWindow : Window
         }
     }
 
+    // Werkzeuge der aktiven Plugins für diese Antwort zusammenstellen (null = keine Plugins nutzen)
+    private async Task<ToolBox?> PrepareToolsAsync(ProviderConfig config, Action<string> setPhase, List<string> used,
+        List<string> notes, CancellationToken ct)
+    {
+        if (!_plugins.Enabled.Any()) return null;
+        if (config.ModelTools == false)
+        {
+            notes.Add("Hinweis: Das gewählte Modell kann keine Plugins nutzen – sie wurden nicht angeboten.");
+            return null;
+        }
+        var problems = new List<string>();
+        var tools = await _plugins.CollectToolsAsync(setPhase, problems, ct);
+        notes.AddRange(problems.Select(p => "Plugin nicht verfügbar – " + p));
+        if (tools.Count == 0) return null;
+
+        return new ToolBox
+        {
+            Specs = tools.Select(t => t.Spec).ToList(),
+            Execute = async (name, arguments, token) =>
+            {
+                var entry = tools.FirstOrDefault(t => t.Spec.Name == name);
+                if (entry.Plugin == null) return "Fehler: Dieses Werkzeug gibt es nicht.";
+                var summary = ArgumentSummary(arguments);
+                if (_plugins.AskBeforeRun(entry.Plugin))
+                    setPhase($"❓ Warte auf deine Bestätigung für „{entry.Plugin.Name}“ (Fenster „Plugin ausführen?“)");
+                if (_plugins.AskBeforeRun(entry.Plugin) && !ConfirmTool(entry.Plugin, entry.Tool, arguments))
+                {
+                    used.Add($"{entry.Plugin.Name} abgelehnt");
+                    return "Der Nutzer hat diese Aktion nicht erlaubt. Frag nach oder antworte ohne.";
+                }
+                setPhase($"🔧 {entry.Plugin.Name}: {entry.Tool}{(summary.Length > 0 ? $" ({summary})" : "")}");
+                used.Add(entry.Plugin.Name + (summary.Length > 0 ? $" ({summary})" : ""));
+                try
+                {
+                    return await _plugins.ExecuteAsync(entry.Plugin, entry.Tool, arguments, token);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException || !token.IsCancellationRequested)
+                {
+                    return "Fehler beim Ausführen des Plugins: " + ex.Message;
+                }
+            }
+        };
+    }
+
+    // Kurzfassung der Argumente für Anzeige: Werte hintereinander, gekürzt
+    private static string ArgumentSummary(string json)
+    {
+        try
+        {
+            var values = (System.Text.Json.Nodes.JsonNode.Parse(json) as System.Text.Json.Nodes.JsonObject)?
+                .Select(p => p.Value?.ToString() ?? "").Where(v => v.Length > 0) ?? [];
+            var text = string.Join(", ", values);
+            return text.Length > 40 ? text[..40] + "…" : text;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return "";
+        }
+    }
+
+    private bool ConfirmTool(PluginManifest plugin, string tool, string arguments)
+    {
+        var args = arguments.Length > 600 ? arguments[..600] + " …" : arguments;
+        return MessageBox.Show(this,
+            $"Das Modell möchte das Plugin „{plugin.Name}“ verwenden:\n\nAktion: {tool}\nAngaben: {args}\n\n" +
+            "Erlauben? (Die Rückfrage lässt sich unter Plugins → Einstellungen des Plugins abschalten.)",
+            "Plugin ausführen?", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
+    }
+
     private void Stop_Click(object sender, RoutedEventArgs e) => _cts?.Cancel();
 
-    private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e) => _cts?.Cancel();
+    private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        _cts?.Cancel();
+        _ = _plugins.DisposeAsync().AsTask();   // gestartete MCP-Server beenden
+    }
 
     // ---------- Chatliste und Anzeige ----------
 
@@ -717,6 +824,8 @@ public partial class MainWindow : Window
         parts.Add($"{s.Seconds:0.0} s");
         if (s.Cost is > 0)
             parts.Add($"{s.Cost:0.####} $");
+        if (s.Tools is { Length: > 0 })
+            parts.Add("🔧 " + s.Tools);
         return string.Join("   ·   ", parts);
     }
 
@@ -1053,6 +1162,7 @@ public partial class MainWindow : Window
             config.Model = model.Id;
             config.ModelVision = model.Vision;
             config.ModelImageGen = model.ImageGen;
+            config.ModelTools = model.Tools;
         }
     }
 
@@ -1092,7 +1202,7 @@ public partial class MainWindow : Window
         _selectedModelId = config.Model;
         _modelsLoadedFor = null;
         _models.Clear();
-        EnsureModelItem(config.Model, config.ModelVision, config.ModelImageGen);
+        EnsureModelItem(config.Model, config.ModelVision, config.ModelImageGen, config.ModelTools);
         ModelCombo.SelectedValue = config.Model;
         UpdateSetupGuide();
         _ = LoadModelsAsync();
@@ -1207,12 +1317,15 @@ public partial class MainWindow : Window
         if (info.Kind == _settings.Provider &&
             _models.FirstOrDefault(m => m.Id == _settings.Current.Model) is { } active &&
             ((active.Vision != null && active.Vision != _settings.Current.ModelVision) ||
-             active.ImageGen != _settings.Current.ModelImageGen))
+             active.ImageGen != _settings.Current.ModelImageGen ||
+             (active.Tools != null && active.Tools != _settings.Current.ModelTools)))
         {
             _settings.Current.ModelVision = active.Vision ?? _settings.Current.ModelVision;
             _settings.Current.ModelImageGen = active.ImageGen;
+            _settings.Current.ModelTools = active.Tools ?? _settings.Current.ModelTools;
             _draft.Config(info.Kind).ModelVision = _settings.Current.ModelVision;
             _draft.Config(info.Kind).ModelImageGen = active.ImageGen;
+            _draft.Config(info.Kind).ModelTools = _settings.Current.ModelTools;
             _settings.Save(_store);
             UpdateModelUi();
         }
@@ -1248,10 +1361,10 @@ public partial class MainWindow : Window
             : _models.Count > 0 ? $"{_models.Count} Modelle" : "";
     }
 
-    private void EnsureModelItem(string id, bool? vision, bool imageGen = false)
+    private void EnsureModelItem(string id, bool? vision, bool imageGen = false, bool? tools = null)
     {
         if (id.Length > 0 && _models.All(m => m.Id != id))
-            _models.Add(new ModelInfo(id, vision, false, imageGen));
+            _models.Add(new ModelInfo(id, vision, false, imageGen, tools));
     }
 
     private void ModelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1269,7 +1382,12 @@ public partial class MainWindow : Window
         ModelHint.Text = model?.ImageGen == true
             ? "🎨 Dieses Modell erzeugt Bilder: Deine Nachricht ist die Bildbeschreibung. Ein angehängtes Bild (oder mit " +
               "„Verlauf mitsenden“ das zuletzt erzeugte) dient als Vorlage zum Bearbeiten. Bilder kosten meist mehr als Text."
-            : visionHint;
+            : visionHint + model?.Tools switch
+            {
+                true => " 🔧 Kann Plugins nutzen.",
+                false => " Kann keine Plugins nutzen.",
+                _ => ""
+            };
     }
 
     private void UpdateModelUi()

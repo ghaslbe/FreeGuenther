@@ -1,0 +1,49 @@
+{
+  "id": "dateien",
+  "name": "Dateien",
+  "version": "1.0.0",
+  "author": "ghaslbe",
+  "description": "Gibt dem Modell Lesezugriff auf EINEN Ordner deiner Wahl: Dateien auflisten, Textdateien lesen und durchsuchen. Es kann nichts ändern oder löschen. In LM Chat eingebaut, keine Installation nötig. Vor jedem Zugriff wird nachgefragt.",
+  "type": "builtin",
+  "askBeforeRun": true,
+  "settings": [
+    {
+      "key": "folder",
+      "label": "Freigegebener Ordner",
+      "type": "folder",
+      "default": "",
+      "description": "Nur auf diesen Ordner (mit Unterordnern) darf das Modell zugreifen – nicht die ganze Festplatte freigeben!"
+    }
+  ],
+  "tools": [
+    {
+      "name": "liste",
+      "description": "Listet Dateien und Unterordner im freigegebenen Ordner des Nutzers auf.",
+      "parameters": {
+        "type": "object",
+        "properties": { "pfad": { "type": "string", "description": "Unterordner relativ zum freigegebenen Ordner, leer = oberste Ebene" } }
+      },
+      "builtin": "files_list"
+    },
+    {
+      "name": "lesen",
+      "description": "Liest eine Textdatei (z. B. .txt, .md, .csv, .json, Quellcode) aus dem freigegebenen Ordner.",
+      "parameters": {
+        "type": "object",
+        "properties": { "pfad": { "type": "string", "description": "Dateipfad relativ zum freigegebenen Ordner, z. B. Notizen\\Einkauf.txt" } },
+        "required": [ "pfad" ]
+      },
+      "builtin": "files_read"
+    },
+    {
+      "name": "suchen",
+      "description": "Sucht im freigegebenen Ordner (mit Unterordnern) nach Dateinamen und Textinhalten.",
+      "parameters": {
+        "type": "object",
+        "properties": { "suchtext": { "type": "string", "description": "Gesuchtes Wort oder Satzteil" } },
+        "required": [ "suchtext" ]
+      },
+      "builtin": "files_search"
+    }
+  ]
+}

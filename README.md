@@ -4,6 +4,8 @@
 
 Ein einfacher Windows-Chat-Client für lokale und Online-Sprachmodelle: [LM Studio](https://lmstudio.ai), [Ollama](https://ollama.com), [OpenAI](https://platform.openai.com), [Anthropic (Claude)](https://platform.claude.com) und [OpenRouter](https://openrouter.ai). Er läuft als **eine einzige .exe** und braucht keine Installation und kein .NET auf dem Zielrechner.
 
+**Projektseite:** [www.guentherhaslbeck.de/projekte/freeguenther](https://www.guentherhaslbeck.de/projekte/freeguenther/) (auch per Klick aufs Logo in der App)
+
 ![FreeGuenther: Bild erzeugen und bearbeiten mit OpenRouter](docs/screenshot-bild.png)
 
 *Bild erzeugen und per Folgeanweisung abändern, darunter Anbieter, Modell, Tokens, Dauer und Kosten.*

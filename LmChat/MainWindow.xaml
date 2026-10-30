@@ -985,9 +985,9 @@
                             <TextBlock Style="{StaticResource Body}" Margin="0,0,0,18"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}">
                                 <Run Text="{DynamicResource ui.EinEinfacherChatClientFuer}"/> <Run x:Name="VersionRun"/>
-                                <Run Text="{DynamicResource ui.ProjektAufGitHub}"/>
-                                <Hyperlink NavigateUri="https://github.com/ghaslbe/FreeGuenther"
-                                           RequestNavigate="Link_RequestNavigate"><Run Text="{DynamicResource ui.GithubComGhaslbeFreeGuenther}"/></Hyperlink>
+                                <Run Text="{DynamicResource ui.Projektseite}"/>
+                                <Hyperlink NavigateUri="https://www.guentherhaslbeck.de/projekte/freeguenther/"
+                                           RequestNavigate="Link_RequestNavigate"><Run Text="guentherhaslbeck.de/projekte/freeguenther"/></Hyperlink>
                                 ·
                                 <Hyperlink NavigateUri="https://github.com/ghaslbe/FreeGuenther/releases/latest"
                                            RequestNavigate="Link_RequestNavigate"><Run Text="{DynamicResource ui.NeuesteVersion}"/></Hyperlink>

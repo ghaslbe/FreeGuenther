@@ -162,7 +162,7 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
     Geeignete Modelle sind in der Liste mit 🔧 markiert. Lehnt ein Modell Werkzeuge ab, kommt die Antwort automatisch ohne Plugins.
   - Im Chat zeigt die Statuszeile „🔧 Wetter: …“ bzw. „❓ Warte auf deine Bestätigung“. Unter der Antwort steht, welche Plugins benutzt wurden.
   - Eigene Plugins schreiben: siehe [plugins/README.md](plugins/README.md).
-- **Hilfe-Seite:** Kurzanleitung, Fehlerbehebung, Lizenz und Link zu diesem Repository.
+- **Hilfe-Seite:** Kurzanleitung, Fehlerbehebung, Lizenz, Link zur [Projektseite](https://www.guentherhaslbeck.de/projekte/freeguenther/) und zur neuesten Version.
 - **Oberfläche:**
   - Seitenleiste mit Logo, Navigation (Chat, Einstellungen, Hilfe), Suchfeld und nach Datum gruppierter Chatliste (Heute, Gestern, Letzte 7 Tage …). Unten zeigt eine Karte den aktiven Anbieter und das Modell.
   - Chat in einer mittigen Lesespalte: eigene Nachrichten als Sprechblasen, Antworten als Fließtext. Ein leerer Chat zeigt eine Startansicht.

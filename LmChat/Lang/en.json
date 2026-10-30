@@ -203,7 +203,7 @@
   "ui.VerbindenSichMitEinemMCP": "connect to an MCP server or start a program on your computer – depending on the server, that can be allowed to do a lot. That's why you are asked before every action.",
   "ui.BeiOnlineAnbieternGehenDie": "With online providers the plugin results are also sent to the provider and cost tokens.",
   "ui.EinEinfacherChatClientFuer": "A simple chat client for local and online language models.",
-  "ui.ProjektAufGitHub": "Project on GitHub:",
+  "ui.Projektseite": "Project page:",
   "ui.NeuesteVersion": "Latest version",
   "ui.EinAPISchluesselIstWie": "An API key is like a credit card: whoever knows it can make requests at your expense. If it falls into the wrong hands (shared computer, screenshot, malware, accidentally published) or usage gets out of hand (many images, very long answers, expensive models), high costs can arise quickly.",
   "ui.BevorDuIhnInFreeGuenther": "before you enter it in FreeGuenther:",

@@ -207,7 +207,7 @@
   "ui.VerbindenSichMitEinemMCP": "se conectan a un servidor MCP o inician un programa en tu ordenador – según el servidor, eso puede tener muchos permisos. Por eso se pregunta antes de cada acción.",
   "ui.BeiOnlineAnbieternGehenDie": "Con proveedores en línea, los resultados de los plugins también se envían al proveedor y cuestan tokens.",
   "ui.EinEinfacherChatClientFuer": "Un cliente de chat sencillo para modelos de lenguaje locales y en línea.",
-  "ui.ProjektAufGitHub": "Proyecto en GitHub:",
+  "ui.Projektseite": "Página del proyecto:",
   "ui.NeuesteVersion": "Última versión",
   "ui.EinAPISchluesselIstWie": "Una clave API es como una tarjeta de crédito: quien la conoce puede hacer solicitudes a tu costa. Si cae en malas manos (ordenador compartido, captura de pantalla, malware, publicada por error) o el uso se descontrola (muchas imágenes, respuestas muy largas, modelos caros), los costes pueden dispararse rápidamente.",
   "ui.BevorDuIhnInFreeGuenther": "antes de introducirla en FreeGuenther:",

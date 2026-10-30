@@ -8,6 +8,13 @@ export PATH="$DOTNET_ROOT:$PATH"
 
 dotnet build -c Release
 app=bin/Release/net10.0-macos/osx-arm64/FreeGuenther.app
-ditto -c -k --keepParent "$app" bin/Release/FreeGuenther-mac-arm64.zip
+
+# ZIP mit festem Ordner: App und Anleitung liegen nach dem Entpacken zusammen in „FreeGuenther“
+stage=bin/Release/zip/FreeGuenther
+rm -rf bin/Release/zip
+mkdir -p "$stage"
+ditto "$app" "$stage/FreeGuenther.app"
+cp Installation.txt "$stage/"
+ditto -c -k --keepParent "$stage" bin/Release/FreeGuenther-mac-arm64.zip
 echo "Fertig: $PWD/$app"
 echo "ZIP:    $PWD/bin/Release/FreeGuenther-mac-arm64.zip"

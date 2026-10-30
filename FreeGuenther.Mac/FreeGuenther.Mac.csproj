@@ -22,9 +22,9 @@
     <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
 
     <!-- Bei jeder Änderung hochzählen; gleiche Nummer wie die Windows-Version in LmChat/LmChat.csproj -->
-    <Version>1.23.0</Version>
-    <ApplicationVersion>1.23.0</ApplicationVersion>
-    <ApplicationDisplayVersion>1.23.0</ApplicationDisplayVersion>
+    <Version>1.23.1</Version>
+    <ApplicationVersion>1.23.1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.23.1</ApplicationDisplayVersion>
     <ApplicationId>de.guentherhaslbeck.freeguenther</ApplicationId>
     <ApplicationTitle>FreeGuenther</ApplicationTitle>
     <Authors>ghaslbe</Authors>

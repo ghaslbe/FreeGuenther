@@ -31,7 +31,7 @@ Ohne Signatur und Notarisierung blockiert macOS heruntergeladene Apps beim erste
 
 ## Release
 
-GitHub Actions baut die App bei jedem Push auf `main` auf dem Runner `macos-26` und legt `FreeGuenther-mac-arm64.zip` ins Release `v<Version>`. Die Versionen von Xcode, SDK und Workload sind in `.github/workflows/release.yml` festgelegt und müssen zueinander passen.
+GitHub Actions baut die App bei jedem Push auf `main` auf dem Runner `macos-26` und legt `FreeGuenther-mac-arm64.zip` ins Release `v<Version>`. Darin stehen `FreeGuenther.app` und die mehrsprachige Anleitung `Installation.txt` im Ordner `FreeGuenther`. Ändert sich die Anleitung, auch das Kapitel im Haupt-README anpassen. Die Versionen von Xcode, SDK und Workload sind in `.github/workflows/release.yml` festgelegt und müssen zueinander passen.
 
 ## Testen
 

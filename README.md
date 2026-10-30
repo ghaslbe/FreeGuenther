@@ -46,9 +46,13 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
 
 FreeGuenther gibt es auch als native Mac-App (AppKit) für Apple Silicon ab macOS 14. Sie kann dasselbe wie die Windows-Version, folgt dem Hell- und Dunkelmodus von macOS und braucht keine Installation von .NET oder anderen Programmen.
 
+![FreeGuenther auf dem Mac: Chat mit Gemma über LM Studio](docs/freeguenthermac.png)
+
+*FreeGuenther auf dem Mac: Chat mit einem lokalen Gemma-Modell über LM Studio.*
+
 ![FreeGuenther auf dem Mac: Chat mit Code-Block und Tabelle](docs/mac-chat.png)
 
-*Chat mit Markdown, Code-Block und Tabelle. Alle Bilder in diesem Kapitel zeigen Beispieldaten.*
+*Chat mit Markdown, Code-Block und Tabelle. Dieses und die folgenden Bilder zeigen Beispieldaten.*
 
 ![FreeGuenther auf dem Mac im Dunkelmodus](docs/mac-chat-dunkel.png)
 
@@ -70,13 +74,74 @@ FreeGuenther gibt es auch als native Mac-App (AppKit) für Apple Silicon ab macO
 
 *Datei-Automatik: Neue Dateien in einem Ordner gehen automatisch an ein Modell.*
 
-**Installieren:** [FreeGuenther-mac-arm64.zip](https://github.com/ghaslbe/FreeGuenther/releases/latest/download/FreeGuenther-mac-arm64.zip) herunterladen, entpacken und `FreeGuenther.app` in den Programme-Ordner ziehen.
+### Installation
 
-Die App ist nicht von Apple notarisiert, deshalb blockiert macOS sie beim ersten Start. Dann unter **Systemeinstellungen → Datenschutz & Sicherheit** auf **„Dennoch öffnen“** klicken oder im Terminal die Download-Markierung entfernen:
+1. Lade FreeGuenther-mac-arm64.zip herunter.
+2. Öffne die ZIP-Datei per Doppelklick. Danach liegt im Ordner „Downloads“ der Ordner „FreeGuenther“ mit FreeGuenther.app darin.
+3. Zieh FreeGuenther.app in den Ordner „Programme“.
+4. Öffne die App per Doppelklick. macOS blockiert sie beim ersten Mal, weil sie nicht notarisiert ist.
+5. Hebe die Sperre mit einem dieser beiden Wege auf:
+   - In den Systemeinstellungen: Geh zu „Datenschutz & Sicherheit“, scroll nach unten und klick bei FreeGuenther auf „Dennoch öffnen“.
+   - Im Terminal (auch wenn macOS meldet, die App sei beschädigt):
+     `xattr -dr com.apple.quarantine /Applications/FreeGuenther.app`
 
-```
-xattr -dr com.apple.quarantine /Applications/FreeGuenther.app
-```
+<details>
+<summary>English</summary>
+
+1. Download FreeGuenther-mac-arm64.zip.
+2. Double-click the ZIP file. The “Downloads” folder now contains a “FreeGuenther” folder with FreeGuenther.app inside.
+3. Drag FreeGuenther.app into the “Applications” folder.
+4. Double-click the app. macOS blocks it the first time because it is not notarized.
+5. Remove the block in one of these two ways:
+   - In System Settings: Go to “Privacy & Security”, scroll down and click “Open Anyway” next to FreeGuenther.
+   - In Terminal (also if macOS says the app is damaged):
+     `xattr -dr com.apple.quarantine /Applications/FreeGuenther.app`
+
+</details>
+
+<details>
+<summary>Français</summary>
+
+1. Téléchargez FreeGuenther-mac-arm64.zip.
+2. Double-cliquez sur le fichier ZIP. Le dossier « Téléchargements » contient alors un dossier « FreeGuenther » avec FreeGuenther.app.
+3. Faites glisser FreeGuenther.app dans le dossier « Applications ».
+4. Double-cliquez sur l'app. macOS la bloque la première fois, car elle n'est pas notarisée.
+5. Levez le blocage de l'une de ces deux façons :
+   - Dans Réglages Système : allez dans « Confidentialité et sécurité », faites défiler vers le bas et cliquez sur « Ouvrir quand même » à côté de FreeGuenther.
+   - Dans Terminal (également si macOS indique que l'app est endommagée) :
+     `xattr -dr com.apple.quarantine /Applications/FreeGuenther.app`
+
+</details>
+
+<details>
+<summary>Español</summary>
+
+1. Descarga FreeGuenther-mac-arm64.zip.
+2. Haz doble clic en el archivo ZIP. La carpeta «Descargas» contendrá entonces una carpeta «FreeGuenther» con FreeGuenther.app dentro.
+3. Arrastra FreeGuenther.app a la carpeta «Aplicaciones».
+4. Haz doble clic en la app. macOS la bloquea la primera vez porque no está notarizada.
+5. Quita el bloqueo de una de estas dos formas:
+   - En Ajustes del Sistema: ve a «Privacidad y seguridad», desplázate hacia abajo y haz clic en «Abrir igualmente» junto a FreeGuenther.
+   - En Terminal (también si macOS indica que la app está dañada):
+     `xattr -dr com.apple.quarantine /Applications/FreeGuenther.app`
+
+</details>
+
+<details>
+<summary>Italiano</summary>
+
+1. Scarica FreeGuenther-mac-arm64.zip.
+2. Fai doppio clic sul file ZIP. Nella cartella «Download» troverai la cartella «FreeGuenther» con FreeGuenther.app.
+3. Trascina FreeGuenther.app nella cartella «Applicazioni».
+4. Fai doppio clic sull'app. La prima volta macOS la blocca perché non è autenticata da Apple.
+5. Rimuovi il blocco in uno di questi due modi:
+   - In Impostazioni di Sistema: vai su «Privacy e sicurezza», scorri verso il basso e fai clic su «Apri comunque» accanto a FreeGuenther.
+   - In Terminale (anche se macOS segnala che l'app è danneggiata):
+     `xattr -dr com.apple.quarantine /Applications/FreeGuenther.app`
+
+</details>
+
+Dieselbe Anleitung liegt in allen Sprachen als `Installation.txt` im ZIP.
 
 **Unterschiede zur Windows-Version:**
 

@@ -247,6 +247,8 @@
                              Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavAutomation" Style="{StaticResource NavItem}" Tag="&#xE8B7;" Content="{DynamicResource ui.DateiAutomatik}"
                              Checked="Nav_Checked"/>
+                <RadioButton x:Name="NavMail" Style="{StaticResource NavItem}" Tag="&#xE715;" Content="{DynamicResource ui.EMailAutomatik}"
+                             Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavHelp" Style="{StaticResource NavItem}" Tag="&#xE897;" Content="{DynamicResource ui.Hilfe}"
                              Checked="Nav_Checked"/>
             </StackPanel>
@@ -1300,6 +1302,14 @@
                             <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource ui.DateiAutomatik}"/>
                             <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,18" Text="{DynamicResource ui.AutomatikHinweis}"/>
 
+                            <!-- Hinweis auf Prompt-Injection in einfacher Sprache -->
+                            <Border Style="{StaticResource Card}" Background="#1FF59E0B" BorderBrush="#66F59E0B">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.InjectionTitel}"/>
+                                    <TextBlock Style="{StaticResource Body}" Text="{DynamicResource ui.InjectionText}"/>
+                                </StackPanel>
+                            </Border>
+
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
                                     <DockPanel>
@@ -1379,6 +1389,138 @@
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Protokoll}"/>
                                     <ListBox x:Name="AutomationLogList" Height="240" FontFamily="Cascadia Mono, Consolas" FontSize="12.5"
+                                             AutomationProperties.Name="Protokoll"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- ========== E-Mail-Automatik ========== -->
+                <TabItem Header="Mail">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="32,24,32,24" MaxWidth="860" HorizontalAlignment="Left">
+                            <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource ui.EMailAutomatik}"/>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,18" Text="{DynamicResource ui.MailHinweis}"/>
+
+                            <Border Style="{StaticResource Card}" Background="#1FF59E0B" BorderBrush="#66F59E0B">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.InjectionTitel}"/>
+                                    <TextBlock Style="{StaticResource Body}" Text="{DynamicResource ui.InjectionText}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <Button Content="{DynamicResource ui.VerbindungTesten}" Padding="14,6" Margin="0,0,8,0"
+                                                    Click="MailTest_Click" AutomationProperties.Name="Verbindung testen"/>
+                                            <Button x:Name="MailStartButton" Content="{DynamicResource ui.Starten}" Padding="18,6"
+                                                    Style="{StaticResource AccentButtonStyle}" Click="MailStart_Click"
+                                                    AutomationProperties.Name="Mail-Automatik starten"/>
+                                            <Button x:Name="MailStopButton" Content="{DynamicResource ui.Stoppen}" Padding="18,6"
+                                                    Visibility="Collapsed" Click="MailStop_Click" AutomationProperties.Name="Mail-Automatik stoppen"/>
+                                        </StackPanel>
+                                        <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Postfach}" VerticalAlignment="Center" Margin="0"/>
+                                    </DockPanel>
+                                    <TextBlock x:Name="MailStatus" Style="{StaticResource Hint}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+
+                                    <StackPanel x:Name="MailSettingsPanel">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="12"/>
+                                                <ColumnDefinition Width="90"/>
+                                                <ColumnDefinition Width="12"/>
+                                                <ColumnDefinition Width="160"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.ImapServer}"/>
+                                                <TextBox x:Name="MailHostBox" AutomationProperties.Name="IMAP-Server"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Style="{StaticResource SubHeading}" Text="Port"/>
+                                                <TextBox x:Name="MailPortBox" Text="993" AutomationProperties.Name="Port"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="4">
+                                                <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.Verschluesselung}"/>
+                                                <ComboBox x:Name="MailSecurityCombo" SelectedIndex="0" SelectionChanged="MailSecurity_SelectionChanged"
+                                                          AutomationProperties.Name="Verschlüsselung">
+                                                    <ComboBoxItem Content="SSL/TLS"/>
+                                                    <ComboBoxItem Content="STARTTLS"/>
+                                                </ComboBox>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="12"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.Benutzername}"/>
+                                                <TextBox x:Name="MailUserBox" AutomationProperties.Name="Benutzername"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.Passwort}"/>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <PasswordBox x:Name="MailPasswordBox" AutomationProperties.Name="Passwort"/>
+                                                    <TextBox x:Name="MailPasswordPlain" Visibility="Collapsed" FontFamily="Cascadia Mono, Consolas"/>
+                                                    <ToggleButton x:Name="MailPasswordReveal" Grid.Column="1" Margin="6,0,0,0" Padding="10,0"
+                                                                  ToolTip="{DynamicResource ui.SchluesselAnzeigenBzwWiederVerbergen}"
+                                                                  AutomationProperties.Name="Passwort anzeigen">
+                                                        <TextBlock Text="&#xE7B3;" FontFamily="{StaticResource IconFont}" FontSize="14"/>
+                                                    </ToggleButton>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Grid>
+                                        <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0" Text="{DynamicResource ui.PasswortHinweis}"/>
+                                        <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.AbsenderAdresse}"/>
+                                        <TextBox x:Name="MailFromBox" AutomationProperties.Name="Absender-Adresse"/>
+                                        <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0" Text="{DynamicResource ui.AbsenderHinweis}"/>
+
+                                        <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.Prompt}"/>
+                                        <TextBlock Style="{StaticResource Hint}" Text="{DynamicResource ui.MailPromptHinweis}"/>
+                                        <TextBox x:Name="MailPromptBox" Height="100" AcceptsReturn="True" TextWrapping="Wrap"
+                                                 VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Prompt"/>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="160"/>
+                                                <ColumnDefinition Width="16"/>
+                                                <ColumnDefinition Width="220"/>
+                                                <ColumnDefinition Width="8"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.PruefenAlle}"/>
+                                                <TextBox x:Name="MailIntervalBox" Text="60" AutomationProperties.Name="Intervall"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.Anbieter}"/>
+                                                <ComboBox x:Name="MailProviderCombo" DisplayMemberPath="Label"
+                                                          SelectionChanged="MailProvider_SelectionChanged" AutomationProperties.Name="Anbieter"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="4">
+                                                <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.Modell}"/>
+                                                <ComboBox x:Name="MailModelCombo" DisplayMemberPath="Label" SelectedValuePath="Id"
+                                                          TextSearch.TextPath="Id" MaxDropDownHeight="420" AutomationProperties.Name="Modell"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <TextBlock x:Name="MailModelHint" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Protokoll}"/>
+                                    <ListBox x:Name="MailLogList" Height="240" FontFamily="Cascadia Mono, Consolas" FontSize="12.5"
                                              AutomationProperties.Name="Protokoll"/>
                                 </StackPanel>
                             </Border>

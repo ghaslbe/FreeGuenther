@@ -50,25 +50,40 @@ public sealed class AutomationJob
     };
 
     // Antwort des Modells in den Dateiinhalt umwandeln. Bei JSON wird geprüft; ungültige Antworten werden verpackt,
-    // damit die Datei trotzdem gültiges JSON ist (validJson = false)
-    public string FileContent(string answer, string sourceName, out bool validJson)
+    // damit die Datei trotzdem gültiges JSON ist (validJson = false). warning = Hinweis auf möglichen
+    // Manipulationsversuch: bei txt/md als erste Zeile, bei JSON als Feld "warnung" (bzw. im verpackten Objekt)
+    public string FileContent(string answer, string sourceName, string? warning, out bool validJson)
     {
         validJson = true;
-        if (Output != "json") return answer.Trim() + Environment.NewLine;
+        var options = new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+        if (Output != "json")
+            return (warning != null ? warning + Environment.NewLine + Environment.NewLine : "") + answer.Trim() + Environment.NewLine;
         var json = Regex.Replace(answer.Trim(), @"^```(?:json)?\s*|\s*```$", "").Trim();
         try
         {
             var node = JsonNode.Parse(json);
-            return node!.ToJsonString(new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping })
-                   + Environment.NewLine;
+            if (warning != null)
+                node = node is JsonObject obj ? Prepend(obj, warning) : new JsonObject { ["warnung"] = warning, ["daten"] = node };
+            return node!.ToJsonString(options) + Environment.NewLine;
         }
         catch (JsonException)
         {
             validJson = false;
-            return new JsonObject { ["datei"] = sourceName, ["antwort"] = answer.Trim() }
-                .ToJsonString(new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping })
-                + Environment.NewLine;
+            var wrapped = new JsonObject { ["datei"] = sourceName, ["antwort"] = answer.Trim() };
+            if (warning != null) wrapped = Prepend(wrapped, warning);
+            return wrapped.ToJsonString(options) + Environment.NewLine;
         }
+    }
+
+    private static JsonObject Prepend(JsonObject obj, string warning)
+    {
+        var result = new JsonObject { ["warnung"] = warning };
+        foreach (var (key, value) in obj.ToList())
+        {
+            obj.Remove(key);
+            if (key != "warnung") result[key] = value;
+        }
+        return result;
     }
 
     public static AutomationJob Load(ChatStore store)

@@ -28,10 +28,11 @@ public record ChatMessage(string Role, string Content, byte[]? Image = null)
     public string? Reasoning { get; init; }   // Gedankengang des Modells (Denkphase), nur zum Anzeigen
     public IReadOnlyList<AttachedDocument>? Documents { get; init; }   // angehängte Dateien (als Text)
 
-    // Was das Modell von einer Nutzer-Nachricht bekommt: angehängte Dateien vor dem eigentlichen Text
+    // Was das Modell von einer Nutzer-Nachricht bekommt: angehängte Dateien (als markierte Daten, siehe PromptGuard)
+    // vor dem eigentlichen Text
     public string TextForModel => Documents is not { Count: > 0 } docs
         ? Content
-        : string.Concat(docs.Select(d => $"<datei name=\"{d.Name}\">\n{d.Text}\n</datei>\n\n")) + Content;
+        : string.Concat(docs.Select(d => PromptGuard.Wrap(d.Name, d.Text) + "\n\n")) + Content;
 }
 
 // Angehängte Datei, bereits in Text umgewandelt (PDF, Word, Textdateien)

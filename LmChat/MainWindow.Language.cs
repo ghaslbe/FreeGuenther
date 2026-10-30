@@ -64,6 +64,8 @@ public partial class MainWindow
                 UpdateCompareKeyPanel(side, info);
         UpdateAutomationUi();
         AutomationProviderCombo.Items.Refresh();
+        UpdateMailUi();
+        MailProviderCombo.Items.Refresh();
         CompareProviderLeft.Items.Refresh();
         CompareProviderRight.Items.Refresh();
         ProviderList.Items.Refresh();

@@ -107,6 +107,17 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
   - Bei JSON wird die Antwort geprüft; ist sie kein gültiges JSON, wird sie als Text in ein JSON-Objekt verpackt (Hinweis im Protokoll).
   - Bilder brauchen ein Modell, das Bilder versteht (🖼). Alte Formate `.doc` und `.xls` werden nicht gelesen.
   - Die Automatik läuft nur, solange FreeGuenther geöffnet ist, und läuft nach einem Neustart weiter, wenn sie aktiv war. Bei Online-Anbietern zählt sie zur Kostenbremse; ist ein Limit erreicht, hält sie an.
+  - Die Eingaben bleiben auch ohne „Starten“ gespeichert (beim Wechseln der Seite und beim Beenden).
+- **E-Mail-Automatik (eigene Seite):** IMAP-Zugang (Server, Port, SSL/TLS oder STARTTLS, Benutzer, Passwort), Absender-Adresse, Prompt, Prüfintervall sowie Anbieter und Modell eintragen; „Verbindung testen“ prüft Zugang und Entwürfe-Ordner, dann „Starten“. Für jede neu ankommende Mail im Posteingang schreibt das Modell nach dem Prompt eine Antwort; sie landet als **Entwurf** im Ordner „Entwürfe“ (an den Absender, „Re: Betreff“, darunter die zitierte Mail).
+  - **Gesendet wird nie automatisch** – Entwürfe prüft und verschickt man selbst im Mailprogramm. Empfänger und Betreff setzt FreeGuenther, nicht das Modell.
+  - Nur Mails, die nach dem Starten ankommen, werden bearbeitet; die Original-Mail wird danach als gelesen markiert.
+  - Anhänge (PDF, Word, Excel, Text) gehen mit an das Modell, Bilder nur bei Modellen mit Bilderkennung (das erste Bild). Andere Anhänge, z. B. Programme, werden nicht geöffnet.
+  - Das Passwort wird mit Windows (DPAPI) verschlüsselt gespeichert und ist nur im eigenen Windows-Konto lesbar.
+- **Schutz vor versteckten Anweisungen (Prompt-Injection):** Mails, Anhänge und Dateien stammen von Fremden und können versteckte Befehle an das Modell enthalten (z. B. weiße Schrift: „Ignoriere alle Anweisungen …“). FreeGuenther behandelt solche Inhalte nur als Daten:
+  - Sie gehen klar markiert als fremde Daten an das Modell, mit festen Sicherheitsregeln im System-Prompt; gefälschte Markierungen und unsichtbare Zeichen werden entfernt.
+  - In den Automatiken bekommt das Modell keine Werkzeuge (Plugins) – es kann also nichts ausführen, senden oder löschen.
+  - Typische Angriffsmuster (in fünf Sprachen) und versteckter Text in HTML-Mails werden erkannt; dann steht eine Warnung oben im Entwurf bzw. in der Ergebnisdatei und im Protokoll.
+  - Einen hundertprozentigen Schutz gibt es nicht: Ergebnisse immer prüfen, bevor man sie weiterverwendet.
 - **Kostenbremse (auf der Seite „Verbrauch“):** Ein eigenes Tages- und/oder Monatsbudget in US-Dollar für alle Online-Anbieter zusammen. Ab 80 % kommt ein Hinweis. Ist das Limit erreicht, fragt FreeGuenther vor jeder Anfrage an einen Online-Anbieter nach; mit „Hart sperren“ wird ohne Nachfrage nichts mehr gesendet. Lokale Modelle sind nie betroffen. Grundlage ist dieselbe Schätzung wie auf der Verbrauchsseite – das ersetzt nicht das Ausgabenlimit beim Anbieter.
 - **Angaben unter jeder Antwort** (klein, wird mit dem Chat gespeichert):
   - Anbieter und tatsächlich antwortendes Modell, bei OpenRouter auch der Hoster, z. B. `OpenRouter · openai/gpt-6-luna (über OpenAI)`
@@ -281,6 +292,9 @@ $env:FREEGUENTHER_DB = "$env:TEMP\freeguenther-test.db"; .\LmChat\publish\FreeGu
 | `LmChat/MainWindow.Compare.cs` | Seite „Modelle vergleichen“ |
 | `LmChat/MainWindow.Automation.cs` | Seite „Datei-Automatik“: Ordner prüfen, Dateien bearbeiten, Protokoll |
 | `LmChat/AutomationJob.cs` | Auftrag der Datei-Automatik (gespeichert unter `settings` → `automation`) und Ausgabeformate |
+| `LmChat/MainWindow.Mail.cs` | Seite „E-Mail-Automatik“: IMAP-Verbindung, neue Mails bearbeiten, Entwürfe ablegen, Protokoll |
+| `LmChat/MailJob.cs` | Auftrag der E-Mail-Automatik (gespeichert unter `settings` → `mail`), Mail auslesen, Antwort-Entwurf bauen |
+| `LmChat/PromptGuard.cs` | Schutz vor Prompt-Injection: Sicherheitsregeln, Markierung fremder Daten, Erkennung von Angriffsmustern |
 | `LmChat/MainWindow.Budget.cs` | Kostenbremse und Kostenberechnung (auch für die Verbrauchsseite) |
 | `LmChat/MainWindow.Templates.cs` | Vorlagen und Personas: Auswahl mit „/“, Verwaltung in den Einstellungen |
 | `LmChat/MainWindow.Documents.cs` | Dateien anhängen (Kärtchen, Hineinziehen, Zwischenablage) |

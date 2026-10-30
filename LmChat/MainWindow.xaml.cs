@@ -100,6 +100,7 @@ public partial class MainWindow : Window
         ShowSettings();
         ShowLanguageChoice();
         InitAutomation();
+        InitMail();
         // Beim Befüllen der Einstellungen kann ein Element dort den Fokus bekommen – immer im Chat starten
         Loaded += (_, _) =>
         {
@@ -117,8 +118,11 @@ public partial class MainWindow : Window
     private void Nav_Checked(object sender, RoutedEventArgs e)
     {
         if (MainTabs == null) return;
+        // Eingaben der Automatiken auch ohne „Start“ behalten
+        SaveAutomationDraft();
+        SaveMailDraft();
         MainTabs.SelectedIndex = sender == NavSettings ? 1 : sender == NavUsage ? 2 : sender == NavPlugins ? 3 : sender == NavHelp ? 4
-            : sender == NavCompare ? 5 : sender == NavAutomation ? 6 : 0;
+            : sender == NavCompare ? 5 : sender == NavAutomation ? 6 : sender == NavMail ? 7 : 0;
         if (sender == NavChat) InputBox.Focus();
         if (sender == NavCompare) ShowCompare();
         if (sender == NavUsage)
@@ -451,8 +455,12 @@ public partial class MainWindow : Window
         var answerView = AddMessageBlock(new ChatMessage("assistant", ""), streaming: true);
 
         List<ChatMessage> toSend = HistoryCheck.IsChecked == true ? _messages.ToList() : [userMsg];
+        // Mit angehängten Dateien: Regel gegen Anweisungen, die in den Dateien versteckt sind (siehe PromptGuard)
+        var systemPrompt = SystemPromptFor(chat.Persona);
+        if (toSend.Any(m => m.Documents is { Count: > 0 }))
+            systemPrompt = string.Join("\n\n", new[] { systemPrompt, PromptGuard.ChatRules }.Where(s => s.Length > 0));
         var request = new ChatRequest(provider, config.Server, config.Region, config.ApiKey, config.Model,
-            SystemPromptFor(chat.Persona), _settings, toSend);
+            systemPrompt, _settings, toSend);
 
         _cts = new CancellationTokenSource();
         SetBusy(true);
@@ -785,7 +793,10 @@ public partial class MainWindow : Window
     private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         _cts?.Cancel();
-        _automationCts?.Cancel();               // Automatik bleibt eingeschaltet und läuft beim nächsten Start weiter
+        SaveAutomationDraft();
+        SaveMailDraft();
+        _automationCts?.Cancel();               // Automatiken bleiben eingeschaltet und laufen beim nächsten Start weiter
+        _mailCts?.Cancel();
         _ = _plugins.DisposeAsync().AsTask();   // gestartete MCP-Server beenden
     }
 

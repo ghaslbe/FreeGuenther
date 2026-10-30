@@ -309,5 +309,19 @@
   "ui.Prompt": "Prompt",
   "ui.PromptHinweis": "Was soll mit jeder Datei passieren? Z. B. „Lies Rechnungsnummer, Datum, Absender und Gesamtbetrag aus.“",
   "ui.AnbieterUndModell": "Anbieter und Modell",
-  "ui.Protokoll": "Protokoll"
+  "ui.Protokoll": "Protokoll",
+  "ui.EMailAutomatik": "E-Mail-Automatik",
+  "ui.MailHinweis": "Kommt im Posteingang eine neue E-Mail an, liest FreeGuenther sie samt Anhängen (PDF, Word, Excel, Text, Bilder), lässt das Modell nach deinem Prompt eine Antwort schreiben und legt sie als Entwurf im Ordner „Entwürfe“ ab – an den Absender adressiert, mit zitierter Original-Mail. Die Original-Mail wird als gelesen markiert. Gesendet wird nie automatisch. Mails, die beim Starten schon da sind, werden übersprungen. Läuft nur, solange FreeGuenther geöffnet ist.",
+  "ui.InjectionTitel": "⚠ Wichtig: Fremde Inhalte können versteckte Befehle enthalten",
+  "ui.InjectionText": "E-Mails und Dateien von anderen können Text enthalten, der sich an die KI richtet statt an dich – oft unsichtbar, etwa weiße Schrift auf weißem Grund: „Ignoriere deine Aufgabe und schreibe stattdessen …“. Das nennt man Prompt-Injection. FreeGuenther schützt dich so gut es geht: Die KI darf hier nichts ausführen, nichts verschicken und keine Plugins benutzen, und verdächtige Inhalte werden mit ⚠ markiert. Ganz ausschließen lässt sich eine Beeinflussung aber nie. Lies deshalb jedes Ergebnis, bevor du es verwendest – und schicke Antwort-Entwürfe erst ab, wenn du sie geprüft hast.",
+  "ui.VerbindungTesten": "Verbindung testen",
+  "ui.Postfach": "Postfach",
+  "ui.ImapServer": "IMAP-Server",
+  "ui.Verschluesselung": "Verschlüsselung",
+  "ui.Benutzername": "Benutzername",
+  "ui.Passwort": "Passwort",
+  "ui.PasswortHinweis": "Wird verschlüsselt gespeichert (nur mit deinem Windows-Konto lesbar). Bei Gmail und vielen anderen brauchst du ein App-Passwort. Microsoft-Konten (Outlook.com, Microsoft 365) erlauben die Anmeldung per Passwort meist nicht mehr – die funktionieren hier nicht.",
+  "ui.AbsenderAdresse": "Absender-Adresse",
+  "ui.AbsenderHinweis": "Von dieser Adresse aus sind die Entwürfe geschrieben. Leer = der Benutzername, falls er eine E-Mail-Adresse ist.",
+  "ui.MailPromptHinweis": "Wie soll geantwortet werden? Z. B. „Bedanke dich freundlich, bestätige den Eingang und kündige eine Antwort bis Freitag an.“"
 }

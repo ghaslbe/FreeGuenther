@@ -24,7 +24,10 @@ public partial class MainWindow
             StatusText.Text = L.F("Lese „{0}“ …", Path.GetFileName(path));
             try
             {
-                AddDocument(await Task.Run(() => DocumentReader.Read(path)));
+                var document = await Task.Run(() => DocumentReader.Read(path));
+                AddDocument(document);
+                if (PromptGuard.Detect(document.Text) is { Count: > 0 } reasons)
+                    problems.Add($"„{document.Name}“: " + PromptGuard.Warning(reasons));
             }
             catch (InvalidDataException ex)
             {

@@ -101,6 +101,12 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
 
   Beispiele sind dabei; anlegen, ändern und löschen geht in den Einstellungen unter „Vorlagen und Personas“.
 - **Modelle vergleichen (eigene Seite):** Dieselbe Frage geht gleichzeitig an zwei Modelle, auch an verschiedene Anbieter (z. B. lokal gegen online). Die Antworten stehen nebeneinander, darunter Dauer, Token/s, Tokens und Kosten (gemeldet, sonst nach Listenpreis geschätzt). Die Auswahl bleibt gespeichert; die Fragen landen nicht in der Chatliste, der Verbrauch wird aber mitgezählt.
+- **Datei-Automatik (eigene Seite):** Ordner, Dateityp (alle Bilder jpg/jpeg/png/bmp, alle PDF, alle Excel `.xlsx`, alle Word `.docx`), Prompt, Ausgabeformat (txt, json, md), Prüfintervall in Sekunden sowie Anbieter und Modell wählen, dann „Starten“. Alle x Sekunden schaut FreeGuenther in den Ordner: Für jede neu abgelegte passende Datei ohne Ergebnis geht der Prompt samt Datei an das Modell, und daneben entsteht die Ergebnisdatei mit gleichem Namen und der Endung der Ausgabe (z. B. `rechnung.pdf` → `rechnung.json`).
+  - Dateien, die beim Starten schon im Ordner liegen, werden übersprungen.
+  - Eine Datei wird erst bearbeitet, wenn sie fertig geschrieben ist; schlägt sie dreimal fehl, wird sie bis zum nächsten Start übersprungen.
+  - Bei JSON wird die Antwort geprüft; ist sie kein gültiges JSON, wird sie als Text in ein JSON-Objekt verpackt (Hinweis im Protokoll).
+  - Bilder brauchen ein Modell, das Bilder versteht (🖼). Alte Formate `.doc` und `.xls` werden nicht gelesen.
+  - Die Automatik läuft nur, solange FreeGuenther geöffnet ist, und läuft nach einem Neustart weiter, wenn sie aktiv war. Bei Online-Anbietern zählt sie zur Kostenbremse; ist ein Limit erreicht, hält sie an.
 - **Kostenbremse (auf der Seite „Verbrauch“):** Ein eigenes Tages- und/oder Monatsbudget in US-Dollar für alle Online-Anbieter zusammen. Ab 80 % kommt ein Hinweis. Ist das Limit erreicht, fragt FreeGuenther vor jeder Anfrage an einen Online-Anbieter nach; mit „Hart sperren“ wird ohne Nachfrage nichts mehr gesendet. Lokale Modelle sind nie betroffen. Grundlage ist dieselbe Schätzung wie auf der Verbrauchsseite – das ersetzt nicht das Ausgabenlimit beim Anbieter.
 - **Angaben unter jeder Antwort** (klein, wird mit dem Chat gespeichert):
   - Anbieter und tatsächlich antwortendes Modell, bei OpenRouter auch der Hoster, z. B. `OpenRouter · openai/gpt-6-luna (über OpenAI)`
@@ -273,6 +279,8 @@ $env:FREEGUENTHER_DB = "$env:TEMP\freeguenther-test.db"; .\LmChat\publish\FreeGu
 | `LmChat/Lang/*.json` | Übersetzungen (`de.json` = Oberflächentexte `ui.…`, die anderen zusätzlich die Texte aus dem Code mit dem deutschen Text als Schlüssel) |
 | `LmChat/MainWindow.Language.cs` | Sprachauswahl und Neubeschriften nach einem Wechsel |
 | `LmChat/MainWindow.Compare.cs` | Seite „Modelle vergleichen“ |
+| `LmChat/MainWindow.Automation.cs` | Seite „Datei-Automatik“: Ordner prüfen, Dateien bearbeiten, Protokoll |
+| `LmChat/AutomationJob.cs` | Auftrag der Datei-Automatik (gespeichert unter `settings` → `automation`) und Ausgabeformate |
 | `LmChat/MainWindow.Budget.cs` | Kostenbremse und Kostenberechnung (auch für die Verbrauchsseite) |
 | `LmChat/MainWindow.Templates.cs` | Vorlagen und Personas: Auswahl mit „/“, Verwaltung in den Einstellungen |
 | `LmChat/MainWindow.Documents.cs` | Dateien anhängen (Kärtchen, Hineinziehen, Zwischenablage) |

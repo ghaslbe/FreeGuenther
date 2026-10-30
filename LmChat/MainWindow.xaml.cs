@@ -99,6 +99,7 @@ public partial class MainWindow : Window
         ChatBox.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler(ChatBox_ScrollChanged));
         ShowSettings();
         ShowLanguageChoice();
+        InitAutomation();
         // Beim Befüllen der Einstellungen kann ein Element dort den Fokus bekommen – immer im Chat starten
         Loaded += (_, _) =>
         {
@@ -117,7 +118,7 @@ public partial class MainWindow : Window
     {
         if (MainTabs == null) return;
         MainTabs.SelectedIndex = sender == NavSettings ? 1 : sender == NavUsage ? 2 : sender == NavPlugins ? 3 : sender == NavHelp ? 4
-            : sender == NavCompare ? 5 : 0;
+            : sender == NavCompare ? 5 : sender == NavAutomation ? 6 : 0;
         if (sender == NavChat) InputBox.Focus();
         if (sender == NavCompare) ShowCompare();
         if (sender == NavUsage)
@@ -784,6 +785,7 @@ public partial class MainWindow : Window
     private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         _cts?.Cancel();
+        _automationCts?.Cancel();               // Automatik bleibt eingeschaltet und läuft beim nächsten Start weiter
         _ = _plugins.DisposeAsync().AsTask();   // gestartete MCP-Server beenden
     }
 

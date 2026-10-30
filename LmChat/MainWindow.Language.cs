@@ -62,6 +62,8 @@ public partial class MainWindow
         foreach (var side in new[] { _left, _right })
             if (side?.Providers.SelectedItem is ProviderInfo info)
                 UpdateCompareKeyPanel(side, info);
+        UpdateAutomationUi();
+        AutomationProviderCombo.Items.Refresh();
         CompareProviderLeft.Items.Refresh();
         CompareProviderRight.Items.Refresh();
         ProviderList.Items.Refresh();

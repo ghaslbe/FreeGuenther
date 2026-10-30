@@ -245,6 +245,8 @@
                              Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavCompare" Style="{StaticResource NavItem}" Tag="&#xE8A9;" Content="{DynamicResource ui.ModelleVergleichen}"
                              Checked="Nav_Checked"/>
+                <RadioButton x:Name="NavAutomation" Style="{StaticResource NavItem}" Tag="&#xE8B7;" Content="{DynamicResource ui.DateiAutomatik}"
+                             Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavHelp" Style="{StaticResource NavItem}" Tag="&#xE897;" Content="{DynamicResource ui.Hilfe}"
                              Checked="Nav_Checked"/>
             </StackPanel>
@@ -1289,6 +1291,99 @@
                         <TextBlock x:Name="CompareStatus" Grid.Row="3" HorizontalAlignment="Center" FontSize="12"
                                    TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                     </Grid>
+                </TabItem>
+
+                <!-- ========== Datei-Automatik ========== -->
+                <TabItem Header="Automatik">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="32,24,32,24" MaxWidth="860" HorizontalAlignment="Left">
+                            <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource ui.DateiAutomatik}"/>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,18" Text="{DynamicResource ui.AutomatikHinweis}"/>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <Button x:Name="AutomationStartButton" Content="{DynamicResource ui.Starten}" Padding="18,6"
+                                                    Style="{StaticResource AccentButtonStyle}" Click="AutomationStart_Click"
+                                                    AutomationProperties.Name="Automatik starten"/>
+                                            <Button x:Name="AutomationStopButton" Content="{DynamicResource ui.Stoppen}" Padding="18,6"
+                                                    Visibility="Collapsed" Click="AutomationStop_Click" AutomationProperties.Name="Automatik stoppen"/>
+                                        </StackPanel>
+                                        <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Auftrag}" VerticalAlignment="Center" Margin="0"/>
+                                    </DockPanel>
+                                    <TextBlock x:Name="AutomationStatus" Style="{StaticResource Hint}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+
+                                    <StackPanel x:Name="AutomationSettingsPanel">
+                                        <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.Ordner}"/>
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Content="{DynamicResource ui.OrdnerWaehlen}" Margin="8,0,0,0"
+                                                    Click="AutomationPickFolder_Click"/>
+                                            <TextBox x:Name="AutomationFolderBox" AutomationProperties.Name="Ordner"/>
+                                        </DockPanel>
+
+                                        <Grid Margin="0,0,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="16"/>
+                                                <ColumnDefinition Width="140"/>
+                                                <ColumnDefinition Width="16"/>
+                                                <ColumnDefinition Width="160"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.Dateien}"/>
+                                                <ComboBox x:Name="AutomationKindCombo" SelectedIndex="1" AutomationProperties.Name="Dateityp">
+                                                    <ComboBoxItem Content="{DynamicResource ui.AlleBilder}"/>
+                                                    <ComboBoxItem Content="{DynamicResource ui.AllePdf}"/>
+                                                    <ComboBoxItem Content="{DynamicResource ui.AlleExcel}"/>
+                                                    <ComboBoxItem Content="{DynamicResource ui.AlleWord}"/>
+                                                </ComboBox>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.Ausgabe}"/>
+                                                <ComboBox x:Name="AutomationOutputCombo" SelectedIndex="0" AutomationProperties.Name="Ausgabeformat">
+                                                    <ComboBoxItem Content="txt"/>
+                                                    <ComboBoxItem Content="json"/>
+                                                    <ComboBoxItem Content="md"/>
+                                                </ComboBox>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="4">
+                                                <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.PruefenAlle}"/>
+                                                <TextBox x:Name="AutomationIntervalBox" Text="30" AutomationProperties.Name="Intervall"/>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.Prompt}"/>
+                                        <TextBlock Style="{StaticResource Hint}" Text="{DynamicResource ui.PromptHinweis}"/>
+                                        <TextBox x:Name="AutomationPromptBox" Height="100" AcceptsReturn="True" TextWrapping="Wrap"
+                                                 VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Prompt"/>
+
+                                        <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.AnbieterUndModell}"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220"/>
+                                                <ColumnDefinition Width="8"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <ComboBox x:Name="AutomationProviderCombo" DisplayMemberPath="Label"
+                                                      SelectionChanged="AutomationProvider_SelectionChanged" AutomationProperties.Name="Anbieter"/>
+                                            <ComboBox x:Name="AutomationModelCombo" Grid.Column="2" DisplayMemberPath="Label" SelectedValuePath="Id"
+                                                      TextSearch.TextPath="Id" MaxDropDownHeight="420" AutomationProperties.Name="Modell"/>
+                                        </Grid>
+                                        <TextBlock x:Name="AutomationModelHint" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Heading}" Text="{DynamicResource ui.Protokoll}"/>
+                                    <ListBox x:Name="AutomationLogList" Height="240" FontFamily="Cascadia Mono, Consolas" FontSize="12.5"
+                                             AutomationProperties.Name="Protokoll"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
                 </TabItem>
             </TabControl>
         </Border>

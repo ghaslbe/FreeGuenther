@@ -80,6 +80,17 @@ public partial class MainWindow
         return (true, near.Count > 0 ? L.F("Hinweis: {0} verbraucht.", string.Join(L.T(" und "), near)) : null);
     }
 
+    // Für die Datei-Automatik: ohne Rückfrage – ist ein Limit erreicht, kommt der Grund zurück (sonst null)
+    private async Task<string?> BudgetBlockReasonAsync(ProviderInfo provider)
+    {
+        if (provider.IsLocal) return null;
+        if (_settings.DailyBudget is { } day && await SpentSinceAsync(DateTime.Today) is var spentToday && spentToday >= day)
+            return L.F("Dein Tagesbudget von {0} ist erreicht – bisher ≈ {1} (geschätzt, siehe „Verbrauch“).", FormatDollar(day), FormatDollar(spentToday));
+        if (_settings.MonthlyBudget is { } month && await SpentSinceAsync(MonthStart) is var spentMonth && spentMonth >= month)
+            return L.F("Dein Monatsbudget von {0} ist erreicht – bisher ≈ {1} (geschätzt, siehe „Verbrauch“).", FormatDollar(month), FormatDollar(spentMonth));
+        return null;
+    }
+
     // ---------- Karte „Kostenbremse“ auf der Seite Verbrauch ----------
 
     private async Task ShowBudgetAsync()

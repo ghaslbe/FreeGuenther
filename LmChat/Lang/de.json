@@ -1,6 +1,6 @@
 {
   "ui.FreeGuenther": "FreeGuenther",
-  "ui.Sprache": "🌐 Sprache · Language",
+  "ui.Sprache": "\uD83C\uDF10 Sprache · Language",
   "ui.SpracheHinweis": "Sprache der Oberfläche. „Automatisch“ übernimmt die Sprache von Windows. Plugins und eigene Vorlagen bleiben, wie sie sind.",
   "ui.ChatLoeschen": "Chat löschen",
   "ui.NeuerChat": "Neuer Chat",
@@ -293,5 +293,22 @@
   "ui.PermissionIsHerebyGrantedFree": "Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:",
   "ui.TheAboveCopyrightNoticeAnd": "The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.",
   "ui.THESOFTWAREISPROVIDEDAS": "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
-  "ui.DieselbeFrageGehtGleichzeitigAn": "Dieselbe Frage geht gleichzeitig an zwei Modelle – auch lokal gegen online. Darunter stehen jeweils Dauer, Token/s, Tokens und Kosten. Es gilt der System-Prompt aus den Einstellungen; die Fragen landen nicht in der Chatliste. Online-Anbieter brauchen ihren Schlüssel in den Einstellungen."
+  "ui.DieselbeFrageGehtGleichzeitigAn": "Dieselbe Frage geht gleichzeitig an zwei Modelle – auch lokal gegen online. Darunter stehen jeweils Dauer, Token/s, Tokens und Kosten. Es gilt der System-Prompt aus den Einstellungen; die Fragen landen nicht in der Chatliste. Online-Anbieter brauchen ihren Schlüssel in den Einstellungen.",
+  "ui.DateiAutomatik": "Datei-Automatik",
+  "ui.AutomatikHinweis": "Legst du eine passende Datei in den Ordner, erstellt FreeGuenther daneben eine Ergebnisdatei mit der Antwort des Modells – gleicher Name, Endung der Ausgabe (z. B. rechnung.pdf → rechnung.json), sofern es sie noch nicht gibt. Dateien, die beim Starten schon im Ordner liegen, werden übersprungen. Die Automatik läuft nur, solange FreeGuenther geöffnet ist, und zählt bei Online-Anbietern zur Kostenbremse.",
+  "ui.Auftrag": "Auftrag",
+  "ui.Starten": "Starten",
+  "ui.Stoppen": "Stoppen",
+  "ui.Ordner": "Ordner",
+  "ui.OrdnerWaehlen": "Ordner wählen …",
+  "ui.AlleBilder": "Alle Bilder (jpg, jpeg, png, bmp)",
+  "ui.AllePdf": "Alle PDF",
+  "ui.AlleExcel": "Alle Excel (xlsx)",
+  "ui.AlleWord": "Alle Word (docx)",
+  "ui.Ausgabe": "Ausgabe",
+  "ui.PruefenAlle": "Prüfen alle (Sekunden)",
+  "ui.Prompt": "Prompt",
+  "ui.PromptHinweis": "Was soll mit jeder Datei passieren? Z. B. „Lies Rechnungsnummer, Datum, Absender und Gesamtbetrag aus.“",
+  "ui.AnbieterUndModell": "Anbieter und Modell",
+  "ui.Protokoll": "Protokoll"
 }

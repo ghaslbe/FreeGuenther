@@ -32,7 +32,7 @@ public partial class MainWindow
             }
         }
         if (unsupported.Count > 0)
-            problems.Add(L.F("Nicht unterstützt: {0} (geht: Bilder, PDF, Word .docx, Text- und Code-Dateien).", string.Join(", ", unsupported)));
+            problems.Add(L.F("Nicht unterstützt: {0} (geht: Bilder, PDF, Word .docx, Excel .xlsx, Text- und Code-Dateien).", string.Join(", ", unsupported)));
         StatusText.Text = problems.Count > 0 ? string.Join(" ", problems) : DocumentsSummary();
         InputBox.Focus();
     }

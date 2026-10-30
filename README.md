@@ -111,6 +111,7 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
   - Die Automatik läuft nur, solange FreeGuenther geöffnet ist, und läuft nach einem Neustart weiter, wenn sie aktiv war. Bei Online-Anbietern zählt sie zur Kostenbremse; ist ein Limit erreicht, hält sie an.
   - Die Eingaben bleiben auch ohne „Starten“ gespeichert (beim Wechseln der Seite und beim Beenden).
   - Ein Punkt im Menü zeigt den Zustand: rot = läuft, grau = aus (gilt auch für die E-Mail-Automatik).
+  - **Gespeicherte Prompts** (Knopf unter dem Prompt, auch bei der E-Mail-Automatik): Prompts unter einem Namen speichern, per Klick wieder übernehmen oder löschen. Dabei sind Beispiele – für Dateien „Rechnung auslesen (JSON)“ (Rechnungssteller, Empfänger, Nummer, Daten, Positionen, Beträge, Bankverbindung), „Rechnung – Kurzübersicht“ und „Dokument zusammenfassen“, für E-Mails „Eingang bestätigen“, „Anfrage beantworten“ und „Rechnung erhalten“.
 - **E-Mail-Automatik (eigene Seite):** IMAP-Zugang (Server, Port, SSL/TLS oder STARTTLS, Benutzer, Passwort), Absender-Adresse, Prompt, Prüfintervall sowie Anbieter und Modell eintragen; „Verbindung testen“ prüft Zugang und Entwürfe-Ordner, dann „Starten“. Für jede neu ankommende Mail im Posteingang schreibt das Modell nach dem Prompt eine Antwort; sie landet als **Entwurf** im Ordner „Entwürfe“ (an den Absender, „Re: Betreff“, darunter die zitierte Mail).
   - **Gesendet wird nie automatisch** – Entwürfe prüft und verschickt man selbst im Mailprogramm. Empfänger und Betreff setzt FreeGuenther, nicht das Modell.
   - Nur Mails, die nach dem Starten ankommen, werden bearbeitet; die Original-Mail wird danach als gelesen markiert.
@@ -297,6 +298,7 @@ $env:FREEGUENTHER_DB = "$env:TEMP\freeguenther-test.db"; .\LmChat\publish\FreeGu
 | `LmChat/AutomationJob.cs` | Auftrag der Datei-Automatik (gespeichert unter `settings` → `automation`) und Ausgabeformate |
 | `LmChat/MainWindow.Mail.cs` | Seite „E-Mail-Automatik“: IMAP-Verbindung, neue Mails bearbeiten, Entwürfe ablegen, Protokoll |
 | `LmChat/MailJob.cs` | Auftrag der E-Mail-Automatik (gespeichert unter `settings` → `mail`), Mail auslesen, Antwort-Entwurf bauen |
+| `LmChat/MainWindow.PromptLibrary.cs` | Gespeicherte Prompts der Automatiken (Popup, Beispiele; gespeichert unter `settings` → `automationPrompts` / `mailPrompts`) |
 | `LmChat/PromptGuard.cs` | Schutz vor Prompt-Injection: Sicherheitsregeln, Markierung fremder Daten, Erkennung von Angriffsmustern |
 | `LmChat/MainWindow.Budget.cs` | Kostenbremse und Kostenberechnung (auch für die Verbrauchsseite) |
 | `LmChat/MainWindow.Templates.cs` | Vorlagen und Personas: Auswahl mit „/“, Verwaltung in den Einstellungen |

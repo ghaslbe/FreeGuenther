@@ -202,6 +202,29 @@
             </Setter>
         </Style>
 
+        <!-- Flacher Listeneintrag zum Anklicken (gespeicherte Prompts) -->
+        <Style x:Key="FlatRowButton" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" CornerRadius="6" Padding="8,5" Background="Transparent">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Inhaltsseiten (Tab-Köpfe ausgeblendet; umgeschaltet wird über die Seitenleiste) -->
         <Style x:Key="HiddenTab" TargetType="TabItem">
             <Setter Property="Visibility" Value="Collapsed"/>
@@ -1390,6 +1413,13 @@
                                         <TextBlock Style="{StaticResource Hint}" Text="{DynamicResource ui.PromptHinweis}"/>
                                         <TextBox x:Name="AutomationPromptBox" Height="100" AcceptsReturn="True" TextWrapping="Wrap"
                                                  VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Prompt"/>
+                                        <Button x:Name="AutomationPromptsButton" HorizontalAlignment="Left" Margin="0,6,0,0"
+                                                Click="AutomationPrompts_Click" AutomationProperties.Name="{DynamicResource ui.GespeichertePrompts}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE8F1;" FontFamily="{StaticResource IconFont}" FontSize="13" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{DynamicResource ui.GespeichertePrompts}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
 
                                         <TextBlock Style="{StaticResource SubHeading}" Text="{DynamicResource ui.AnbieterUndModell}"/>
                                         <Grid>
@@ -1511,6 +1541,13 @@
                                         <TextBlock Style="{StaticResource Hint}" Text="{DynamicResource ui.MailPromptHinweis}"/>
                                         <TextBox x:Name="MailPromptBox" Height="100" AcceptsReturn="True" TextWrapping="Wrap"
                                                  VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Prompt"/>
+                                        <Button x:Name="MailPromptsButton" HorizontalAlignment="Left" Margin="0,6,0,0"
+                                                Click="MailPrompts_Click" AutomationProperties.Name="{DynamicResource ui.GespeichertePrompts}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE8F1;" FontFamily="{StaticResource IconFont}" FontSize="13" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{DynamicResource ui.GespeichertePrompts}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
 
                                         <Grid>
                                             <Grid.ColumnDefinitions>

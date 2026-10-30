@@ -323,5 +323,6 @@
   "ui.PasswortHinweis": "Wird verschlüsselt gespeichert (nur mit deinem Windows-Konto lesbar). Bei Gmail und vielen anderen brauchst du ein App-Passwort. Microsoft-Konten (Outlook.com, Microsoft 365) erlauben die Anmeldung per Passwort meist nicht mehr – die funktionieren hier nicht.",
   "ui.AbsenderAdresse": "Absender-Adresse",
   "ui.AbsenderHinweis": "Von dieser Adresse aus sind die Entwürfe geschrieben. Leer = der Benutzername, falls er eine E-Mail-Adresse ist.",
-  "ui.MailPromptHinweis": "Wie soll geantwortet werden? Z. B. „Bedanke dich freundlich, bestätige den Eingang und kündige eine Antwort bis Freitag an.“"
+  "ui.MailPromptHinweis": "Wie soll geantwortet werden? Z. B. „Bedanke dich freundlich, bestätige den Eingang und kündige eine Antwort bis Freitag an.“",
+  "ui.GespeichertePrompts": "Gespeicherte Prompts …"
 }

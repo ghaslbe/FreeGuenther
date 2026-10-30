@@ -1945,4 +1945,8 @@ public partial class MainWindow : Window
         Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
         e.Handled = true;
     }
+
+    // Klick aufs Logo: Projektseite im Browser
+    private void Logo_Click(object sender, RoutedEventArgs e) =>
+        Process.Start(new ProcessStartInfo("https://www.guentherhaslbeck.de/projekte/freeguenther/") { UseShellExecute = true });
 }

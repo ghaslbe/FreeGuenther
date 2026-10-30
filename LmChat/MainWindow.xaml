@@ -216,14 +216,24 @@
 
         <!-- ================= Seitenleiste ================= -->
         <DockPanel Margin="16,14,12,16">
-            <!-- Logo -->
-            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6,2,0,18">
-                <Image Source="app-logo.png" Width="30" Height="30" RenderOptions.BitmapScalingMode="HighQuality"/>
-                <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="{DynamicResource ui.FreeGuenther}" FontSize="17" FontWeight="SemiBold"/>
-                    <TextBlock x:Name="SidebarVersion" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+            <!-- Logo (Klick öffnet die Projektseite) -->
+            <Button x:Name="LogoButton" DockPanel.Dock="Top" HorizontalAlignment="Left" Margin="6,2,0,18" Cursor="Hand"
+                    Focusable="False" Click="Logo_Click" ToolTip="www.guentherhaslbeck.de/projekte/freeguenther"
+                    AutomationProperties.Name="{DynamicResource ui.FreeGuenther}">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter/>
+                    </ControlTemplate>
+                </Button.Template>
+                <StackPanel Orientation="Horizontal" Background="Transparent">
+                    <Image Source="app-logo.png" Width="30" Height="30" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{DynamicResource ui.FreeGuenther}" FontSize="17" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <TextBlock x:Name="SidebarVersion" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
+            </Button>
 
             <Button x:Name="NewChatButton" DockPanel.Dock="Top" HorizontalAlignment="Stretch"
                     Style="{StaticResource AccentButtonStyle}" Padding="0,8" Margin="0,0,0,14" Click="NewChat_Click">

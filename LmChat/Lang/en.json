@@ -683,5 +683,19 @@
   "Bitte einen Namen eingeben.": "Please enter a name.",
   "„{0}“ überschrieben.": "“{0}” overwritten.",
   "„{0}“ gespeichert.": "“{0}” saved.",
-  "Aktuellen Prompt speichern als:": "Save current prompt as:"
+  "Aktuellen Prompt speichern als:": "Save current prompt as:",
+  "FreeGuenther ausblenden": "Hide FreeGuenther",
+  "Andere ausblenden": "Hide Others",
+  "FreeGuenther beenden": "Quit FreeGuenther",
+  "Ablage": "File",
+  "Widerrufen": "Undo",
+  "Wiederholen": "Redo",
+  "Ausschneiden": "Cut",
+  "Einfügen": "Paste",
+  "Alles auswählen": "Select All",
+  "Fenster": "Window",
+  "Im Dock ablegen": "Minimize",
+  "Zoomen": "Zoom",
+  "Ja": "Yes",
+  "Nein": "No"
 }

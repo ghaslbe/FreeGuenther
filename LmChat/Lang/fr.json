@@ -691,5 +691,19 @@
   "Bitte einen Namen eingeben.": "Merci de saisir un nom.",
   "„{0}“ überschrieben.": "« {0} » remplacé.",
   "„{0}“ gespeichert.": "« {0} » enregistré.",
-  "Aktuellen Prompt speichern als:": "Enregistrer le prompt actuel sous :"
+  "Aktuellen Prompt speichern als:": "Enregistrer le prompt actuel sous :",
+  "FreeGuenther ausblenden": "Masquer FreeGuenther",
+  "Andere ausblenden": "Masquer les autres",
+  "FreeGuenther beenden": "Quitter FreeGuenther",
+  "Ablage": "Fichier",
+  "Widerrufen": "Annuler",
+  "Wiederholen": "Rétablir",
+  "Ausschneiden": "Couper",
+  "Einfügen": "Coller",
+  "Alles auswählen": "Tout sélectionner",
+  "Fenster": "Fenêtre",
+  "Im Dock ablegen": "Placer dans le Dock",
+  "Zoomen": "Zoom",
+  "Ja": "Oui",
+  "Nein": "Non"
 }

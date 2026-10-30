@@ -690,5 +690,19 @@
   "Bitte einen Namen eingeben.": "Inserisci un nome.",
   "„{0}“ überschrieben.": "«{0}» sovrascritto.",
   "„{0}“ gespeichert.": "«{0}» salvato.",
-  "Aktuellen Prompt speichern als:": "Salva il prompt attuale come:"
+  "Aktuellen Prompt speichern als:": "Salva il prompt attuale come:",
+  "FreeGuenther ausblenden": "Nascondi FreeGuenther",
+  "Andere ausblenden": "Nascondi altre",
+  "FreeGuenther beenden": "Esci da FreeGuenther",
+  "Ablage": "File",
+  "Widerrufen": "Annulla",
+  "Wiederholen": "Ripristina",
+  "Ausschneiden": "Taglia",
+  "Einfügen": "Incolla",
+  "Alles auswählen": "Seleziona tutto",
+  "Fenster": "Finestra",
+  "Im Dock ablegen": "Contrai",
+  "Zoomen": "Zoom",
+  "Ja": "Sì",
+  "Nein": "No"
 }

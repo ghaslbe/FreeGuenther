@@ -2,7 +2,7 @@
 
 *Früher „LM Chat“ (bis Version 1.17). Updates einfach drüberinstallieren: Der Installer ersetzt die alte App, und beim ersten Start übernimmt FreeGuenther Chats, Einstellungen und Plugins aus `%LOCALAPPDATA%\LmChat`.*
 
-Ein einfacher Windows-Chat-Client für lokale und Online-Sprachmodelle: [LM Studio](https://lmstudio.ai), [Ollama](https://ollama.com), [OpenAI](https://platform.openai.com), [Anthropic (Claude)](https://platform.claude.com) und [OpenRouter](https://openrouter.ai). Er läuft als **eine einzige .exe** und braucht keine Installation und kein .NET auf dem Zielrechner.
+Ein einfacher Chat-Client für Windows und den Mac für lokale und Online-Sprachmodelle: [LM Studio](https://lmstudio.ai), [Ollama](https://ollama.com), [OpenAI](https://platform.openai.com), [Anthropic (Claude)](https://platform.claude.com) und [OpenRouter](https://openrouter.ai). Unter Windows läuft er als **eine einzige .exe**, auf dem Mac als eigenständige App ([Mac-Version](#mac-version)). Beide brauchen kein .NET auf dem Zielrechner.
 
 **Projektseite:** [www.guentherhaslbeck.de/projekte/freeguenther](https://www.guentherhaslbeck.de/projekte/freeguenther/) (auch per Klick aufs Logo in der App)
 
@@ -36,10 +36,63 @@ Ein einfacher Windows-Chat-Client für lokale und Online-Sprachmodelle: [LM Stud
 |---|---|
 | **[FreeGuenther-Setup.exe](https://github.com/ghaslbe/FreeGuenther/releases/latest/download/FreeGuenther-Setup.exe)** (Installer, empfohlen) | Installiert FreeGuenther mit Startmenü-Eintrag und optionalem Desktop-Symbol. Deinstallation über die Windows-Einstellungen. Keine Administratorrechte nötig, Updates einfach drüberinstallieren. |
 | **[FreeGuenther.exe](https://github.com/ghaslbe/FreeGuenther/releases/latest/download/FreeGuenther.exe)** (portabel) | Ohne Installation, z. B. vom USB-Stick oder zum schnellen Ausprobieren. Herunterladen und starten. |
+| **[FreeGuenther-mac-arm64.zip](https://github.com/ghaslbe/FreeGuenther/releases/latest/download/FreeGuenther-mac-arm64.zip)** (Mac) | Für Macs mit Apple Silicon. Entpacken und starten, siehe [Mac-Version](#mac-version). |
 
-Beide Varianten sind dieselbe App und nutzen dieselben Chats und Einstellungen (`%LOCALAPPDATA%\FreeGuenther`). Alle Versionen findest du unter [Releases](https://github.com/ghaslbe/FreeGuenther/releases).
+Beide Windows-Varianten sind dieselbe App und nutzen dieselben Chats und Einstellungen (`%LOCALAPPDATA%\FreeGuenther`). Alle Versionen findest du unter [Releases](https://github.com/ghaslbe/FreeGuenther/releases).
 
 Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann deshalb beim ersten Start warnen. Über „Weitere Informationen“ → „Trotzdem ausführen“ lässt sich die App starten.
+
+## Mac-Version
+
+FreeGuenther gibt es auch als native Mac-App (AppKit) für Apple Silicon ab macOS 14. Sie kann dasselbe wie die Windows-Version, folgt dem Hell- und Dunkelmodus von macOS und braucht keine Installation von .NET oder anderen Programmen.
+
+![FreeGuenther auf dem Mac: Chat mit Code-Block und Tabelle](docs/mac-chat.png)
+
+*Chat mit Markdown, Code-Block und Tabelle. Alle Bilder in diesem Kapitel zeigen Beispieldaten.*
+
+![FreeGuenther auf dem Mac im Dunkelmodus](docs/mac-chat-dunkel.png)
+
+*Die App folgt dem Dunkelmodus von macOS.*
+
+![FreeGuenther auf dem Mac: Einstellungen mit Anbieter und Modell](docs/mac-einstellungen.png)
+
+*Einstellungen: Anbieter, Server-Adresse und Modell.*
+
+![FreeGuenther auf dem Mac: zwei Modelle im Vergleich](docs/mac-vergleich.png)
+
+*Dieselbe Frage an zwei Modelle, darunter Geschwindigkeit und Tokens.*
+
+![FreeGuenther auf dem Mac: Plugin-Seite](docs/mac-plugins.png)
+
+*Plugins lassen sich einzeln einschalten, weitere kommen aus dem Katalog.*
+
+![FreeGuenther auf dem Mac: Datei-Automatik](docs/mac-automatik.png)
+
+*Datei-Automatik: Neue Dateien in einem Ordner gehen automatisch an ein Modell.*
+
+**Installieren:** [FreeGuenther-mac-arm64.zip](https://github.com/ghaslbe/FreeGuenther/releases/latest/download/FreeGuenther-mac-arm64.zip) herunterladen, entpacken und `FreeGuenther.app` in den Programme-Ordner ziehen.
+
+Die App ist nicht von Apple notarisiert, deshalb blockiert macOS sie beim ersten Start. Dann unter **Systemeinstellungen → Datenschutz & Sicherheit** auf **„Dennoch öffnen“** klicken oder im Terminal die Download-Markierung entfernen:
+
+```
+xattr -dr com.apple.quarantine /Applications/FreeGuenther.app
+```
+
+**Unterschiede zur Windows-Version:**
+
+| Thema | Mac |
+|---|---|
+| Daten | `~/Library/Application Support/FreeGuenther/chats.db` |
+| API-Schlüssel und Passwörter | verschlüsselt in der Datenbank, der Schlüssel dazu liegt im Schlüsselbund von macOS |
+| Bild oder Datei einfügen | ⌘V statt Strg+V |
+| Neuer Chat, Einstellungen | ⌘N, ⌘, |
+| Chat löschen | Rechtsklick, Entf-Taste oder Papierkorb oben rechts im Chat |
+
+Chats aus Windows lassen sich übernehmen, indem man `chats.db` in den Mac-Ordner kopiert. API-Schlüssel und Passwörter sind unter Windows an das Benutzerkonto gebunden und müssen auf dem Mac neu eingetragen werden.
+
+Die Mac-Version ist neu. Getestet ist bisher vor allem der Chat mit LM Studio; Online-Anbieter, Automatiken, Plugins und Anhänge sind noch kaum erprobt.
+
+Bauen und Technik: siehe [FreeGuenther.Mac/README.md](FreeGuenther.Mac/README.md).
 
 ## Funktionen
 
@@ -245,7 +298,7 @@ Installierte Plugins liegen als JSON-Dateien in `%LOCALAPPDATA%\FreeGuenther\plu
 
 Die Versionsnummer steht in `LmChat/LmChat.csproj` (`<Version>`) und wird bei jeder Änderung hochgezählt. Sie erscheint im Fenstertitel und in der Hilfe.
 
-Bei jedem Push auf `main` baut GitHub Actions (`.github/workflows/release.yml`) die portable `FreeGuenther.exe` und mit [Inno Setup](https://jrsoftware.org/isinfo.php) den Installer `FreeGuenther-Setup.exe` (Skript: `installer/FreeGuenther.iss`). Beide landen im Release `v<Version>`. Gibt es das Release schon, werden nur die Dateien ersetzt.
+Bei jedem Push auf `main` baut GitHub Actions (`.github/workflows/release.yml`) die portable `FreeGuenther.exe`, mit [Inno Setup](https://jrsoftware.org/isinfo.php) den Installer `FreeGuenther-Setup.exe` (Skript: `installer/FreeGuenther.iss`) und auf einem Mac-Runner `FreeGuenther-mac-arm64.zip`. Alle drei landen im Release `v<Version>`. Gibt es das Release schon, werden nur die Dateien ersetzt.
 
 Installer lokal bauen (nach `dotnet publish`):
 
@@ -306,6 +359,7 @@ $env:FREEGUENTHER_DB = "$env:TEMP\freeguenther-test.db"; .\LmChat\publish\FreeGu
 | `LmChat/DocumentReader.cs` | PDF, Word und Textdateien → Text |
 | `LmChat/CodeHighlighter.cs` | Farbige Hervorhebung in Code-Blöcken |
 | `LmChat/Plugins.cs` | Plugin-Manifest, Laden/Installieren, Ausführen (Web, eingebaut, MCP) |
+| `FreeGuenther.Mac/` | Mac-Version: Oberfläche in AppKit, die Logik ist aus `LmChat/` verlinkt |
 | `plugins/` | Plugin-Katalog (`index.json`) und Plugin-Dateien, Anleitung für eigene Plugins |
 | `LmChat/Providers.cs` | Anbieter (Standardwerte, Links) und `LlmClient`: Modelllisten und Streaming je Anbieter |
 | `LmChat/MarkdownRenderer.cs` | Markdown → WPF-FlowDocument (über Markdig) |

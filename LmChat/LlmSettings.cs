@@ -64,6 +64,7 @@ public sealed class PromptTemplate
 // Ein Modell im Modellvergleich
 public sealed record CompareSlot(ProviderKind Provider, string Model);
 
+#if !MACOS
 // Verschlüsselt Geheimnisse (API-Schlüssel) mit Windows DPAPI – nur für das eigene Windows-Konto lesbar
 public static class Secret
 {
@@ -85,6 +86,7 @@ public static class Secret
         }
     }
 }
+#endif
 
 // Alle Einstellungen. Feineinstellungen: null = Standard des Modells.
 public sealed class LlmSettings

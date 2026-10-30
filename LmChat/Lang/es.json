@@ -690,5 +690,19 @@
   "Bitte einen Namen eingeben.": "Introduce un nombre.",
   "„{0}“ überschrieben.": "«{0}» sobrescrito.",
   "„{0}“ gespeichert.": "«{0}» guardado.",
-  "Aktuellen Prompt speichern als:": "Guardar el prompt actual como:"
+  "Aktuellen Prompt speichern als:": "Guardar el prompt actual como:",
+  "FreeGuenther ausblenden": "Ocultar FreeGuenther",
+  "Andere ausblenden": "Ocultar otros",
+  "FreeGuenther beenden": "Salir de FreeGuenther",
+  "Ablage": "Archivo",
+  "Widerrufen": "Deshacer",
+  "Wiederholen": "Rehacer",
+  "Ausschneiden": "Cortar",
+  "Einfügen": "Pegar",
+  "Alles auswählen": "Seleccionar todo",
+  "Fenster": "Ventana",
+  "Im Dock ablegen": "Minimizar",
+  "Zoomen": "Zoom",
+  "Ja": "Sí",
+  "Nein": "No"
 }

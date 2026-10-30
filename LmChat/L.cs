@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
+#if !MACOS
 using System.Windows;
+#endif
 
 namespace LmChat;
 
@@ -35,9 +37,13 @@ public static class L
         Current = Resolve(code);
         var german = Read("de");
         _texts = Current == "de" ? new() : Read(Current);
+#if MACOS
+        _ui = german;
+#else
         var resources = Application.Current.Resources;
         foreach (var (key, value) in german)
             resources[key] = _texts.TryGetValue(key, out var translated) && translated.Length > 0 ? translated : value;
+#endif
 
         // Zahlen- und Datumsformat passend zur Sprache
         var culture = CultureInfo.GetCultureInfo(Current);
@@ -46,9 +52,27 @@ public static class L
         Changed?.Invoke();
     }
 
-    public static string T(string german) => _texts.TryGetValue(german, out var t) && t.Length > 0 ? t : german;
+    public static string T(string german) => Platform(_texts.TryGetValue(german, out var t) && t.Length > 0 ? t : german);
 
     public static string F(string german, params object?[] args) => string.Format(CultureInfo.CurrentCulture, T(german), args);
+
+#if MACOS
+    // Oberflächentexte „ui.…“: unter Windows kommen sie aus den Anwendungsressourcen, hier direkt per Schlüssel
+    private static Dictionary<string, string> _ui = new();
+
+    public static string UI(string key) =>
+        Platform(_texts.TryGetValue(key, out var t) && t.Length > 0 ? t : _ui.TryGetValue(key, out var german) ? german : key);
+
+    // Die Sprachdateien sind für Windows geschrieben: Tastenkürzel und Systemnamen an den Mac anpassen
+    private static string Platform(string text) => text
+        .Replace("Strg + V", "⌘ + V").Replace("Ctrl + V", "⌘ + V").Replace("Strg+V", "⌘V").Replace("Ctrl+V", "⌘V")
+        .Replace("Windows-Konto", "macOS-Benutzerkonto").Replace("Windows", "macOS")
+        .Replace("in der Eingabeaufforderung", "im Terminal").Replace("in the command prompt", "in Terminal")
+        .Replace("dans l'invite de commandes", "dans le Terminal").Replace("en el símbolo del sistema", "en Terminal")
+        .Replace("nel prompt dei comandi", "nel Terminale");
+#else
+    private static string Platform(string text) => text;
+#endif
 
     private static Dictionary<string, string> Read(string code)
     {

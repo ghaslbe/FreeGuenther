@@ -75,6 +75,7 @@ public partial class MainWindow
               (_mailLastCheck is { } t ? " · " + L.F("zuletzt {0:HH:mm:ss}", t) : "") +
               (_mailBusy ? " · " + L.T("arbeitet …") : "")
             : L.T("Gestoppt.");
+        SetStatusDot(MailDot, NavMail, running, MailStatus.Text);
     }
 
     private void MailLog(string text)

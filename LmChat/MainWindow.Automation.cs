@@ -68,6 +68,17 @@ public partial class MainWindow
               (_automationLastCheck is { } t ? " · " + L.F("zuletzt {0:HH:mm:ss}", t) : "") +
               (_automationBusy ? " · " + L.T("arbeitet …") : "")
             : L.T("Gestoppt.");
+        SetStatusDot(AutomationDot, NavAutomation, running, AutomationStatus.Text);
+    }
+
+    // Punkt im Menü: rot, solange eine Automatik läuft, sonst grau (Tooltip des Menüpunkts = Statuszeile der Seite)
+    private static readonly Brush RunningDotBrush = new SolidColorBrush(Color.FromRgb(0xE5, 0x48, 0x4D));
+
+    private static void SetStatusDot(System.Windows.Shapes.Ellipse dot, RadioButton nav, bool running, string status)
+    {
+        if (running) dot.Fill = RunningDotBrush;
+        else dot.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "TextFillColorTertiaryBrush");
+        nav.ToolTip = status;
     }
 
     private void Log(string text)

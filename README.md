@@ -108,6 +108,7 @@ Hinweis: Die Dateien sind nicht digital signiert. Windows SmartScreen kann desha
   - Bilder brauchen ein Modell, das Bilder versteht (🖼). Alte Formate `.doc` und `.xls` werden nicht gelesen.
   - Die Automatik läuft nur, solange FreeGuenther geöffnet ist, und läuft nach einem Neustart weiter, wenn sie aktiv war. Bei Online-Anbietern zählt sie zur Kostenbremse; ist ein Limit erreicht, hält sie an.
   - Die Eingaben bleiben auch ohne „Starten“ gespeichert (beim Wechseln der Seite und beim Beenden).
+  - Ein Punkt im Menü zeigt den Zustand: rot = läuft, grau = aus (gilt auch für die E-Mail-Automatik).
 - **E-Mail-Automatik (eigene Seite):** IMAP-Zugang (Server, Port, SSL/TLS oder STARTTLS, Benutzer, Passwort), Absender-Adresse, Prompt, Prüfintervall sowie Anbieter und Modell eintragen; „Verbindung testen“ prüft Zugang und Entwürfe-Ordner, dann „Starten“. Für jede neu ankommende Mail im Posteingang schreibt das Modell nach dem Prompt eine Antwort; sie landet als **Entwurf** im Ordner „Entwürfe“ (an den Absender, „Re: Betreff“, darunter die zitierte Mail).
   - **Gesendet wird nie automatisch** – Entwürfe prüft und verschickt man selbst im Mailprogramm. Empfänger und Betreff setzt FreeGuenther, nicht das Modell.
   - Nur Mails, die nach dem Starten ankommen, werden bearbeitet; die Original-Mail wird danach als gelesen markiert.

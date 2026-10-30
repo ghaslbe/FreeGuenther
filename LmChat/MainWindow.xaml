@@ -237,10 +237,23 @@
             <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
                 <RadioButton x:Name="NavChat" Style="{StaticResource NavItem}" Tag="&#xE8BD;" Content="{DynamicResource ui.Chat}"
                              Checked="Nav_Checked"/>
-                <RadioButton x:Name="NavAutomation" Style="{StaticResource NavItem}" Tag="&#xE8B7;" Content="{DynamicResource ui.DateiAutomatik}"
-                             Checked="Nav_Checked"/>
-                <RadioButton x:Name="NavMail" Style="{StaticResource NavItem}" Tag="&#xE715;" Content="{DynamicResource ui.EMailAutomatik}"
-                             Checked="Nav_Checked"/>
+                <!-- Punkt rechts: rot = Automatik läuft, grau = aus -->
+                <RadioButton x:Name="NavAutomation" Style="{StaticResource NavItem}" Tag="&#xE8B7;"
+                             AutomationProperties.Name="{DynamicResource ui.DateiAutomatik}" Checked="Nav_Checked">
+                    <DockPanel>
+                        <Ellipse x:Name="AutomationDot" DockPanel.Dock="Right" Width="8" Height="8" Margin="8,0,2,0"
+                                 VerticalAlignment="Center" Fill="{DynamicResource TextFillColorTertiaryBrush}"/>
+                        <TextBlock Text="{DynamicResource ui.DateiAutomatik}"/>
+                    </DockPanel>
+                </RadioButton>
+                <RadioButton x:Name="NavMail" Style="{StaticResource NavItem}" Tag="&#xE715;"
+                             AutomationProperties.Name="{DynamicResource ui.EMailAutomatik}" Checked="Nav_Checked">
+                    <DockPanel>
+                        <Ellipse x:Name="MailDot" DockPanel.Dock="Right" Width="8" Height="8" Margin="8,0,2,0"
+                                 VerticalAlignment="Center" Fill="{DynamicResource TextFillColorTertiaryBrush}"/>
+                        <TextBlock Text="{DynamicResource ui.EMailAutomatik}"/>
+                    </DockPanel>
+                </RadioButton>
                 <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Tag="&#xE713;" Content="{DynamicResource ui.Einstellungen}"
                              Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavUsage" Style="{StaticResource NavItem}" Tag="&#xE9D2;" Content="{DynamicResource ui.Verbrauch}"

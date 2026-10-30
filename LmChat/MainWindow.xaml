@@ -237,6 +237,10 @@
             <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
                 <RadioButton x:Name="NavChat" Style="{StaticResource NavItem}" Tag="&#xE8BD;" Content="{DynamicResource ui.Chat}"
                              Checked="Nav_Checked"/>
+                <RadioButton x:Name="NavAutomation" Style="{StaticResource NavItem}" Tag="&#xE8B7;" Content="{DynamicResource ui.DateiAutomatik}"
+                             Checked="Nav_Checked"/>
+                <RadioButton x:Name="NavMail" Style="{StaticResource NavItem}" Tag="&#xE715;" Content="{DynamicResource ui.EMailAutomatik}"
+                             Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Tag="&#xE713;" Content="{DynamicResource ui.Einstellungen}"
                              Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavUsage" Style="{StaticResource NavItem}" Tag="&#xE9D2;" Content="{DynamicResource ui.Verbrauch}"
@@ -244,10 +248,6 @@
                 <RadioButton x:Name="NavPlugins" Style="{StaticResource NavItem}" Tag="&#xEA86;" Content="{DynamicResource ui.Plugins}"
                              Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavCompare" Style="{StaticResource NavItem}" Tag="&#xE8A9;" Content="{DynamicResource ui.ModelleVergleichen}"
-                             Checked="Nav_Checked"/>
-                <RadioButton x:Name="NavAutomation" Style="{StaticResource NavItem}" Tag="&#xE8B7;" Content="{DynamicResource ui.DateiAutomatik}"
-                             Checked="Nav_Checked"/>
-                <RadioButton x:Name="NavMail" Style="{StaticResource NavItem}" Tag="&#xE715;" Content="{DynamicResource ui.EMailAutomatik}"
                              Checked="Nav_Checked"/>
                 <RadioButton x:Name="NavHelp" Style="{StaticResource NavItem}" Tag="&#xE897;" Content="{DynamicResource ui.Hilfe}"
                              Checked="Nav_Checked"/>
